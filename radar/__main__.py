@@ -21,7 +21,7 @@ from pathlib import Path
 from . import bdns
 from .config import DIAS_POR_DEFECTO, REGIONES_BDNS, UMBRAL_RELEVANCIA
 from .filtros import descartar_por_detalle, descartar_por_titulo, es_ambiental, motivo_corto
-from .puntuador import Puntuador, texto_para_analizar
+from .puntuador import VERSION_INSTRUCCIONES, Puntuador, texto_para_analizar
 
 RAIZ = Path(__file__).resolve().parent.parent
 VISTAS = RAIZ / "data" / "vistas.json"
@@ -105,8 +105,9 @@ def main() -> None:
             descartes[motivo_corto(motivo)] += 1
         elif codigo in vistas:
             descartes[vistas[codigo]] += 1
-        elif (previa := anterior.get(codigo)) and previa.get("metodo", "").startswith("groq"):
-            # Groq ya la evaluó: no gastamos cupo otra vez.
+        elif ((previa := anterior.get(codigo)) and previa.get("metodo", "").startswith("groq")
+              and previa.get("version") == VERSION_INSTRUCCIONES):
+            # Groq ya la evaluó con estas instrucciones: no gastamos cupo otra vez.
             if plazo_vencido(previa, hoy):
                 descartes["plazo cerrado"] += 1
             else:

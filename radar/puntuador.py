@@ -16,6 +16,14 @@ from .config import (AMBITOS_PREFERENTES, MODELOS_CRIBA, MODELOS_DECISION, PAUSA
 from .filtros import limpiar_html, normalizar, puntos_tematicos
 
 MAX_TEXTO_CRIBA = 2500     # caracteres: el 8b solo necesita lo esencial
+# Súbelo cuando cambien las instrucciones: las convocatorias evaluadas con otra versión
+# se vuelven a evaluar en la siguiente ejecución.
+VERSION_INSTRUCCIONES = 2
+
+AVISO_BENEFICIARIOS = """El campo "Beneficiarios" viene de la BDNS y a menudo está mal etiquetado
+(p. ej. pone "personas físicas" en ayudas para ONG). Guíate por el "Texto del extracto":
+si admite asociaciones, fundaciones, ONG o entidades del Tercer Sector, la ONG puede pedirla."""
+
 MAX_TEXTO_DECISION = 6000  # el 70b lee más (el extracto del boletín suele caber)
 ESTADOS_REQUISITO = {"cumple", "duda", "no"}
 
@@ -68,6 +76,7 @@ def resultado(puntuacion: int, metodo: str, **campos) -> dict:
         "importe_max": None,
         "plazo_estimado": None,    # "AAAA-MM-DD" si la BDNS no da fecha de fin
         "metodo": metodo,
+        "version": VERSION_INSTRUCCIONES,
     }
     base.update(campos)
     return base
@@ -96,7 +105,10 @@ INSTRUCCIONES_CRIBA = f"""Eres técnico de captación de fondos de esta ONG ambi
 {PERFIL_REFORESTA}
 Decide rápido si esta convocatoria pública merece un análisis detallado.
 Responde SOLO con JSON: {{"puntuacion": entero 0-100, "motivo": "una frase"}}.
-Puntúa bajo si la ONG no puede ser beneficiaria o el tema no tiene relación."""
+{AVISO_BENEFICIARIOS}
+Esto es solo un primer filtro: ante la duda, puntúa 40-60 para que se analice en detalle.
+Puntúa bajo (0-20) solo si está claro que la ONG no puede pedirla o el tema no tiene
+ninguna relación con medio ambiente, naturaleza, educación ambiental o voluntariado."""
 
 INSTRUCCIONES_DECISION = f"""Eres el técnico de captación de fondos de una ONG ambiental.
 Decide si la ONG debe pedir esta ayuda pública.
@@ -121,6 +133,7 @@ Responde SOLO con un objeto JSON con estas claves:
 - "plazo_estimado": si no hay fecha de fin pero sí una regla ("un mes desde la
   publicación"), calcula la fecha "AAAA-MM-DD" usando la fecha de publicación; si no, null.
 
+{AVISO_BENEFICIARIOS}
 Sé exigente: si la ONG no puede ser beneficiaria (solo personas físicas, empresas,
 ayuntamientos o una entidad concreta), la puntuación debe ser baja aunque el tema
 encaje. Si es de otra comunidad autónoma y exige sede allí, penaliza.
