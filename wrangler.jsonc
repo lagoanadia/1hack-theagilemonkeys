@@ -4,9 +4,8 @@
 // En Cloudflare → Settings → Build:
 //   Build command:  cd web && npm ci && npm run build
 //   Deploy command: npx wrangler deploy
-// Secretos (Settings → Variables and Secrets):
-//   GOOGLE_CLIENT_ID = ID de cliente OAuth de Google (login del equipo)
-//   EMAILS_EQUIPO    = emails autorizados separados por comas, o un dominio "@reforesta.es"
+// Secreto necesario (Settings → Variables and Secrets): CLAVE_EQUIPO = contraseña del equipo.
+// Opcional, login con Google: GOOGLE_CLIENT_ID y EMAILS_EQUIPO (ver worker/index.js).
 {
   "name": "1hack-theagilemonkeys",
   "main": "worker/index.js",

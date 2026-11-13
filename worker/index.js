@@ -12,10 +12,9 @@
 //   POST   /api/proyectos/:id/interes       {empresa, contacto, mensaje}             (público)
 //   GET    /api/interesados                 empresas que quieren ayudar              (equipo)
 //
-// "equipo" = sesión de Google (cabecera Authorization: Bearer <id_token>) de un email incluido
-// en el secreto EMAILS_EQUIPO (emails o dominios "@reforesta.es", separados por comas).
-// Alternativa para pruebas locales: cabecera X-Clave-Equipo igual al secreto CLAVE_EQUIPO.
-// Secretos del Worker: GOOGLE_CLIENT_ID, EMAILS_EQUIPO (y opcionalmente CLAVE_EQUIPO).
+// "equipo" = cabecera X-Clave-Equipo igual al secreto CLAVE_EQUIPO (es lo que usa la web).
+// Preparado también, pero sin usar en la web: login con Google (Authorization: Bearer <id_token>)
+// para los emails o dominios del secreto EMAILS_EQUIPO, con el secreto GOOGLE_CLIENT_ID.
 
 const ESQUEMA = [
   `CREATE TABLE IF NOT EXISTS estados (
@@ -118,11 +117,12 @@ async function api(request, env, ruta) {
   const usuario = await quienEs(request, env);
   const equipo = Boolean(usuario && !usuario.denegado);
   const soloEquipo = () => {
-    if (!env.GOOGLE_CLIENT_ID && !env.CLAVE_EQUIPO) {
-      return error("Falta configurar GOOGLE_CLIENT_ID y EMAILS_EQUIPO en el Worker", 503);
+    if (!env.CLAVE_EQUIPO && !env.GOOGLE_CLIENT_ID) {
+      return error("Falta configurar el secreto CLAVE_EQUIPO en el Worker", 503);
     }
     if (usuario?.denegado) return error(`${usuario.email} no está en la lista del equipo de Reforesta`, 403);
-    return error("Inicia sesión con la cuenta de Google del equipo", 401);
+    return error(env.CLAVE_EQUIPO ? "Contraseña del equipo incorrecta"
+      : "Inicia sesión con la cuenta de Google del equipo", 401);
   };
 
   // --- equipo

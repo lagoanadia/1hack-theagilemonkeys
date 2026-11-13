@@ -3,7 +3,6 @@ import Tarjeta from "./Tarjeta.jsx";
 import Validacion from "./Validacion.jsx";
 import Empresas from "./Empresas.jsx";
 import Proyectos from "./Proyectos.jsx";
-import LoginGoogle from "./LoginGoogle.jsx";
 import { ErrorSesion, api, guardarSesion, sesionGuardada } from "./api.js";
 import { cargarConvocatorias, cargarValidacion, veredicto } from "./datos.js";
 
@@ -29,16 +28,14 @@ export default function App() {
   const [linea, setLinea] = useState("");
   const [validacion, setValidacion] = useState(null);
   const [vista, setVista] = useState(vistaDeURL);
-  const [equipo, setEquipo] = useState(false);   // ¿sesión de Google del equipo válida?
-  const [email, setEmail] = useState("");
+  const [equipo, setEquipo] = useState(false);   // ¿contraseña del equipo válida?
   const [marcas, setMarcas] = useState({});       // "convocatoria:923290" -> "interesa"
 
   const entrarEquipo = useCallback(async (token, { silencioso = false } = {}) => {
     try {
-      const yo = await api("/equipo", { token });
+      await api("/equipo", { token });
       guardarSesion(token);
       setEquipo(true);
-      setEmail(yo.email);
       const lista = await api("/estado");
       setMarcas(Object.fromEntries(lista.map((m) => [`${m.tipo}:${m.id}`, m.estado])));
     } catch (e) {
@@ -57,11 +54,14 @@ export default function App() {
     return () => window.removeEventListener("hashchange", alCambiar);
   }, [entrarEquipo]);
 
+  function pedirClave() {
+    const clave = prompt("Contraseña del equipo de Reforesta:");
+    if (clave?.trim()) entrarEquipo(clave.trim());
+  }
+
   function salir() {
     guardarSesion("");
-    window.google?.accounts.id.disableAutoSelect();
     setEquipo(false);
-    setEmail("");
     setMarcas({});
   }
 
@@ -76,7 +76,7 @@ export default function App() {
       setMarcas((m) => ({ ...m, [clave]: anterior }));
       if (e instanceof ErrorSesion) {
         salir();
-        alert("La sesión ha caducado: vuelve a iniciar sesión con Google.");
+        alert("La contraseña ya no es válida: vuelve a entrar con «Soy de Reforesta».");
       } else {
         alert(`No se pudo guardar: ${e.message}`);
       }
@@ -108,8 +108,8 @@ export default function App() {
         <div className="cabecera">
           <h1>🌱 Radar</h1>
           {equipo
-            ? <button className="enlace" onClick={salir} title="Cerrar sesión">{email} · salir</button>
-            : <LoginGoogle onToken={entrarEquipo} />}
+            ? <button className="enlace" onClick={salir} title="Cerrar sesión">Equipo Reforesta · salir</button>
+            : <button className="enlace" onClick={pedirClave}>Soy de Reforesta</button>}
         </div>
         <p className="cobertura">
           El radar leyó <b>{datos.revisadas}</b> convocatorias, descartó <b>{datos.descartadas}</b> y
