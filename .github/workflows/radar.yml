@@ -1,5 +1,5 @@
 # Ejecuta el radar cada mañana y guarda el resultado en el repo.
-# GitHub Pages sirve la carpeta docs/, así que la web se actualiza sola.
+# Cada push redespliega la web en Cloudflare.
 name: Radar diario
 
 on:
@@ -27,6 +27,6 @@ jobs:
         run: |
           git config user.name "radar-bot"
           git config user.email "radar-bot@users.noreply.github.com"
-          git add docs/data/convocatorias.json
+          git add web/public/data/convocatorias.json
           git diff --staged --quiet || git commit -m "Radar: actualización diaria"
           git push

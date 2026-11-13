@@ -21,7 +21,7 @@ from .config import DIAS_POR_DEFECTO, TERMINOS_BUSQUEDA
 from .filtros import descartar_por_detalle, descartar_por_titulo
 from .puntuador import Puntuador
 
-SALIDA = Path(__file__).resolve().parent.parent / "docs" / "data" / "convocatorias.json"
+SALIDA = Path(__file__).resolve().parent.parent / "web" / "public" / "data" / "convocatorias.json"
 
 
 def cargar_anterior() -> dict:

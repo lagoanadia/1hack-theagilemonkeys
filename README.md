@@ -24,9 +24,9 @@ GitHub Actions (cada día)
         ├─ bdns.py       → API pública de infosubvenciones.es
         ├─ filtros.py    → reglas baratas (sin IA)
         ├─ puntuador.py  → Groq (o palabras clave si no hay API key)
-        └─ escribe docs/data/convocatorias.json
-GitHub Pages
-   └─ docs/index.html  → lee el JSON y lo muestra
+        └─ escribe web/public/data/convocatorias.json
+Cloudflare Workers (cada push)
+   └─ web/  → app React (Vite) que lee el JSON y lo muestra
 ```
 
 No hay servidor ni base de datos: coste 0 €. El JSON hace de caché, así que cada día
@@ -38,7 +38,7 @@ solo se gasta IA en las convocatorias nuevas.
 pip install -r requirements.txt
 export GROQ_API_KEY=gsk_...      # opcional: sin ella se usa el modo palabras clave
 python -m radar --dias 90
-cd docs && python -m http.server 8000   # abrir http://localhost:8000
+cd web && npm install && npm run dev     # abrir http://localhost:5173
 ```
 
 Opciones: `--dias N` (ventana de búsqueda), `--sin-ia`, `--recalcular` (ignorar caché).
@@ -47,8 +47,9 @@ El modelo de Groq se cambia con la variable `GROQ_MODEL` (por defecto `llama-3.3
 ## Puesta en producción (5 minutos)
 
 1. **GitHub → Settings → Secrets and variables → Actions** → nuevo secreto `GROQ_API_KEY`.
-2. **Cloudflare → Workers → Import a repository** → este repo. Build command: vacío.
-   Deploy command: `npx wrangler deploy` (lee [`wrangler.jsonc`](wrangler.jsonc), que sirve `docs/`).
+2. **Cloudflare → Workers → Import a repository** → este repo.
+   Build command: `cd web && npm ci && npm run build`.
+   Deploy command: `npx wrangler deploy` (lee [`wrangler.jsonc`](wrangler.jsonc), que sirve `web/dist`).
 3. **GitHub → Actions → Radar diario → Run workflow** para la primera ejecución.
    Cada push del workflow redespliega Cloudflare automáticamente.
 
