@@ -77,5 +77,28 @@ PESOS_PALABRAS = {
 # Ámbito geográfico: Reforesta trabaja sobre todo en Madrid y puede optar a estatales.
 AMBITOS_PREFERENTES = ["ESTADO", "COMUNIDAD DE MADRID", "MADRID"]
 
+# Filtro geográfico (sin IA). La BDNS da las regiones con códigos NUTS:
+# "ES" = toda España, "ES3"/"ES30"/"ES300" = Comunidad de Madrid.
+# Una convocatoria pasa si alguna de sus regiones empieza por uno de estos códigos.
+# Si Reforesta empieza a trabajar en otra comunidad, se añade aquí (p. ej. "ES41" Castilla y León).
+REGIONES_VALIDAS = ["ES3"]
+REGION_NACIONAL = "ES"  # código exacto que usa la BDNS para "ES - ESPAÑA"
+
+# Tipo de beneficiario de Reforesta en la BDNS. Si la convocatoria indica beneficiarios
+# y ninguno es de este tipo (solo personas físicas, pymes, gran empresa), se descarta.
+BENEFICIARIOS_VALIDOS = ["personas juridicas que no desarrollan actividad economica",
+                         "sin informacion"]
+
+# ---------------------------------------------------------------- Groq
+# Cascada: un modelo pequeño y barato hace la criba; el grande solo analiza lo que pasa.
+MODELO_CRIBA = "llama-3.1-8b-instant"
+MODELO_DECISION = "llama-3.3-70b-versatile"
+UMBRAL_CRIBA = 40          # puntuación mínima del modelo pequeño para pasar al grande
+PAUSA_ENTRE_LLAMADAS = 2   # segundos; el SDK además espera lo que diga Groq (retry-after)
+
+# Veredicto a partir de la puntuación (mismos cortes que usa la web).
+UMBRAL_PRESENTA = 70
+UMBRAL_MIRA = 50
+
 # Cuántos días hacia atrás miramos por defecto.
 DIAS_POR_DEFECTO = 90
