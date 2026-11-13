@@ -1,36 +1,39 @@
 // Llamadas al backend (worker/index.js → base de datos D1).
-// La clave del equipo se guarda solo en este navegador; sin ella se puede ver y pedir ayuda,
-// pero no marcar convocatorias ni publicar proyectos.
+// El equipo de Reforesta inicia sesión con Google; el token se guarda solo en este navegador.
+// Sin sesión se puede ver todo y pedir ayuda en Proyectos, pero no marcar ni publicar.
 
-const CLAVE = "radar-reforesta-clave";
+const SESION = "radar-reforesta-sesion";
 
-export function claveGuardada() {
+export function sesionGuardada() {
   try {
-    return localStorage.getItem(CLAVE) || "";
+    return localStorage.getItem(SESION) || "";
   } catch {
     return "";
   }
 }
 
-export function guardarClave(clave) {
+export function guardarSesion(token) {
   try {
-    if (clave) localStorage.setItem(CLAVE, clave);
-    else localStorage.removeItem(CLAVE);
+    if (token) localStorage.setItem(SESION, token);
+    else localStorage.removeItem(SESION);
   } catch {
-    /* navegador sin almacenamiento: habrá que escribir la clave cada vez */
+    /* navegador sin almacenamiento: habrá que iniciar sesión cada vez */
   }
 }
 
-export async function api(ruta, { metodo = "GET", datos, clave = claveGuardada() } = {}) {
+export class ErrorSesion extends Error {}
+
+export async function api(ruta, { metodo = "GET", datos, token = sesionGuardada() } = {}) {
   const r = await fetch(`/api${ruta}`, {
     method: metodo,
     headers: {
       ...(datos ? { "content-type": "application/json" } : {}),
-      ...(clave ? { "x-clave-equipo": clave } : {}),
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
     },
     body: datos ? JSON.stringify(datos) : undefined,
   });
   const cuerpo = await r.json().catch(() => ({}));
+  if (r.status === 401 || r.status === 403) throw new ErrorSesion(cuerpo.error || "Sesión no válida");
   if (!r.ok) throw new Error(cuerpo.error || `Error ${r.status}`);
   return cuerpo;
 }

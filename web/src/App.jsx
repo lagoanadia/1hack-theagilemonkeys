@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Tarjeta from "./Tarjeta.jsx";
 import Validacion from "./Validacion.jsx";
 import Empresas from "./Empresas.jsx";
 import Proyectos from "./Proyectos.jsx";
-import { api, claveGuardada, guardarClave } from "./api.js";
+import LoginGoogle from "./LoginGoogle.jsx";
+import { ErrorSesion, api, guardarSesion, sesionGuardada } from "./api.js";
 import { cargarConvocatorias, cargarValidacion, veredicto } from "./datos.js";
 
 // Chips de la pantalla 1. "valor" es el campo `linea` que devuelve el radar.
@@ -28,40 +29,39 @@ export default function App() {
   const [linea, setLinea] = useState("");
   const [validacion, setValidacion] = useState(null);
   const [vista, setVista] = useState(vistaDeURL);
-  const [equipo, setEquipo] = useState(false);   // ¿clave del equipo válida?
+  const [equipo, setEquipo] = useState(false);   // ¿sesión de Google del equipo válida?
+  const [email, setEmail] = useState("");
   const [marcas, setMarcas] = useState({});       // "convocatoria:923290" -> "interesa"
+
+  const entrarEquipo = useCallback(async (token, { silencioso = false } = {}) => {
+    try {
+      const yo = await api("/equipo", { token });
+      guardarSesion(token);
+      setEquipo(true);
+      setEmail(yo.email);
+      const lista = await api("/estado");
+      setMarcas(Object.fromEntries(lista.map((m) => [`${m.tipo}:${m.id}`, m.estado])));
+    } catch (e) {
+      guardarSesion("");
+      setEquipo(false);
+      if (!silencioso) alert(`No se pudo entrar: ${e.message}`);
+    }
+  }, []);
 
   useEffect(() => {
     cargarConvocatorias().then(setDatos).catch((e) => setError(e.message));
     cargarValidacion().then(setValidacion);
-    if (claveGuardada()) entrarEquipo(claveGuardada());
+    if (sesionGuardada()) entrarEquipo(sesionGuardada(), { silencioso: true });
     const alCambiar = () => setVista(vistaDeURL());
     window.addEventListener("hashchange", alCambiar);
     return () => window.removeEventListener("hashchange", alCambiar);
-  }, []);
-
-  async function entrarEquipo(clave) {
-    try {
-      await api("/equipo", { clave });
-      guardarClave(clave);
-      setEquipo(true);
-      const lista = await api("/estado");
-      setMarcas(Object.fromEntries(lista.map((m) => [`${m.tipo}:${m.id}`, m.estado])));
-    } catch (e) {
-      guardarClave("");
-      setEquipo(false);
-      if (clave) alert(`No se pudo entrar: ${e.message}`);
-    }
-  }
-
-  function pedirClave() {
-    const clave = prompt("Clave del equipo de Reforesta:");
-    if (clave) entrarEquipo(clave.trim());
-  }
+  }, [entrarEquipo]);
 
   function salir() {
-    guardarClave("");
+    guardarSesion("");
+    window.google?.accounts.id.disableAutoSelect();
     setEquipo(false);
+    setEmail("");
     setMarcas({});
   }
 
@@ -74,7 +74,12 @@ export default function App() {
       await api("/estado", { metodo: "PUT", datos: { tipo, id, estado } });
     } catch (e) {
       setMarcas((m) => ({ ...m, [clave]: anterior }));
-      alert(`No se pudo guardar: ${e.message}`);
+      if (e instanceof ErrorSesion) {
+        salir();
+        alert("La sesión ha caducado: vuelve a iniciar sesión con Google.");
+      } else {
+        alert(`No se pudo guardar: ${e.message}`);
+      }
     }
   } : null;
 
@@ -103,8 +108,8 @@ export default function App() {
         <div className="cabecera">
           <h1>🌱 Radar</h1>
           {equipo
-            ? <button className="enlace" onClick={salir}>Equipo Reforesta · salir</button>
-            : <button className="enlace" onClick={pedirClave}>Soy de Reforesta</button>}
+            ? <button className="enlace" onClick={salir} title="Cerrar sesión">{email} · salir</button>
+            : <LoginGoogle onToken={entrarEquipo} />}
         </div>
         <p className="cobertura">
           El radar leyó <b>{datos.revisadas}</b> convocatorias, descartó <b>{datos.descartadas}</b> y

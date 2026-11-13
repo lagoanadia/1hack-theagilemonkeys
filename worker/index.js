@@ -2,7 +2,8 @@
 // Solo atiende /api/*; todo lo demás (la web React) lo sirve Cloudflare como archivos estáticos.
 //
 // Rutas:
-//   GET    /api/equipo                      ¿es válida la clave del equipo?          (equipo)
+//   GET    /api/config                      Client ID de Google para el botón de login (público)
+//   GET    /api/equipo                      ¿quién soy? (email del equipo)            (equipo)
 //   GET    /api/estado                      marcas "interesa / no interesa"          (equipo)
 //   PUT    /api/estado                      {tipo, id, estado, nota}                 (equipo)
 //   GET    /api/proyectos                   proyectos publicados por Reforesta       (público)
@@ -11,7 +12,10 @@
 //   POST   /api/proyectos/:id/interes       {empresa, contacto, mensaje}             (público)
 //   GET    /api/interesados                 empresas que quieren ayudar              (equipo)
 //
-// "equipo" = cabecera X-Clave-Equipo igual al secreto CLAVE_EQUIPO del Worker.
+// "equipo" = sesión de Google (cabecera Authorization: Bearer <id_token>) de un email incluido
+// en el secreto EMAILS_EQUIPO (emails o dominios "@reforesta.es", separados por comas).
+// Alternativa para pruebas locales: cabecera X-Clave-Equipo igual al secreto CLAVE_EQUIPO.
+// Secretos del Worker: GOOGLE_CLIENT_ID, EMAILS_EQUIPO (y opcionalmente CLAVE_EQUIPO).
 
 const ESQUEMA = [
   `CREATE TABLE IF NOT EXISTS estados (
@@ -52,9 +56,45 @@ function numero(valor) {
   return Number.isFinite(n) && n >= 0 ? n : null;
 }
 
-function esEquipo(request, env) {
+function emailsPermitidos(env) {
+  return String(env.EMAILS_EQUIPO || "").toLowerCase().split(/[\s,;]+/).filter(Boolean);
+}
+
+function emailPermitido(email, env) {
+  return emailsPermitidos(env).some((p) => (p.startsWith("@") ? email.endsWith(p) : email === p));
+}
+
+// Tokens de Google ya comprobados en esta instancia del Worker (evita llamar a Google cada vez).
+const tokensComprobados = new Map();
+
+// Comprueba el id_token de Google con el servicio oficial de Google y devuelve el email.
+async function emailDeGoogle(token, env) {
+  if (!token || !env.GOOGLE_CLIENT_ID) return null;
+  const guardado = tokensComprobados.get(token);
+  if (guardado && guardado.exp > Date.now() / 1000) return guardado.email;
+  const r = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(token)}`);
+  if (!r.ok) return null;
+  const d = await r.json();
+  const emisorOk = ["accounts.google.com", "https://accounts.google.com"].includes(d.iss);
+  const verificado = d.email_verified === true || d.email_verified === "true";
+  if (!emisorOk || d.aud !== env.GOOGLE_CLIENT_ID || !verificado || Number(d.exp) < Date.now() / 1000) {
+    return null;
+  }
+  const email = String(d.email || "").toLowerCase();
+  if (tokensComprobados.size > 500) tokensComprobados.clear();
+  tokensComprobados.set(token, { email, exp: Number(d.exp) });
+  return email;
+}
+
+// Devuelve { email } si es del equipo, { email, denegado: true } si es una cuenta de Google
+// que no está en la lista, o null si no hay sesión.
+async function quienEs(request, env) {
   const clave = request.headers.get("x-clave-equipo") || "";
-  return Boolean(env.CLAVE_EQUIPO) && clave === env.CLAVE_EQUIPO;
+  if (env.CLAVE_EQUIPO && clave === env.CLAVE_EQUIPO) return { email: "clave del equipo" };
+  const auth = request.headers.get("authorization") || "";
+  const email = await emailDeGoogle(auth.startsWith("Bearer ") ? auth.slice(7) : "", env);
+  if (!email) return null;
+  return emailPermitido(email, env) ? { email } : { email, denegado: true };
 }
 
 async function leerJSON(request) {
@@ -68,16 +108,26 @@ async function leerJSON(request) {
 async function api(request, env, ruta) {
   const db = env.DB;
   if (!db) return error("Falta la base de datos D1 (binding DB) en wrangler.jsonc", 503);
-  await prepararEsquema(db);
   const metodo = request.method;
-  const equipo = esEquipo(request, env);
-  const soloEquipo = () =>
-    env.CLAVE_EQUIPO ? error("Clave del equipo incorrecta", 401)
-      : error("Falta el secreto CLAVE_EQUIPO en el Worker", 503);
+
+  if (ruta === "/api/config" && metodo === "GET") {
+    return json({ google_client_id: env.GOOGLE_CLIENT_ID || "" });
+  }
+
+  await prepararEsquema(db);
+  const usuario = await quienEs(request, env);
+  const equipo = Boolean(usuario && !usuario.denegado);
+  const soloEquipo = () => {
+    if (!env.GOOGLE_CLIENT_ID && !env.CLAVE_EQUIPO) {
+      return error("Falta configurar GOOGLE_CLIENT_ID y EMAILS_EQUIPO en el Worker", 503);
+    }
+    if (usuario?.denegado) return error(`${usuario.email} no está en la lista del equipo de Reforesta`, 403);
+    return error("Inicia sesión con la cuenta de Google del equipo", 401);
+  };
 
   // --- equipo
   if (ruta === "/api/equipo" && metodo === "GET") {
-    return equipo ? json({ ok: true }) : soloEquipo();
+    return equipo ? json({ ok: true, email: usuario.email }) : soloEquipo();
   }
 
   // --- interesa / no interesa

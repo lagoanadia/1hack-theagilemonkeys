@@ -4,7 +4,9 @@
 // En Cloudflare → Settings → Build:
 //   Build command:  cd web && npm ci && npm run build
 //   Deploy command: npx wrangler deploy
-// Secreto necesario (Settings → Variables and Secrets): CLAVE_EQUIPO = contraseña de Reforesta.
+// Secretos (Settings → Variables and Secrets):
+//   GOOGLE_CLIENT_ID = ID de cliente OAuth de Google (login del equipo)
+//   EMAILS_EQUIPO    = emails autorizados separados por comas, o un dominio "@reforesta.es"
 {
   "name": "1hack-theagilemonkeys",
   "main": "worker/index.js",

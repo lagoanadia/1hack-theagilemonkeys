@@ -85,14 +85,18 @@ pestaña **Empresas**, con la cita literal del BOE comprobada.
 
 La web tiene un pequeño backend, un Worker de Cloudflare con base de datos **D1** (gratuita):
 
-- **Equipo de Reforesta** ("Soy de Reforesta" + clave): marca convocatorias y empresas como
+- **Equipo de Reforesta** (inicia sesión con Google; solo entran los emails autorizados): marca convocatorias y empresas como
   *Me interesa* / *No interesa*. Las marcas se comparten entre todo el equipo y reordenan la lista.
 - **Pestaña Proyectos**: Reforesta publica lo que quiere restaurar ("15 ha tras el incendio de
   Valdemorillo, 30.000 €"). Cualquier empresa, sin cuenta, pulsa **"Quiero ayudar"** y deja su
   contacto. Solo el equipo ve quién se ha interesado. Enlace para compartir: `<web>/#proyectos`.
 
-Puesta en marcha: crear la base D1 `radar-reforesta`, poner su id en `wrangler.jsonc` y añadir
-el secreto `CLAVE_EQUIPO` en el Worker. Las tablas se crean solas.
+Puesta en marcha:
+1. Crear la base D1 `radar-reforesta` y poner su id en `wrangler.jsonc` (las tablas se crean solas).
+2. Crear un *ID de cliente de OAuth* (aplicación web) en Google Cloud, con la URL de la web como
+   origen autorizado.
+3. En el Worker, añadir los secretos `GOOGLE_CLIENT_ID` y `EMAILS_EQUIPO` (emails separados por comas,
+   o un dominio como `@reforesta.es` para que entre todo el equipo).
 
 ## Cómo funciona
 
