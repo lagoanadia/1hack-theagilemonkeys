@@ -64,7 +64,8 @@ def resultado(puntuacion: int, metodo: str, **campos) -> dict:
     puntuacion = max(0, min(100, int(puntuacion)))
     base = {
         "puntuacion": puntuacion,
-        "veredicto": veredicto(puntuacion),
+        # Sin Groq (cupo agotado) no damos veredicto: las palabras clave no son fiables.
+        "veredicto": "pendiente" if "pendiente_ia" in metodo else veredicto(puntuacion),
         "encaja": puntuacion >= UMBRAL_MIRA,
         "linea": "",
         "motivo": "",

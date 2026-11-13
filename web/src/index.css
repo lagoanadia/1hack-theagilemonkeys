@@ -35,4 +35,5 @@ h2 { font-size: 1.15rem; margin: 20px 0 10px; }
 .chip-veredicto.presenta, .frase.presenta { background: var(--verde-suave); color: var(--verde); }
 .chip-veredicto.mira, .frase.mira { background: var(--ambar-suave); color: var(--ambar); }
 .chip-veredicto.descarta { background: var(--rojo-suave); color: var(--rojo); }
+.chip-veredicto.pendiente { background: var(--linea); color: var(--suave); }
 .frase { padding: 8px 10px; border-radius: 8px; margin: 8px 0 0; color: var(--texto) !important; }

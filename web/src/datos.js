@@ -11,12 +11,15 @@ export async function cargarConvocatorias() {
 // si no (datos antiguos), se deduce de la puntuación con los mismos cortes.
 export function veredicto(c) {
   if (c.veredicto) return c.veredicto;
+  if ((c.metodo || "").includes("pendiente_ia")) return "pendiente";
   if (c.puntuacion >= 70) return "presenta";
   if (c.puntuacion >= 50) return "mira";
   return "descarta";
 }
 
-export const ETIQUETA_VEREDICTO = { presenta: "Presenta", mira: "Mira", descarta: "Descarta" };
+export const ETIQUETA_VEREDICTO = {
+  presenta: "Presenta", mira: "Mira", descarta: "Descarta", pendiente: "Pendiente de análisis",
+};
 
 export function diasHasta(fecha) {
   if (!fecha) return null;

@@ -18,12 +18,13 @@ export default function Tarjeta({ c }) {
       <h3>{c.titulo}</h3>
       <p className="organo">Organismo · {c.organo}</p>
 
-      {v !== "descarta" && (c.resumen || c.motivo) && (
+      {v === "pendiente" && <p className="organo">El radar la analizará con IA en la próxima ejecución.</p>}
+      {(v === "presenta" || v === "mira") && (c.resumen || c.motivo) && (
         <p className={`frase ${v}`}>{c.resumen && c.resumen !== c.titulo ? c.resumen : c.motivo}</p>
       )}
       {v === "descarta" && <p className="organo">{c.motivo}</p>}
 
-      {v !== "descarta" && (
+      {(v === "presenta" || v === "mira") && (
         <div className="tarjeta-pie">
           <strong>{importe ? `Hasta ${importe}` : ""}</strong>
           <a href={c.url} target="_blank" rel="noopener noreferrer">Ver en BDNS ↗</a>

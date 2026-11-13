@@ -11,7 +11,7 @@ const LINEAS = [
   { valor: "agroambiental", texto: "Agroambiental" },
 ];
 
-const ORDEN_VEREDICTO = { presenta: 0, mira: 1, descarta: 2 };
+const ORDEN_VEREDICTO = { presenta: 0, mira: 1, pendiente: 2, descarta: 3 };
 
 export default function App() {
   const [datos, setDatos] = useState(null);
