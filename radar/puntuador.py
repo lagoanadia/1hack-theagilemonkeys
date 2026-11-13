@@ -12,8 +12,8 @@ import os
 import time
 
 from .config import (AMBITOS_PREFERENTES, MODELOS_CRIBA, MODELOS_DECISION, PAUSA_ENTRE_LLAMADAS,
-                     PERFIL_REFORESTA, PESOS_PALABRAS, UMBRAL_CRIBA, UMBRAL_MIRA, UMBRAL_PRESENTA)
-from .filtros import limpiar_html, normalizar
+                     PERFIL_REFORESTA, UMBRAL_CRIBA, UMBRAL_MIRA, UMBRAL_PRESENTA)
+from .filtros import limpiar_html, normalizar, puntos_tematicos
 
 MAX_TEXTO_CRIBA = 2500     # caracteres: el 8b solo necesita lo esencial
 MAX_TEXTO_DECISION = 6000  # el 70b lee más (el extracto del boletín suele caber)
@@ -76,9 +76,7 @@ def resultado(puntuacion: int, metodo: str, **campos) -> dict:
 # ---------------------------------------------------------------- modo palabras clave
 
 def puntuar_por_palabras(det: dict, metodo: str = "palabras_clave") -> dict:
-    texto = normalizar(texto_para_analizar(det))
-    encontradas = [p for p in PESOS_PALABRAS if p in texto]
-    puntos = sum(PESOS_PALABRAS[p] for p in encontradas)
+    puntos, encontradas = puntos_tematicos(texto_para_analizar(det))
 
     organo = det.get("organo") or {}
     ambito = f"{organo.get('nivel1', '')} {organo.get('nivel2', '')}".upper()

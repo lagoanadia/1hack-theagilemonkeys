@@ -1,29 +1,31 @@
-"""Punto de entrada:  python -m radar [--dias 90] [--sin-ia]
+"""Punto de entrada:  python -m radar [--dias 365] [--sin-ia] [--limite N]
 
 Flujo:
-  1. RECOLECTAR  -> busca cada término en la BDNS y junta resultados sin duplicados.
-  2. FILTRAR     -> descarta por título (nominativas, convenios...) y por ficha
-                    (no competitiva, plazo cerrado).
-  3. PUNTUAR     -> Groq (o palabras clave) da 0-100 a cada superviviente.
-  4. GUARDAR     -> docs/data/convocatorias.json, que lee la web.
+  1. RECOLECTAR  -> todas las convocatorias estatales y de Madrid publicadas en la ventana.
+  2. FILTRAR     -> sin IA: título (nominativas, convenios...), ficha (no competitiva,
+                    plazo cerrado, otra región, solo empresas) y temática ambiental.
+  3. PUNTUAR     -> Groq en cascada (criba + decisión) o palabras clave.
+  4. GUARDAR     -> web/public/data/convocatorias.json, que lee la web.
 
-Las puntuaciones ya calculadas se reutilizan entre ejecuciones (caché), así que
-correrlo cada día solo gasta IA en las convocatorias nuevas.
+Dos cachés hacen que cada día solo se trabaje con lo nuevo:
+  - las evaluadas por Groq están en convocatorias.json;
+  - las descartadas al leer su ficha, en data/vistas.json (no se vuelven a descargar).
 """
 import argparse
 import json
-import time
+from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from . import bdns
-from .config import DIAS_POR_DEFECTO, TERMINOS_BUSQUEDA
-from collections import Counter
+from .config import DIAS_POR_DEFECTO, REGIONES_BDNS, UMBRAL_RELEVANCIA
+from .filtros import descartar_por_detalle, descartar_por_titulo, es_ambiental, motivo_corto
+from .puntuador import Puntuador, texto_para_analizar
 
-from .filtros import descartar_por_detalle, descartar_por_titulo, motivo_corto
-from .puntuador import Puntuador
-
-SALIDA = Path(__file__).resolve().parent.parent / "web" / "public" / "data" / "convocatorias.json"
+RAIZ = Path(__file__).resolve().parent.parent
+VISTAS = RAIZ / "data" / "vistas.json"
+SALIDA = RAIZ / "web" / "public" / "data" / "convocatorias.json"
 
 
 def cargar_anterior() -> dict:
@@ -32,6 +34,13 @@ def cargar_anterior() -> dict:
         return {}
     datos = json.loads(SALIDA.read_text(encoding="utf-8"))
     return {c["codigo"]: c for c in datos.get("convocatorias", [])}
+
+
+def cargar_vistas() -> dict:
+    """Convocatorias ya descartadas al leer su ficha: {código: motivo}."""
+    if not VISTAS.exists():
+        return {}
+    return json.loads(VISTAS.read_text(encoding="utf-8"))
 
 
 def ficha(det: dict, evaluacion: dict) -> dict:
@@ -81,37 +90,45 @@ def main() -> None:
     desde = hoy - timedelta(days=args.dias)
     puntuador = Puntuador(usar_ia=not args.sin_ia)
     anterior = {} if args.recalcular else cargar_anterior()
+    vistas = {} if args.recalcular else cargar_vistas()
     print(f"Radar Reforesta | {desde} -> {hoy} | modo: {puntuador.modo}")
 
-    # 1. RECOLECTAR
-    candidatas: dict[str, dict] = {}
-    for termino in TERMINOS_BUSQUEDA:
-        encontradas = bdns.buscar(termino, desde, hoy)
-        for c in encontradas:
-            candidatas.setdefault(c["numeroConvocatoria"], c)
-        print(f"  '{termino}': {len(encontradas)}")
-    print(f"Total únicas: {len(candidatas)}")
+    # 1. RECOLECTAR: barrido completo de las regiones de Reforesta.
+    candidatas = {c["numeroConvocatoria"]: c for c in bdns.barrer(desde, hoy, REGIONES_BDNS)}
+    print(f"Convocatorias publicadas en la ventana: {len(candidatas)}")
 
-    # 2 y 3. FILTRAR y PUNTUAR
-    resultado, descartes, evaluadas = [], Counter(), 0
+    # 2a. Filtros que no necesitan descargar nada (título, cachés).
+    resultado, descartes, pendientes = [], Counter(), []
     for codigo, resumen in candidatas.items():
         motivo = descartar_por_titulo(resumen["descripcion"])
         if motivo:
             descartes[motivo_corto(motivo)] += 1
-            continue
-
-        # Caché: si Groq ya la evaluó, no repetimos el trabajo (ni gastamos cupo).
-        # Las puntuadas solo con palabras clave se vuelven a mirar (filtros nuevos, IA...).
-        previa = anterior.get(codigo)
-        if previa and previa.get("metodo", "").startswith("groq"):
-            if not plazo_vencido(previa, hoy):
+        elif codigo in vistas:
+            descartes[vistas[codigo]] += 1
+        elif (previa := anterior.get(codigo)) and previa.get("metodo", "").startswith("groq"):
+            # Groq ya la evaluó: no gastamos cupo otra vez.
+            if plazo_vencido(previa, hoy):
+                descartes["plazo cerrado"] += 1
+            else:
                 resultado.append(previa)
-            continue
+        else:
+            pendientes.append(codigo)
 
-        det = bdns.detalle(codigo)
-        time.sleep(0.2)  # ser amables con la API pública
+    # 2b. Descargar las fichas nuevas (en paralelo, sin pasarse con la API pública).
+    print(f"Fichas por descargar: {len(pendientes)}")
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        fichas = list(pool.map(bdns.detalle, pendientes))
+
+    # 2c y 3. Filtros con la ficha y, a lo que sobreviva, Groq.
+    evaluadas = 0
+    for det in fichas:
+        codigo = det["codigoBDNS"]
         motivo = descartar_por_detalle(det, hoy)
+        if not motivo:
+            if not es_ambiental(texto_para_analizar(det), UMBRAL_RELEVANCIA):
+                motivo = "sin relación ambiental"
         if motivo:
+            vistas[codigo] = motivo_corto(motivo)
             descartes[motivo_corto(motivo)] += 1
             continue
 
@@ -121,7 +138,8 @@ def main() -> None:
 
         evaluacion = puntuador.puntuar(det)
         if plazo_vencido(ficha(det, evaluacion), hoy):
-            descartes["plazo cerrado (estimado)"] += 1
+            vistas[codigo] = "plazo cerrado"
+            descartes["plazo cerrado"] += 1
             continue
         resultado.append(ficha(det, evaluacion))
         print(f"  [{evaluacion['puntuacion']:3}] {codigo} {det.get('descripcion', '')[:80]}")
@@ -140,6 +158,8 @@ def main() -> None:
         "llamadas_groq": puntuador.llamadas,
         "convocatorias": resultado,
     }, ensure_ascii=False, indent=1), encoding="utf-8")
+    VISTAS.parent.mkdir(parents=True, exist_ok=True)
+    VISTAS.write_text(json.dumps(vistas, ensure_ascii=False, sort_keys=True, indent=0), encoding="utf-8")
 
     buenas = sum(1 for c in resultado if c.get("veredicto") == "presenta")
     print(f"\nRevisadas {len(candidatas)} | descartadas {descartadas} | "

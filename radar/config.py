@@ -25,27 +25,19 @@ cooperación internacional en otros países, investigación pura universitaria,
 patrimonio histórico, turismo u hostelería.
 """
 
-# Términos que buscamos en la BDNS. Cada uno es una búsqueda independiente.
-TERMINOS_BUSQUEDA = [
-    "reforestación",
-    "repoblación forestal",
-    "forestal",
-    "biodiversidad",
-    "medio ambiente",
-    "medioambiental",
-    "restauración ecológica",
-    "conservación de la naturaleza",
-    "especies invasoras",
-    "educación ambiental",
-    "voluntariado ambiental",
-    "custodia del territorio",
-    "humedales",
-    "incendios forestales",
-    "cambio climático",
-    "espacios naturales",
-    "red natura",
-    "infraestructura verde",
-]
+# Barrido de la BDNS: en vez de buscar palabras en el título (se escapaban convocatorias
+# como "PROYECTOS AMBIENTALES"), pedimos TODAS las convocatorias de estas regiones y
+# filtramos después leyendo la ficha. Ids de la API de la BDNS:
+# 1 = ES (toda España), 25 = ES3, 26 = ES30, 27 = ES300 (Comunidad de Madrid).
+REGIONES_BDNS = "1,25,26,27"
+
+# Puntos mínimos de palabras clave (PESOS_PALABRAS) en la ficha completa para que una
+# convocatoria se considere "de temática ambiental" y pase a Groq. Barato y sin IA.
+UMBRAL_RELEVANCIA = 10  # basta una palabra ambiental clara ("medio ambiente"); el resto lo criba Groq
+# Palabras que suman en la puntuación sin IA pero NO indican temática ambiental
+# (tipo de entidad o lugar). No cuentan para UMBRAL_RELEVANCIA.
+NO_TEMATICAS = {"entidades sin animo de lucro", "sin animo de lucro", "tercer sector",
+                "organizaciones no gubernamentales", "ong", "madrid", "voluntariado"}
 
 # Si el título contiene alguna de estas expresiones, se descarta sin gastar IA.
 # (Se comparan en minúsculas y sin tildes.)
@@ -67,6 +59,7 @@ PESOS_PALABRAS = {
     "especies invasoras": 25, "exoticas invasoras": 25, "anfibio": 25,
     "humedal": 20, "charca": 25, "custodia del territorio": 30,
     "educacion ambiental": 20, "voluntariado ambiental": 20, "voluntariado": 8,
+    "ambiental": 15, "ecosistema": 15, "naturaleza": 10, "fauna": 10, "flora": 10,
     "conservacion": 10, "habitat": 15, "red natura": 20, "espacios naturales": 15,
     "incendio": 15, "medio ambiente": 10, "medioambiental": 10,
     "entidades sin animo de lucro": 15, "sin animo de lucro": 12,
@@ -84,10 +77,11 @@ AMBITOS_PREFERENTES = ["ESTADO", "COMUNIDAD DE MADRID", "MADRID"]
 REGIONES_VALIDAS = ["ES3"]
 REGION_NACIONAL = "ES"  # código exacto que usa la BDNS para "ES - ESPAÑA"
 
-# Tipo de beneficiario de Reforesta en la BDNS. Si la convocatoria indica beneficiarios
-# y ninguno es de este tipo (solo personas físicas, pymes, gran empresa), se descarta.
-BENEFICIARIOS_VALIDOS = ["personas juridicas que no desarrollan actividad economica",
-                         "sin informacion"]
+# Beneficiarios: la BDNS a menudo los etiqueta mal (la 923290 de MITECO, a la que se
+# presentó Reforesta, figura solo para "personas físicas"). Por eso solo descartamos
+# las convocatorias cuyos beneficiarios son ÚNICAMENTE empresas.
+BENEFICIARIOS_SOLO_EMPRESA = ["pyme y personas fisicas que desarrollan actividad economica",
+                              "gran empresa"]
 
 # ---------------------------------------------------------------- Groq
 # Cascada: un modelo pequeño y barato hace la criba; el grande solo analiza lo que pasa.
@@ -104,4 +98,4 @@ UMBRAL_PRESENTA = 70
 UMBRAL_MIRA = 50
 
 # Cuántos días hacia atrás miramos por defecto.
-DIAS_POR_DEFECTO = 90
+DIAS_POR_DEFECTO = 365  # hay convocatorias abiertas meses después de publicarse

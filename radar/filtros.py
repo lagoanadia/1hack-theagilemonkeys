@@ -7,7 +7,8 @@ import re
 import unicodedata
 from datetime import date
 
-from .config import BENEFICIARIOS_VALIDOS, DESCARTES_TITULO, REGION_NACIONAL, REGIONES_VALIDAS
+from .config import (BENEFICIARIOS_SOLO_EMPRESA, DESCARTES_TITULO, NO_TEMATICAS, PESOS_PALABRAS,
+                     REGION_NACIONAL, REGIONES_VALIDAS)
 
 
 def normalizar(texto: str) -> str:
@@ -41,10 +42,10 @@ def descartar_por_detalle(det: dict, hoy: date) -> str | None:
                            for c in codigos):
         return "fuera de ámbito geográfico"
 
-    # Beneficiarios: si la ficha los indica y ninguno puede ser una ONG, no sirve.
+    # Beneficiarios: solo descartamos si son exclusivamente empresas (ver config).
     tipos = [normalizar(b.get("descripcion", "")) for b in det.get("tiposBeneficiarios", [])]
-    if tipos and not any(v in t for t in tipos for v in BENEFICIARIOS_VALIDOS):
-        return "beneficiarios no incluyen ONG"
+    if tipos and all(t in BENEFICIARIOS_SOLO_EMPRESA for t in tipos):
+        return "solo para empresas"
     return None
 
 
@@ -61,3 +62,16 @@ def motivo_corto(motivo: str) -> str:
 
 def limpiar_html(html: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", html or "")).strip()
+
+
+def puntos_tematicos(texto: str) -> tuple[int, list[str]]:
+    """Puntos por palabras clave ambientales (PESOS_PALABRAS) y cuáles aparecen."""
+    t = normalizar(texto)
+    encontradas = [p for p in PESOS_PALABRAS if p in t]
+    return sum(PESOS_PALABRAS[p] for p in encontradas), encontradas
+
+
+def es_ambiental(texto: str, umbral: int) -> bool:
+    """¿Habla de medio ambiente? Solo cuentan las palabras temáticas, no "sin ánimo de lucro"."""
+    _, encontradas = puntos_tematicos(texto)
+    return sum(PESOS_PALABRAS[p] for p in encontradas if p not in NO_TEMATICAS) >= umbral

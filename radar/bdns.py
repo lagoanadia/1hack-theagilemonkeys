@@ -1,6 +1,7 @@
 """Cliente mínimo de la API pública de la BDNS (infosubvenciones.es).
 
-Solo dos funciones:
+Funciones:
+  - barrer(): todas las convocatorias de unas regiones en un rango de fechas.
   - buscar(): lista resumida de convocatorias que contienen un término.
   - detalle(): ficha completa de una convocatoria (plazos, importe, texto del BOE...).
 """
@@ -41,6 +42,24 @@ def buscar(termino: str, desde: date, hasta: date, max_paginas: int = 4) -> list
             "fechaHasta": hasta.strftime("%d/%m/%Y"),
             "page": pagina,
             "pageSize": 50,
+            "vpd": "GE",
+        })
+        resultados.extend(datos.get("content", []))
+        if datos.get("last", True):
+            break
+    return resultados
+
+
+def barrer(desde: date, hasta: date, regiones: str, max_paginas: int = 40) -> list[dict]:
+    """Todas las convocatorias (resumen) publicadas en esas fechas para esas regiones."""
+    resultados = []
+    for pagina in range(max_paginas):
+        datos = _get("/convocatorias/busqueda", {
+            "fechaDesde": desde.strftime("%d/%m/%Y"),
+            "fechaHasta": hasta.strftime("%d/%m/%Y"),
+            "regiones": regiones,
+            "page": pagina,
+            "pageSize": 500,
             "vpd": "GE",
         })
         resultados.extend(datos.get("content", []))
