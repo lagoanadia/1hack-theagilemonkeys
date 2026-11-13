@@ -61,7 +61,10 @@ las que Reforesta se presentó, y el radar **encuentra las dos**:
   convocatorias.
 
 Las dos aparecen ahora como cerradas, que es correcto: sus plazos terminaron en 2026. El radar las
-habría avisado el mismo día de su publicación.
+habría avisado el mismo día de su publicación. La web incluye el apartado **"Prueba con
+convocatorias reales de Reforesta"**: por cada una enseña qué filtros pasa y el análisis completo
+de la IA (veredicto, requisitos y cita de las bases), como si siguiera abierta. Lo genera
+`python -m radar.validar` y se amplía añadiendo códigos a `CONVOCATORIAS_VALIDACION`.
 
 ## Cómo funciona
 
@@ -107,6 +110,7 @@ radar/                 Backend en Python (se ejecuta en GitHub Actions)
   filtros.py           reglas sin IA
   puntuador.py         Groq (criba + decisión) y modo de respaldo por palabras clave
   __main__.py          el flujo completo
+  validar.py           prueba con convocatorias reales de Reforesta (validacion.json)
 web/                   Frontend en React + Vite (se despliega en Cloudflare)
   public/data/convocatorias.json   datos que genera el radar
 data/vistas.json       caché de descartadas

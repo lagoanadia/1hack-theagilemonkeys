@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Tarjeta from "./Tarjeta.jsx";
-import { cargarConvocatorias, veredicto } from "./datos.js";
+import Validacion from "./Validacion.jsx";
+import { cargarConvocatorias, cargarValidacion, veredicto } from "./datos.js";
 
 // Chips de la pantalla 1. "valor" es el campo `linea` que devuelve el radar.
 const LINEAS = [
@@ -18,9 +19,11 @@ export default function App() {
   const [error, setError] = useState(null);
   const [busqueda, setBusqueda] = useState("");
   const [linea, setLinea] = useState("");
+  const [validacion, setValidacion] = useState(null);
 
   useEffect(() => {
     cargarConvocatorias().then(setDatos).catch((e) => setError(e.message));
+    cargarValidacion().then(setValidacion);
   }, []);
 
   const lista = useMemo(() => {
@@ -67,6 +70,8 @@ export default function App() {
           </button>
         ))}
       </nav>
+
+      <Validacion datos={validacion} />
 
       <h2>Nuevas para ti</h2>
       {lista.length ? lista.map((c) => <Tarjeta key={c.codigo} c={c} />)

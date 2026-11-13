@@ -101,3 +101,11 @@ UMBRAL_MIRA = 50
 
 # Cuántos días hacia atrás miramos por defecto.
 DIAS_POR_DEFECTO = 365  # hay convocatorias abiertas meses después de publicarse
+
+# Convocatorias reales a las que se presentó Reforesta (ejemplos públicos del reto).
+# `python -m radar.validar` comprueba que el radar las encuentra y qué habría dicho de
+# ellas cuando estaban abiertas. Se pueden añadir más con el histórico completo.
+CONVOCATORIAS_VALIDACION = {
+    "923290": "MITECO · ayudas a actividades de interés general para la protección del medio ambiente (2026)",
+    "904719": "Comunidad de Madrid · Orden 1689/2026, proyectos ambientales de entidades sin ánimo de lucro",
+}

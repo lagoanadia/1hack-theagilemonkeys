@@ -24,12 +24,14 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           PYTHONUNBUFFERED: "1"   # ver el progreso en directo en el log
-        run: python -m radar
+        run: |
+          python -m radar
+          python -m radar.validar   # prueba con convocatorias reales de Reforesta
       - name: Guardar resultados
         run: |
           git config user.name "radar-bot"
           git config user.email "radar-bot@users.noreply.github.com"
-          git add web/public/data/convocatorias.json data/vistas.json
+          git add web/public/data/convocatorias.json web/public/data/validacion.json data/vistas.json
           git diff --staged --quiet || git commit -m "Radar: actualización diaria"
           # Si alguien subió cambios a main mientras corría el radar, los traemos antes del push.
           git pull --rebase origin main
