@@ -1,6 +1,6 @@
 {
- "generado": "2026-11-13T20:23",
- "modo": "palabras clave (sin IA)",
+ "generado": "2026-11-13T20:34",
+ "modo": "Groq (llama-3.1-8b-instant → llama-3.3-70b-versatile)",
  "ventana_dias": 90,
  "revisadas": 139,
  "descartadas": 136,
@@ -14,7 +14,7 @@
  "llamadas_groq": {
   "criba": 0,
   "decision": 0,
-  "respaldo": 0
+  "respaldo": 3
  },
  "convocatorias": [
   {
@@ -44,7 +44,7 @@
    "porcentaje_financiado": null,
    "importe_max": null,
    "plazo_estimado": null,
-   "metodo": "palabras_clave"
+   "metodo": "palabras_clave:pendiente_ia"
   },
   {
    "codigo": "930967",
@@ -73,7 +73,7 @@
    "porcentaje_financiado": null,
    "importe_max": null,
    "plazo_estimado": null,
-   "metodo": "palabras_clave"
+   "metodo": "palabras_clave:pendiente_ia"
   },
   {
    "codigo": "931297",
@@ -102,7 +102,7 @@
    "porcentaje_financiado": null,
    "importe_max": null,
    "plazo_estimado": null,
-   "metodo": "palabras_clave"
+   "metodo": "palabras_clave:pendiente_ia"
   }
  ]
 }
