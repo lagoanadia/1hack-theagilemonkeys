@@ -1,0 +1,10 @@
+// Configuración de Cloudflare Workers.
+// Solo servimos archivos estáticos: la web (docs/index.html) y el JSON con las convocatorias.
+// El JSON lo regenera cada día GitHub Actions; cada push dispara un nuevo despliegue aquí.
+{
+  "name": "1hack-theagilemonkeys",
+  "compatibility_date": "2025-09-01",
+  "assets": {
+    "directory": "./docs"
+  }
+}

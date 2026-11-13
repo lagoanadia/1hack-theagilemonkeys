@@ -46,9 +46,11 @@ El modelo de Groq se cambia con la variable `GROQ_MODEL` (por defecto `llama-3.3
 
 ## Puesta en producción (5 minutos)
 
-1. **Settings → Secrets and variables → Actions** → nuevo secreto `GROQ_API_KEY`.
-2. **Settings → Pages** → Source: *Deploy from a branch*, carpeta `/docs`.
-3. **Actions → Radar diario → Run workflow** para la primera ejecución.
+1. **GitHub → Settings → Secrets and variables → Actions** → nuevo secreto `GROQ_API_KEY`.
+2. **Cloudflare → Workers → Import a repository** → este repo. Build command: vacío.
+   Deploy command: `npx wrangler deploy` (lee [`wrangler.jsonc`](wrangler.jsonc), que sirve `docs/`).
+3. **GitHub → Actions → Radar diario → Run workflow** para la primera ejecución.
+   Cada push del workflow redespliega Cloudflare automáticamente.
 
 ## Personalizar
 
