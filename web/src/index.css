@@ -50,3 +50,9 @@ h2 { font-size: 1.15rem; margin: 20px 0 10px; }
 .lista-check .duda .icono { background: var(--ambar-suave); color: var(--ambar); }
 .lista-check .no .icono { background: var(--rojo-suave); color: var(--rojo); }
 blockquote { margin: 0; padding: 4px 12px; border-left: 3px solid var(--verde); color: var(--suave); font-style: italic; }
+
+/* Pestañas Convocatorias / Empresas */
+.pestanas { display: flex; gap: 4px; margin-top: 16px; border-bottom: 1px solid var(--linea); }
+.pestanas button { font: inherit; font-weight: 600; padding: 8px 14px; cursor: pointer; background: none;
+                   border: none; border-bottom: 3px solid transparent; color: var(--suave); }
+.pestanas button.activo { color: var(--verde); border-bottom-color: var(--verde); }

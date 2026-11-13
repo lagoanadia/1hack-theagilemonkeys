@@ -66,6 +66,21 @@ convocatorias reales de Reforesta"**: por cada una enseña qué filtros pasa y e
 de la IA (veredicto, requisitos y cita de las bases), como si siguiera abierta. Lo genera
 `python -m radar.validar` y se amplía añadiendo códigos a `CONVOCATORIAS_VALIDACION`.
 
+## Empresas obligadas a compensar (canal RSC)
+
+El canal de empresas de Reforesta está casi vacío porque solo le llegan las que la buscan a
+ella. El radar tiene una segunda fuente: las **declaraciones de impacto ambiental (DIA)** del
+BOE. Cuando una empresa quiere construir un parque eólico, una planta solar o una línea
+eléctrica, el Ministerio le impone por resolución **medidas compensatorias obligatorias**:
+revegetar, reforestar, restaurar hábitats, crear charcas… Esa empresa necesita a alguien que
+las ejecute.
+
+`python -m radar.empresas` lee cada día las DIA del BOE (API de datos abiertos, unas 30 cada seis
+meses). A la IA solo le pasa el arranque de la resolución y los párrafos sobre medidas, unos
+9.000 de sus ~100.000 caracteres. Groq extrae **promotor, proyecto, ubicación, medidas y
+hectáreas**, y marca cada empresa como *Contactar*, *Mira* o *Descarta*. La web lo enseña en la
+pestaña **Empresas**, con la cita literal del BOE comprobada.
+
 ## Cómo funciona
 
 ```
@@ -111,6 +126,7 @@ radar/                 Backend en Python (se ejecuta en GitHub Actions)
   puntuador.py         Groq (criba + decisión) y modo de respaldo por palabras clave
   __main__.py          el flujo completo
   validar.py           prueba con convocatorias reales de Reforesta (validacion.json)
+  boe.py, empresas.py  empresas obligadas a compensar según el BOE (empresas.json)
 web/                   Frontend en React + Vite (se despliega en Cloudflare)
   public/data/convocatorias.json   datos que genera el radar
 data/vistas.json       caché de descartadas
@@ -188,7 +204,9 @@ se reevalúe lo ya guardado.
    cuántas habría encontrado el radar.
 2. **Aviso semanal por email** con las nuevas *Presenta*.
 3. **Más fuentes**: Fundación Biodiversidad, LIFE y el Funding & Tenders Portal de la UE,
-   fundaciones privadas y RSC (la pestaña *Empresas* del diseño).
-4. **Calendario de recurrentes**: "la de la Comunidad de Madrid suele salir en mayo", para
+   fundaciones privadas, y DIA autonómicas (BOCM y otros boletines) para la pestaña *Empresas*.
+4. **Canal de proyectos**: Reforesta publica sus proyectos ("reforestar 20 ha en Guadarrama") y
+   las empresas pulsan "quiero ayudar" (Worker de Cloudflare + KV).
+5. **Calendario de recurrentes**: "la de la Comunidad de Madrid suele salir en mayo", para
    preparar la solicitud antes de que se publique.
-5. **Seguimiento de solicitudes** (pantalla *Mis solicitudes* del diseño).
+6. **Seguimiento de solicitudes** (pantalla *Mis solicitudes* del diseño).

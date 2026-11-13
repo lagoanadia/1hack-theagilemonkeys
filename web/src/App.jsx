@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Tarjeta from "./Tarjeta.jsx";
 import Validacion from "./Validacion.jsx";
+import Empresas from "./Empresas.jsx";
 import { cargarConvocatorias, cargarValidacion, veredicto } from "./datos.js";
 
 // Chips de la pantalla 1. "valor" es el campo `linea` que devuelve el radar.
@@ -20,6 +21,7 @@ export default function App() {
   const [busqueda, setBusqueda] = useState("");
   const [linea, setLinea] = useState("");
   const [validacion, setValidacion] = useState(null);
+  const [vista, setVista] = useState("convocatorias");
 
   useEffect(() => {
     cargarConvocatorias().then(setDatos).catch((e) => setError(e.message));
@@ -55,6 +57,16 @@ export default function App() {
         </p>
       </header>
 
+      <nav className="pestanas">
+        <button className={vista === "convocatorias" ? "activo" : ""} onClick={() => setVista("convocatorias")}>
+          Convocatorias
+        </button>
+        <button className={vista === "empresas" ? "activo" : ""} onClick={() => setVista("empresas")}>
+          Empresas
+        </button>
+      </nav>
+
+      {vista === "empresas" ? <Empresas /> : (<>
       <input
         type="search"
         className="buscador"
@@ -76,6 +88,7 @@ export default function App() {
       <h2>Nuevas para ti</h2>
       {lista.length ? lista.map((c) => <Tarjeta key={c.codigo} c={c} />)
         : <p className="estado">No hay convocatorias con estos filtros.</p>}
+      </>)}
     </main>
   );
 }
