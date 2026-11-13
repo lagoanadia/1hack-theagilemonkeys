@@ -1,0 +1,32 @@
+# Ejecuta el radar cada mañana y guarda el resultado en el repo.
+# GitHub Pages sirve la carpeta docs/, así que la web se actualiza sola.
+name: Radar diario
+
+on:
+  schedule:
+    - cron: "17 5 * * *"   # todos los días a las 05:17 UTC
+  workflow_dispatch:        # botón "Run workflow" para lanzarlo a mano
+
+permissions:
+  contents: write           # necesario para hacer commit del JSON
+
+jobs:
+  radar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - name: Ejecutar radar
+        env:
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+        run: python -m radar --dias 90
+      - name: Guardar resultados
+        run: |
+          git config user.name "radar-bot"
+          git config user.email "radar-bot@users.noreply.github.com"
+          git add docs/data/convocatorias.json
+          git diff --staged --quiet || git commit -m "Radar: actualización diaria"
+          git push
