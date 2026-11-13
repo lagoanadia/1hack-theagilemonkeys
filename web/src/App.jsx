@@ -46,13 +46,18 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    cargarConvocatorias().then(setDatos).catch((e) => setError(e.message));
-    cargarValidacion().then(setValidacion);
     if (sesionGuardada()) entrarEquipo(sesionGuardada(), { silencioso: true });
     const alCambiar = () => setVista(vistaDeURL());
     window.addEventListener("hashchange", alCambiar);
     return () => window.removeEventListener("hashchange", alCambiar);
   }, [entrarEquipo]);
+
+  // Los datos del radar solo se piden (y el Worker solo los da) con la contraseña del equipo.
+  useEffect(() => {
+    if (!equipo) return;
+    cargarConvocatorias().then(setDatos).catch((e) => setError(e.message));
+    cargarValidacion().then(setValidacion);
+  }, [equipo]);
 
   function pedirClave() {
     const clave = prompt("Contraseña del equipo de Reforesta:");
@@ -62,6 +67,8 @@ export default function App() {
   function salir() {
     guardarSesion("");
     setEquipo(false);
+    setDatos(null);
+    setValidacion(null);
     setMarcas({});
   }
 
@@ -96,20 +103,36 @@ export default function App() {
         (a.fin || "9999").localeCompare(b.fin || "9999"));
   }, [datos, busqueda, linea, marcas]);
 
+  const cambiarVista = (v) => { location.hash = v; setVista(v); };
+
+  // Visitante (empresa): solo la pestaña Proyectos.
+  if (!equipo) {
+    return (
+      <main>
+        <header>
+          <div className="cabecera">
+            <h1>🌱 Reforesta</h1>
+            <button className="enlace" onClick={pedirClave}>Soy de Reforesta</button>
+          </div>
+          <p className="cobertura">Restauramos terreno quemado en la Comunidad de Madrid. Estos son los proyectos
+            que buscan una empresa que los apoye.</p>
+        </header>
+        <Proyectos equipo={false} />
+      </main>
+    );
+  }
+
   if (error) return <main className="estado">⚠️ {error}</main>;
   if (!datos) return <main className="estado">Cargando convocatorias…</main>;
 
   const recomendadas = datos.convocatorias.filter((c) => veredicto(c) === "presenta").length;
-  const cambiarVista = (v) => { location.hash = v; setVista(v); };
 
   return (
     <main>
       <header>
         <div className="cabecera">
           <h1>🌱 Radar</h1>
-          {equipo
-            ? <button className="enlace" onClick={salir} title="Cerrar sesión">Equipo Reforesta · salir</button>
-            : <button className="enlace" onClick={pedirClave}>Soy de Reforesta</button>}
+          <button className="enlace" onClick={salir} title="Cerrar sesión">Equipo Reforesta · salir</button>
         </div>
         <p className="cobertura">
           El radar leyó <b>{datos.revisadas}</b> convocatorias, descartó <b>{datos.descartadas}</b> y

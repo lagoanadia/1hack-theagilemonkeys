@@ -1,20 +1,14 @@
 // Utilidades para leer las convocatorias que genera el radar (Python).
 // El JSON vive en public/data/convocatorias.json; su formato está en el README.
+import { datosEquipo } from "./api.js";
 
 // La validación es opcional: si el archivo aún no existe, la web funciona igual.
 export async function cargarValidacion() {
-  try {
-    const r = await fetch("/data/validacion.json", { cache: "no-store" });
-    return r.ok ? await r.json() : null;
-  } catch {
-    return null;
-  }
+  return datosEquipo("validacion.json", { opcional: true }).catch(() => null);
 }
 
 export async function cargarConvocatorias() {
-  const r = await fetch("/data/convocatorias.json", { cache: "no-store" });
-  if (!r.ok) throw new Error(`No se pudo cargar el JSON (${r.status})`);
-  return r.json();
+  return datosEquipo("convocatorias.json");
 }
 
 // Semáforo del wireframe. Si el radar ya trae "veredicto" se usa ese;

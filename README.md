@@ -87,9 +87,13 @@ La web tiene un pequeño backend, un Worker de Cloudflare con base de datos **D1
 
 - **Equipo de Reforesta** ("Soy de Reforesta" + contraseña del equipo): marca convocatorias y empresas como
   *Me interesa* / *No interesa*. Las marcas se comparten entre todo el equipo y reordenan la lista.
+- **Panel privado**: sin contraseña solo se ve la pestaña *Proyectos*; el Worker tampoco entrega
+  los datos del radar (`/data/*.json`) sin ella.
 - **Pestaña Proyectos**: Reforesta publica lo que quiere restaurar ("15 ha tras el incendio de
   Valdemorillo, 30.000 €"). Cualquier empresa, sin cuenta, pulsa **"Quiero ayudar"** y deja su
-  contacto. Solo el equipo ve quién se ha interesado. Enlace para compartir: `<web>/#proyectos`.
+  contacto. Solo el equipo ve quién se ha interesado. Enlace para compartir: la propia web.
+  Anti-spam: campo trampa para bots y máximo 5 envíos por hora desde la misma conexión (se guarda
+  una huella cifrada, nunca la IP).
 
 Puesta en marcha:
 1. Crear la base D1 `radar-reforesta` y poner su id en `wrangler.jsonc` (las tablas se crean solas).

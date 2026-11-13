@@ -77,3 +77,4 @@ blockquote { margin: 0; padding: 4px 12px; border-left: 3px solid var(--verde); 
 .boton:disabled { opacity: .6; }
 .aviso-error { color: var(--rojo); margin: 0; font-size: .9rem; }
 details.tarjeta summary { cursor: pointer; }
+.trampa { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }

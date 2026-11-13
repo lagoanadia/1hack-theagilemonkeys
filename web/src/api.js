@@ -23,6 +23,18 @@ export function guardarSesion(token) {
 
 export class ErrorSesion extends Error {}
 
+// Datos del radar (public/data/*.json): el Worker solo los entrega al equipo.
+export async function datosEquipo(archivo, { opcional = false } = {}) {
+  const token = sesionGuardada();
+  const r = await fetch(`/data/${archivo}`, {
+    cache: "no-store",
+    headers: token ? { "x-clave-equipo": token } : {},
+  });
+  if (r.ok) return r.json();
+  if (opcional) return null;
+  throw new Error(`No se pudo cargar ${archivo} (${r.status})`);
+}
+
 export async function api(ruta, { metodo = "GET", datos, token = sesionGuardada() } = {}) {
   const r = await fetch(`/api${ruta}`, {
     method: metodo,

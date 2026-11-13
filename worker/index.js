@@ -27,7 +27,17 @@ const ESQUEMA = [
   `CREATE TABLE IF NOT EXISTS interesados (
      id INTEGER PRIMARY KEY AUTOINCREMENT, proyecto_id INTEGER NOT NULL, empresa TEXT NOT NULL,
      contacto TEXT NOT NULL, mensaje TEXT DEFAULT '', creado TEXT NOT NULL)`,
+  // Anti-spam del formulario público: huella (hash) de la IP, nunca la IP en claro.
+  `CREATE TABLE IF NOT EXISTS envios (huella TEXT NOT NULL, creado TEXT NOT NULL)`,
 ];
+const MAX_ENVIOS_POR_HORA = 5;
+
+async function huellaIP(request) {
+  const ip = request.headers.get("cf-connecting-ip") || "desconocida";
+  const datos = new TextEncoder().encode(`radar-reforesta:${ip}`);
+  const hash = await crypto.subtle.digest("SHA-256", datos);
+  return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
 const ESTADOS = ["interesa", "descarta"];
 const TIPOS = ["convocatoria", "empresa"];
 
@@ -186,6 +196,13 @@ async function api(request, env, ruta) {
   m = ruta.match(/^\/api\/proyectos\/(\d+)\/interes$/);
   if (m && metodo === "POST") {
     const b = await leerJSON(request);
+    // Campo trampa: invisible para personas, los bots lo rellenan. Fingimos éxito y no guardamos.
+    if (texto(b.web)) return json({ ok: true }, 201);
+    const huella = await huellaIP(request);
+    const haceUnaHora = new Date(Date.now() - 3600e3).toISOString();
+    await db.prepare("DELETE FROM envios WHERE creado < ?").bind(haceUnaHora).run();
+    const { n } = await db.prepare("SELECT COUNT(*) AS n FROM envios WHERE huella = ?").bind(huella).first();
+    if (n >= MAX_ENVIOS_POR_HORA) return error("Demasiados envíos seguidos. Prueba dentro de un rato.", 429);
     const empresa = texto(b.empresa, 150), contacto = texto(b.contacto, 150);
     if (!empresa || !contacto) return error("Indica el nombre de la empresa y un contacto");
     const proyecto = await db.prepare("SELECT id FROM proyectos WHERE id = ? AND activo = 1")
@@ -194,6 +211,7 @@ async function api(request, env, ruta) {
     await db.prepare(
       "INSERT INTO interesados (proyecto_id, empresa, contacto, mensaje, creado) VALUES (?, ?, ?, ?, ?)",
     ).bind(proyecto.id, empresa, contacto, texto(b.mensaje, 1000), ahora()).run();
+    await db.prepare("INSERT INTO envios (huella, creado) VALUES (?, ?)").bind(huella, ahora()).run();
     return json({ ok: true }, 201);
   }
 
@@ -219,6 +237,15 @@ export default {
         console.error(e);
         return error("Error interno", 500);
       }
+    }
+    // Los datos del radar (convocatorias, empresas, validación) son solo para el equipo.
+    if (ruta.startsWith("/data/")) {
+      const usuario = await quienEs(request, env);
+      if (!usuario || usuario.denegado) return error("Solo para el equipo de Reforesta", 401);
+      const r = await env.ASSETS.fetch(request);
+      const privado = new Response(r.body, r);
+      privado.headers.set("cache-control", "private, no-store");
+      return privado;
     }
     return env.ASSETS.fetch(request);  // la web React
   },

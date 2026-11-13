@@ -29,6 +29,8 @@ function FormularioAyuda({ proyecto, onListo }) {
       <input name="empresa" placeholder="Nombre de la empresa" required maxLength={150} />
       <input name="contacto" placeholder="Email o teléfono de contacto" required maxLength={150} />
       <textarea name="mensaje" placeholder="¿Cómo os gustaría colaborar? (opcional)" maxLength={1000} />
+      {/* Campo trampa anti-spam: oculto para personas */}
+      <input name="web" tabIndex={-1} autoComplete="off" className="trampa" aria-hidden="true" />
       {error && <p className="aviso-error">{error}</p>}
       <button className="boton" disabled={enviando}>{enviando ? "Enviando…" : "Enviar"}</button>
     </form>

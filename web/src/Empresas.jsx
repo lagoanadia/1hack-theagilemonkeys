@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import Marcas from "./Marcas.jsx";
+import { datosEquipo } from "./api.js";
 
 // Pestaña "Empresas": empresas obligadas por una declaración de impacto ambiental (BOE)
 // a ejecutar medidas que Reforesta sabe hacer. Datos: public/data/empresas.json (radar.empresas).
@@ -66,8 +67,7 @@ export default function Empresas({ marcas = {}, marcador = () => null }) {
   const [datos, setDatos] = useState(undefined);
 
   useEffect(() => {
-    fetch("/data/empresas.json", { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : null))
+    datosEquipo("empresas.json", { opcional: true })
       .then(setDatos)
       .catch(() => setDatos(null));
   }, []);
