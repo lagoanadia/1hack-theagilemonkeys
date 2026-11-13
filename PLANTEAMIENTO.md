@@ -35,6 +35,19 @@ Una persona del equipo de Reforesta (6 o 7 personas), sin experiencia en trámit
 | Si hay tiempo | Checklist de preparación con autorrelleno de datos de la entidad |
 | Si sobra | Línea de tiempo hasta la resolución; vista RSC con ejemplos reales |
 
+## Fuentes de datos
+La BDNS es la fuente principal y la única automática el sábado. Cubre dinero público (estatal, autonómico y parte del local). No contiene fundaciones ni empresas.
+
+| Fase | Fuente |
+|---|---|
+| Sábado | BDNS real (API de infosubvenciones.es) + lista curada a mano de unas pocas empresas y fundaciones para la pestaña Empresas (RSC) |
+| Después | Boletines (BOE, BOCM, DOG), LIFE, Funding & Tenders, más fundaciones |
+
+Diseño extensible: cada fuente se normaliza al mismo formato de ficha (ver contrato de datos), de modo que añadir una fuente no cambia la interfaz.
+
+## Pestaña Empresas (RSC)
+Vista de empresas y fundaciones con programas públicos de RSC o ambientales: semáforo de encaje, motivo, tipo de colaboración (convocatoria, voluntariado, patrocinio), enlace al programa y estado de contacto (sin contactar / contactada / en conversación). El botón Contactar abre el canal público de la empresa. Los datos salen de fuentes públicas.
+
 ## Stack
 - PWA: Vite + React (`/web`), desplegada en Vercel.
 - Backend/datos: ingesta BDNS + análisis con Groq (`/backend`). Resultados precalculados.
