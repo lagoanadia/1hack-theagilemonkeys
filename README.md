@@ -42,7 +42,7 @@ cd web && npm install && npm run dev     # abrir http://localhost:5173
 ```
 
 Opciones: `--dias N` (ventana de búsqueda), `--sin-ia`, `--recalcular` (ignorar caché).
-El modelo de Groq se cambia con la variable `GROQ_MODEL` (por defecto `llama-3.3-70b-versatile`).
+Los modelos de Groq se eligen solos (ver `MODELOS_CRIBA` y `MODELOS_DECISION` en `radar/config.py`); para forzar uno: `GROQ_MODELO_CRIBA` / `GROQ_MODELO_DECISION`.
 
 ## Puesta en producción (5 minutos)
 

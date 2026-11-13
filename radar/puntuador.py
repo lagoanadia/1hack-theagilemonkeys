@@ -11,7 +11,7 @@ import json
 import os
 import time
 
-from .config import (AMBITOS_PREFERENTES, MODELO_CRIBA, MODELO_DECISION, PAUSA_ENTRE_LLAMADAS,
+from .config import (AMBITOS_PREFERENTES, MODELOS_CRIBA, MODELOS_DECISION, PAUSA_ENTRE_LLAMADAS,
                      PERFIL_REFORESTA, PESOS_PALABRAS, UMBRAL_CRIBA, UMBRAL_MIRA, UMBRAL_PRESENTA)
 from .filtros import limpiar_html, normalizar
 
@@ -169,12 +169,35 @@ class Puntuador:
             from groq import Groq  # import aquí: así el modo sin IA no necesita el paquete
             # El SDK reintenta solo y respeta el "retry-after" de Groq (límite por minuto).
             self.cliente = Groq(max_retries=5)
+            self._elegir_modelos()
+
+    def _elegir_modelos(self) -> None:
+        """Pregunta a Groq qué modelos hay y elige el primero disponible de cada lista."""
+        try:
+            disponibles = {m.id for m in self.cliente.models.list().data}
+        except Exception as e:
+            print(f"  ! No se pudo listar modelos de Groq ({e}); se usan los preferidos")
+            disponibles = set(MODELOS_CRIBA + MODELOS_DECISION)
+        print(f"  Modelos de Groq disponibles: {', '.join(sorted(disponibles))}")
+
+        def elegir(entorno: str, preferidos: list[str]) -> str | None:
+            forzado = os.environ.get(entorno)
+            if forzado:
+                return forzado
+            return next((m for m in preferidos if m in disponibles), None)
+
+        self.modelo_decision = elegir("GROQ_MODELO_DECISION", MODELOS_DECISION)
+        # Si no hay modelo pequeño, la criba la hace el grande (gasta más, pero funciona).
+        self.modelo_criba = elegir("GROQ_MODELO_CRIBA", MODELOS_CRIBA) or self.modelo_decision
+        if not self.modelo_decision:
+            print("  ! Ninguno de los modelos preferidos está disponible: modo palabras clave")
+            self.cliente = None
 
     @property
     def modo(self) -> str:
         if not self.cliente:
             return "palabras clave (sin IA)"
-        return f"Groq ({MODELO_CRIBA} → {MODELO_DECISION})"
+        return f"Groq ({self.modelo_criba} → {self.modelo_decision})"
 
     def _llamar(self, modelo: str, instrucciones: str, texto: str) -> dict:
         from groq import RateLimitError
@@ -193,18 +216,18 @@ class Puntuador:
         return json.loads(respuesta.choices[0].message.content)
 
     def _criba(self, det: dict) -> dict:
-        datos = self._llamar(MODELO_CRIBA, INSTRUCCIONES_CRIBA, texto_para_analizar(det, MAX_TEXTO_CRIBA))
+        datos = self._llamar(self.modelo_criba, INSTRUCCIONES_CRIBA, texto_para_analizar(det, MAX_TEXTO_CRIBA))
         self.llamadas["criba"] += 1
         return {"puntuacion": _entero(datos.get("puntuacion")) or 0,
                 "motivo": str(datos.get("motivo", ""))}
 
     def _decision(self, det: dict) -> dict:
         texto = texto_para_analizar(det, MAX_TEXTO_DECISION)
-        datos = self._llamar(MODELO_DECISION, INSTRUCCIONES_DECISION, texto)
+        datos = self._llamar(self.modelo_decision, INSTRUCCIONES_DECISION, texto)
         self.llamadas["decision"] += 1
         requisitos = _requisitos(datos.get("requisitos"))
         return resultado(
-            _entero(datos.get("puntuacion")) or 0, f"groq:{MODELO_DECISION}",
+            _entero(datos.get("puntuacion")) or 0, f"groq:{self.modelo_decision}",
             linea=str(datos.get("linea", "")),
             motivo=str(datos.get("motivo", "")),
             resumen=str(datos.get("resumen", "")),
@@ -228,7 +251,7 @@ class Puntuador:
             try:
                 criba = self._criba(det)
                 if criba["puntuacion"] < UMBRAL_CRIBA:
-                    return resultado(criba["puntuacion"], f"groq:{MODELO_CRIBA}",
+                    return resultado(criba["puntuacion"], f"groq:{self.modelo_criba}",
                                      motivo=criba["motivo"], resumen=det.get("descripcion", "")[:300])
                 return self._decision(det)
             except CupoAgotado as e:
