@@ -1,22 +1,26 @@
 """Puntúa cada convocatoria de 0 a 100 según lo bien que encaja con Reforesta.
 
-Dos modos:
-  - IA (Groq): lee el texto oficial y razona como lo haría un técnico de la ONG.
-  - Palabras clave: respaldo gratuito y sin red, para cuando no hay GROQ_API_KEY.
-Los dos devuelven el mismo diccionario, así el resto del programa no distingue.
+Modo IA (Groq), en cascada para ahorrar cupo gratuito:
+  1. CRIBA    -> modelo pequeño (8b) con texto corto: ¿merece la pena mirarla?
+  2. DECISIÓN -> modelo grande (70b) solo si la criba supera UMBRAL_CRIBA:
+                 veredicto, requisitos uno a uno y cita literal de las bases.
+Modo palabras clave: respaldo gratuito si no hay GROQ_API_KEY o se agota el cupo.
+Todos los modos devuelven el mismo diccionario.
 """
 import json
 import os
 import time
 
-from .config import AMBITOS_PREFERENTES, PERFIL_REFORESTA, PESOS_PALABRAS
+from .config import (AMBITOS_PREFERENTES, MODELO_CRIBA, MODELO_DECISION, PAUSA_ENTRE_LLAMADAS,
+                     PERFIL_REFORESTA, PESOS_PALABRAS, UMBRAL_CRIBA, UMBRAL_MIRA, UMBRAL_PRESENTA)
 from .filtros import limpiar_html, normalizar
 
-MODELO_GROQ = os.environ.get("GROQ_MODEL", "llama-3.3-70b-versatile")
-MAX_CARACTERES_TEXTO = 6000  # el texto del BOE puede ser largo; recortamos para ahorrar tokens
+MAX_TEXTO_CRIBA = 2500     # caracteres: el 8b solo necesita lo esencial
+MAX_TEXTO_DECISION = 6000  # el 70b lee más (el extracto del boletín suele caber)
+ESTADOS_REQUISITO = {"cumple", "duda", "no"}
 
 
-def texto_para_analizar(det: dict) -> str:
+def texto_para_analizar(det: dict, limite: int = MAX_TEXTO_DECISION) -> str:
     """Junta en un solo texto lo relevante de la ficha de la BDNS."""
     organo = det.get("organo") or {}
     beneficiarios = ", ".join(b["descripcion"] for b in det.get("tiposBeneficiarios", []))
@@ -30,16 +34,48 @@ def texto_para_analizar(det: dict) -> str:
         f"Beneficiarios: {beneficiarios}",
         f"Regiones: {regiones}",
         f"Finalidad: {det.get('descripcionFinalidad', '')}",
+        f"Fecha de publicación: {det.get('fechaRecepcion', '?')}",
         f"Plazo: {det.get('fechaInicioSolicitud') or det.get('textInicio') or '?'} -> "
         f"{det.get('fechaFinSolicitud') or det.get('textFin') or '?'}",
         f"Texto del extracto: {anuncios}",
     ]
-    return "\n".join(partes)[:MAX_CARACTERES_TEXTO]
+    return "\n".join(partes)[:limite]
+
+
+def veredicto(puntuacion: int) -> str:
+    """Lo calculamos nosotros (no el modelo) para que siempre cuadre con la puntuación."""
+    if puntuacion >= UMBRAL_PRESENTA:
+        return "presenta"
+    if puntuacion >= UMBRAL_MIRA:
+        return "mira"
+    return "descarta"
+
+
+def resultado(puntuacion: int, metodo: str, **campos) -> dict:
+    """Diccionario común a todos los modos (lo que acaba en el JSON de la web)."""
+    puntuacion = max(0, min(100, int(puntuacion)))
+    base = {
+        "puntuacion": puntuacion,
+        "veredicto": veredicto(puntuacion),
+        "encaja": puntuacion >= UMBRAL_MIRA,
+        "linea": "",
+        "motivo": "",
+        "resumen": "",
+        "requisitos": [],          # [{"texto": ..., "estado": "cumple"|"duda"|"no"}]
+        "requisitos_clave": "",    # versión en texto (la usa la web actual)
+        "cita": "",                # frase literal del texto oficial, comprobada
+        "porcentaje_financiado": None,
+        "importe_max": None,
+        "plazo_estimado": None,    # "AAAA-MM-DD" si la BDNS no da fecha de fin
+        "metodo": metodo,
+    }
+    base.update(campos)
+    return base
 
 
 # ---------------------------------------------------------------- modo palabras clave
 
-def puntuar_por_palabras(det: dict) -> dict:
+def puntuar_por_palabras(det: dict, metodo: str = "palabras_clave") -> dict:
     texto = normalizar(texto_para_analizar(det))
     encontradas = [p for p in PESOS_PALABRAS if p in texto]
     puntos = sum(PESOS_PALABRAS[p] for p in encontradas)
@@ -49,86 +85,157 @@ def puntuar_por_palabras(det: dict) -> dict:
     if any(a in ambito for a in AMBITOS_PREFERENTES):
         puntos += 15
 
-    puntuacion = min(100, puntos)
-    return {
-        "puntuacion": puntuacion,
-        "encaja": puntuacion >= 50,
-        "linea": "",
-        "motivo": "Coincidencias: " + ", ".join(encontradas[:8]) if encontradas else "Sin coincidencias claras",
-        "resumen": det.get("descripcion", "")[:300],
-        "requisitos_clave": "",
-        "metodo": "palabras_clave",
-    }
+    return resultado(
+        min(100, puntos), metodo,
+        motivo="Coincidencias: " + ", ".join(encontradas[:8]) if encontradas else "Sin coincidencias claras",
+        resumen=det.get("descripcion", "")[:300],
+    )
 
 
 # ---------------------------------------------------------------- modo IA (Groq)
 
-INSTRUCCIONES = f"""Eres el técnico de captación de fondos de una ONG ambiental.
-Tu trabajo es decidir si una convocatoria pública merece que la ONG pida la ayuda.
+INSTRUCCIONES_CRIBA = f"""Eres técnico de captación de fondos de esta ONG ambiental:
+{PERFIL_REFORESTA}
+Decide rápido si esta convocatoria pública merece un análisis detallado.
+Responde SOLO con JSON: {{"puntuacion": entero 0-100, "motivo": "una frase"}}.
+Puntúa bajo si la ONG no puede ser beneficiaria o el tema no tiene relación."""
+
+INSTRUCCIONES_DECISION = f"""Eres el técnico de captación de fondos de una ONG ambiental.
+Decide si la ONG debe pedir esta ayuda pública.
 
 Perfil de la ONG:
 {PERFIL_REFORESTA}
 
 Responde SOLO con un objeto JSON con estas claves:
-- "puntuacion": entero 0-100. 80-100 = encaja muy bien y la ONG puede presentarse;
-  50-79 = encaja parcialmente o hay dudas sobre requisitos; 0-49 = no le sirve.
-- "encaja": true/false.
-- "linea": cuál de sus líneas encaja ("restauracion", "conservacion", "educacion",
-  "agroambiental" o "" si ninguna).
-- "motivo": 1-2 frases explicando la puntuación (sé concreto: quién puede pedirla,
-  ámbito geográfico, temática).
-- "resumen": 1 frase en lenguaje llano sobre qué financia la convocatoria.
-- "requisitos_clave": requisitos que la ONG debe comprobar (ámbito, tipo de
-  entidad, cofinanciación...), en una frase. "" si no hay nada destacable.
+- "puntuacion": entero 0-100. 70-100 = puede presentarse y encaja; 50-69 = encaja
+  pero hay dudas importantes; 0-49 = no le sirve.
+- "linea": "restauracion", "conservacion", "educacion", "agroambiental" o "".
+- "resumen": UNA frase en lenguaje llano sobre qué financia (máx. 25 palabras).
+- "motivo": 1-2 frases concretas: quién puede pedirla, ámbito y temática.
+- "requisitos": lista de 3 a 5 requisitos de elegibilidad que la ONG debe comprobar.
+  Cada uno: {{"texto": "requisito breve", "estado": "cumple" | "duda" | "no"}}.
+  "cumple" = el texto deja claro que la ONG lo cumple; "no" = la excluye o no lo
+  cumple; "duda" = falta información (p. ej. cofinanciación, antigüedad, sede).
+- "cita": copia LITERAL (sin cambiar ni una palabra, máx. 40 palabras) la frase del
+  texto que dice quién puede ser beneficiario. "" si no aparece.
+- "porcentaje_financiado": entero (porcentaje del coste que cubre) o null si no consta.
+- "importe_max": número en euros máximo por solicitud o null si no consta.
+- "plazo_estimado": si no hay fecha de fin pero sí una regla ("un mes desde la
+  publicación"), calcula la fecha "AAAA-MM-DD" usando la fecha de publicación; si no, null.
 
 Sé exigente: si la ONG no puede ser beneficiaria (solo personas físicas, empresas,
-ayuntamientos o una entidad concreta), la puntuación debe ser baja aunque el tema encaje.
-Si es de otra comunidad autónoma y exige sede allí, penaliza."""
+ayuntamientos o una entidad concreta), la puntuación debe ser baja aunque el tema
+encaje. Si es de otra comunidad autónoma y exige sede allí, penaliza.
+No inventes datos: si algo no aparece en el texto, usa null, "" o "duda"."""
 
 
-def puntuar_con_groq(det: dict, cliente) -> dict:
-    respuesta = cliente.chat.completions.create(
-        model=MODELO_GROQ,
-        temperature=0,  # queremos respuestas estables, no creativas
-        response_format={"type": "json_object"},
-        messages=[
-            {"role": "system", "content": INSTRUCCIONES},
-            {"role": "user", "content": texto_para_analizar(det)},
-        ],
-    )
-    datos = json.loads(respuesta.choices[0].message.content)
-    return {
-        "puntuacion": max(0, min(100, int(datos.get("puntuacion", 0)))),
-        "encaja": bool(datos.get("encaja", False)),
-        "linea": str(datos.get("linea", "")),
-        "motivo": str(datos.get("motivo", "")),
-        "resumen": str(datos.get("resumen", "")),
-        "requisitos_clave": str(datos.get("requisitos_clave", "")),
-        "metodo": f"groq:{MODELO_GROQ}",
-    }
+class CupoAgotado(Exception):
+    """Groq pide esperar más de un minuto: casi seguro el límite diario."""
+
+
+def _entero(valor):
+    try:
+        return int(float(valor)) if valor not in (None, "") else None
+    except (TypeError, ValueError):
+        return None
+
+
+def _requisitos(lista) -> list[dict]:
+    limpios = []
+    for r in lista if isinstance(lista, list) else []:
+        if isinstance(r, dict) and str(r.get("texto", "")).strip():
+            estado = str(r.get("estado", "duda")).lower()
+            limpios.append({"texto": str(r["texto"]).strip(),
+                            "estado": estado if estado in ESTADOS_REQUISITO else "duda"})
+    return limpios[:5]
+
+
+def cita_verificada(cita: str, texto: str) -> str:
+    """Devuelve la cita solo si aparece de verdad en el texto oficial (los modelos inventan)."""
+    cita = (cita or "").strip().strip("«»\"'… .")
+    if len(cita) < 15:
+        return ""
+    return cita if normalizar(cita) in normalizar(texto) else ""
 
 
 class Puntuador:
-    """Elige el modo automáticamente y, si Groq falla, cae al de palabras clave."""
+    """Elige el modo automáticamente y lleva la cuenta de lo que pasa con Groq."""
 
     def __init__(self, usar_ia: bool = True):
         self.cliente = None
+        self.cupo_agotado = False
+        self.llamadas = {"criba": 0, "decision": 0, "respaldo": 0}
         if usar_ia and os.environ.get("GROQ_API_KEY"):
             from groq import Groq  # import aquí: así el modo sin IA no necesita el paquete
-            self.cliente = Groq()
+            # El SDK reintenta solo y respeta el "retry-after" de Groq (límite por minuto).
+            self.cliente = Groq(max_retries=5)
 
     @property
     def modo(self) -> str:
-        return f"Groq ({MODELO_GROQ})" if self.cliente else "palabras clave (sin IA)"
+        if not self.cliente:
+            return "palabras clave (sin IA)"
+        return f"Groq ({MODELO_CRIBA} → {MODELO_DECISION})"
+
+    def _llamar(self, modelo: str, instrucciones: str, texto: str) -> dict:
+        from groq import RateLimitError
+        time.sleep(PAUSA_ENTRE_LLAMADAS)
+        try:
+            respuesta = self.cliente.chat.completions.create(
+                model=modelo,
+                temperature=0,  # respuestas estables, no creativas
+                response_format={"type": "json_object"},
+                messages=[{"role": "system", "content": instrucciones},
+                          {"role": "user", "content": texto}],
+            )
+        except RateLimitError as e:
+            # Si después de los reintentos del SDK sigue el 429, es el límite diario.
+            raise CupoAgotado(str(e)) from e
+        return json.loads(respuesta.choices[0].message.content)
+
+    def _criba(self, det: dict) -> dict:
+        datos = self._llamar(MODELO_CRIBA, INSTRUCCIONES_CRIBA, texto_para_analizar(det, MAX_TEXTO_CRIBA))
+        self.llamadas["criba"] += 1
+        return {"puntuacion": _entero(datos.get("puntuacion")) or 0,
+                "motivo": str(datos.get("motivo", ""))}
+
+    def _decision(self, det: dict) -> dict:
+        texto = texto_para_analizar(det, MAX_TEXTO_DECISION)
+        datos = self._llamar(MODELO_DECISION, INSTRUCCIONES_DECISION, texto)
+        self.llamadas["decision"] += 1
+        requisitos = _requisitos(datos.get("requisitos"))
+        return resultado(
+            _entero(datos.get("puntuacion")) or 0, f"groq:{MODELO_DECISION}",
+            linea=str(datos.get("linea", "")),
+            motivo=str(datos.get("motivo", "")),
+            resumen=str(datos.get("resumen", "")),
+            requisitos=requisitos,
+            requisitos_clave="; ".join(r["texto"] for r in requisitos if r["estado"] != "cumple"),
+            cita=cita_verificada(str(datos.get("cita", "")), texto),
+            porcentaje_financiado=_entero(datos.get("porcentaje_financiado")),
+            importe_max=_entero(datos.get("importe_max")),
+            plazo_estimado=datos.get("plazo_estimado") or None,
+        )
 
     def puntuar(self, det: dict) -> dict:
         if not self.cliente:
             return puntuar_por_palabras(det)
-        for intento in range(3):
+        if self.cupo_agotado:
+            # Se marca para que la próxima ejecución la vuelva a pasar por Groq.
+            self.llamadas["respaldo"] += 1
+            return puntuar_por_palabras(det, "palabras_clave:pendiente_ia")
+
+        for intento in range(2):
             try:
-                return puntuar_con_groq(det, self.cliente)
-            except Exception as e:  # límite de peticiones, JSON roto, red...
-                espera = 5 * (intento + 1)
-                print(f"    ! Groq falló ({type(e).__name__}: {e}); reintento en {espera}s")
-                time.sleep(espera)
-        return puntuar_por_palabras(det)
+                criba = self._criba(det)
+                if criba["puntuacion"] < UMBRAL_CRIBA:
+                    return resultado(criba["puntuacion"], f"groq:{MODELO_CRIBA}",
+                                     motivo=criba["motivo"], resumen=det.get("descripcion", "")[:300])
+                return self._decision(det)
+            except CupoAgotado as e:
+                print(f"    ! Cupo de Groq agotado, el resto queda pendiente para mañana ({e})")
+                self.cupo_agotado = True
+                break
+            except Exception as e:  # JSON roto, red, error del servidor...
+                print(f"    ! Groq falló ({type(e).__name__}: {e}); intento {intento + 1}/2")
+        self.llamadas["respaldo"] += 1
+        return puntuar_por_palabras(det, "palabras_clave:pendiente_ia")

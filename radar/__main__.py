@@ -18,7 +18,9 @@ from pathlib import Path
 
 from . import bdns
 from .config import DIAS_POR_DEFECTO, TERMINOS_BUSQUEDA
-from .filtros import descartar_por_detalle, descartar_por_titulo
+from collections import Counter
+
+from .filtros import descartar_por_detalle, descartar_por_titulo, motivo_corto
 from .puntuador import Puntuador
 
 SALIDA = Path(__file__).resolve().parent.parent / "web" / "public" / "data" / "convocatorias.json"
@@ -62,6 +64,8 @@ def main() -> None:
                         help="no usar Groq aunque haya GROQ_API_KEY")
     parser.add_argument("--recalcular", action="store_true",
                         help="ignorar la caché y volver a puntuar todo")
+    parser.add_argument("--limite", type=int, default=0,
+                        help="evaluar como mucho N convocatorias nuevas (para probar gastando poco cupo)")
     args = parser.parse_args()
 
     hoy = date.today()
@@ -80,17 +84,17 @@ def main() -> None:
     print(f"Total únicas: {len(candidatas)}")
 
     # 2 y 3. FILTRAR y PUNTUAR
-    resultado, descartadas = [], 0
+    resultado, descartes, evaluadas = [], Counter(), 0
     for codigo, resumen in candidatas.items():
-        if descartar_por_titulo(resumen["descripcion"]):
-            descartadas += 1
+        motivo = descartar_por_titulo(resumen["descripcion"])
+        if motivo:
+            descartes[motivo_corto(motivo)] += 1
             continue
 
-        # Caché: si ya la puntuamos antes, no repetimos el trabajo.
-        # Excepción: si antes fue sin IA y ahora tenemos Groq, la volvemos a puntuar.
+        # Caché: si Groq ya la evaluó, no repetimos el trabajo (ni gastamos cupo).
+        # Las puntuadas solo con palabras clave se vuelven a mirar (filtros nuevos, IA...).
         previa = anterior.get(codigo)
-        hecha_con_ia = previa is not None and previa.get("metodo", "").startswith("groq")
-        if previa and (hecha_con_ia or not puntuador.cliente):
+        if previa and previa.get("metodo", "").startswith("groq"):
             cerrada = previa.get("fin") and date.fromisoformat(previa["fin"]) < hoy
             if not cerrada:
                 resultado.append(previa)
@@ -100,14 +104,19 @@ def main() -> None:
         time.sleep(0.2)  # ser amables con la API pública
         motivo = descartar_por_detalle(det, hoy)
         if motivo:
-            descartadas += 1
+            descartes[motivo_corto(motivo)] += 1
             continue
+
+        if args.limite and evaluadas >= args.limite:
+            continue
+        evaluadas += 1
 
         evaluacion = puntuador.puntuar(det)
         resultado.append(ficha(det, evaluacion))
         print(f"  [{evaluacion['puntuacion']:3}] {codigo} {det.get('descripcion', '')[:80]}")
 
     # 4. GUARDAR
+    descartadas = sum(descartes.values())
     resultado.sort(key=lambda c: (-c["puntuacion"], c.get("fin") or "9999"))
     SALIDA.parent.mkdir(parents=True, exist_ok=True)
     SALIDA.write_text(json.dumps({
@@ -116,12 +125,19 @@ def main() -> None:
         "ventana_dias": args.dias,
         "revisadas": len(candidatas),
         "descartadas": descartadas,
+        "descartes_por_motivo": dict(descartes.most_common()),
+        "llamadas_groq": puntuador.llamadas,
         "convocatorias": resultado,
     }, ensure_ascii=False, indent=1), encoding="utf-8")
 
-    buenas = sum(1 for c in resultado if c["puntuacion"] >= 70)
+    buenas = sum(1 for c in resultado if c.get("veredicto") == "presenta")
     print(f"\nRevisadas {len(candidatas)} | descartadas {descartadas} | "
-          f"guardadas {len(resultado)} | recomendadas (>=70): {buenas}")
+          f"guardadas {len(resultado)} | presenta: {buenas}")
+    for motivo, n in descartes.most_common():
+        print(f"  descartadas por {motivo}: {n}")
+    print(f"Llamadas a Groq: {puntuador.llamadas}")
+    if puntuador.cupo_agotado:
+        print("AVISO: se agotó el cupo de Groq; las pendientes se evaluarán en la próxima ejecución.")
     print(f"-> {SALIDA}")
 
 
