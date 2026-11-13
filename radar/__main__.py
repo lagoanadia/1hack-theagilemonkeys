@@ -56,6 +56,15 @@ def ficha(det: dict, evaluacion: dict) -> dict:
     }
 
 
+def plazo_vencido(c: dict, hoy: date) -> bool:
+    """Cerrada por fecha oficial o, si no la hay, por la fecha que estimó Groq."""
+    fecha = c.get("fin") or c.get("plazo_estimado")
+    try:
+        return bool(fecha) and date.fromisoformat(fecha) < hoy
+    except ValueError:  # fecha mal formada por el modelo: no la usamos
+        return False
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Radar de convocatorias para Reforesta")
     parser.add_argument("--dias", type=int, default=DIAS_POR_DEFECTO,
@@ -95,8 +104,7 @@ def main() -> None:
         # Las puntuadas solo con palabras clave se vuelven a mirar (filtros nuevos, IA...).
         previa = anterior.get(codigo)
         if previa and previa.get("metodo", "").startswith("groq"):
-            cerrada = previa.get("fin") and date.fromisoformat(previa["fin"]) < hoy
-            if not cerrada:
+            if not plazo_vencido(previa, hoy):
                 resultado.append(previa)
             continue
 
@@ -112,6 +120,9 @@ def main() -> None:
         evaluadas += 1
 
         evaluacion = puntuador.puntuar(det)
+        if plazo_vencido(ficha(det, evaluacion), hoy):
+            descartes["plazo cerrado (estimado)"] += 1
+            continue
         resultado.append(ficha(det, evaluacion))
         print(f"  [{evaluacion['puntuacion']:3}] {codigo} {det.get('descripcion', '')[:80]}")
 

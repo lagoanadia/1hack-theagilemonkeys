@@ -126,6 +126,12 @@ Responde SOLO con un objeto JSON con estas claves:
 Sé exigente: si la ONG no puede ser beneficiaria (solo personas físicas, empresas,
 ayuntamientos o una entidad concreta), la puntuación debe ser baja aunque el tema
 encaje. Si es de otra comunidad autónoma y exige sede allí, penaliza.
+Si la convoca un ayuntamiento o diputación, suele exigir estar inscrita en su registro
+municipal de entidades o tener sede o actividad en el municipio: ponlo como requisito
+en "duda" salvo que el texto diga claramente otra cosa.
+Los requisitos son de ELEGIBILIDAD (quién puede pedirla y qué debe cumplir); el plazo
+de presentación no es un requisito.
+La "cita" debe salir del "Texto del extracto", nunca de las líneas de datos de arriba.
 No inventes datos: si algo no aparece en el texto, usa null, "" o "duda"."""
 
 
@@ -233,7 +239,8 @@ class Puntuador:
             resumen=str(datos.get("resumen", "")),
             requisitos=requisitos,
             requisitos_clave="; ".join(r["texto"] for r in requisitos if r["estado"] != "cumple"),
-            cita=cita_verificada(str(datos.get("cita", "")), texto),
+            # La cita solo vale si está en el texto oficial (no en nuestra cabecera de datos).
+            cita=cita_verificada(str(datos.get("cita", "")), texto.split("Texto del extracto:", 1)[-1]),
             porcentaje_financiado=_entero(datos.get("porcentaje_financiado")),
             importe_max=_entero(datos.get("importe_max")),
             plazo_estimado=datos.get("plazo_estimado") or None,
