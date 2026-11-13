@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Radar de Reforesta</title>
+<style>
+:root{--g:#4cd187;--gb:#63d994;--ink:#222a26;--sub:#3d5368;--mut:#7b8794;--track:#ebebeb;--line:#e6e8e7;--wn:#c47f0a;--no:#c0453a;--gl:#2fc67c}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:#fff;color:var(--ink);font-family:'Inter','Helvetica Neue',Arial,sans-serif;font-size:16px;line-height:1.5;padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1040px;margin:0 auto;padding:18px 0 60px}
+nav{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding-bottom:10px}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;font-size:17px;cursor:pointer}
+.sp{flex:1}
+.nl{color:var(--sub);font-size:15px;cursor:pointer;background:none;border:0;padding:2px 0;font-family:inherit}
+.nl.on{color:var(--ink);font-weight:600;border-bottom:2px solid var(--g)}
+.tag{border-radius:999px;padding:4px 12px;font-size:13px;font-weight:600;display:inline-flex;gap:6px;align-items:center}
+.tag.ok{background:#e4f6ec;color:#16783f}.tag.wn{background:#fdf1dc;color:var(--wn)}.tag.no{background:#fbe4e1;color:var(--no)}.tag.bl{background:#e9f0fb;color:#2b5db5}.tag.ex{border:1px dashed #b5bfb9;color:var(--mut);font-weight:500}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:block}
+h1.h{font-size:clamp(32px,5.5vw,52px);font-weight:600;letter-spacing:-.03em;line-height:1.1;text-align:center;margin:26px 0 0;text-wrap:balance}
+.lead{font-size:clamp(16px,2vw,19px);color:var(--sub);text-align:center;max-width:660px;margin:14px auto 0}
+.gl,.lead a{color:var(--gl);cursor:pointer;text-decoration:none}
+.lead a:hover,.gl:hover{text-decoration:underline}
+.mets{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:34px 40px;margin-top:34px}
+.met{display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}
+.mn{font-size:clamp(30px,4vw,44px);font-weight:600;letter-spacing:-.03em;line-height:1.1}
+.ml{font-size:17px;margin:2px 0 10px}
+.tr{width:100%;height:26px;border-radius:99px;background:var(--track);overflow:hidden}.tr i{display:block;height:100%;background:var(--g);border-radius:99px;transition:width .4s}
+.mo{font-weight:700;font-size:15px;margin-top:12px}.ms{font-size:13px;color:var(--mut)}
+.cta{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:32px}
+.btn{display:inline-flex;align-items:center;gap:8px;background:var(--gb);color:#10251b;font-weight:700;border:0;border-radius:16px;padding:14px 28px;font-size:16px;cursor:pointer;font-family:inherit}
+.btn:hover{background:var(--g)}.btn.o{background:#fff;border:1.5px solid #cfd6d2;color:var(--ink)}.btn.o:hover{background:#f6f8f7}
+.kb{border:1px solid rgba(0,0,0,.15);border-radius:7px;padding:0 7px;font-size:12px;color:var(--mut);font-weight:500}
+.row{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}
+.req{display:flex;gap:10px;align-items:center;font-size:16px}
+.req u{width:26px;height:26px;border-radius:9px;display:grid;place-items:center;font-size:13px;font-weight:700;text-decoration:none;flex:none}
+.u1{background:#e4f6ec;color:#16783f}.u2{background:#fdf1dc;color:var(--wn)}.u3{background:#fbe4e1;color:var(--no)}
+.reqs{display:flex;gap:10px 24px;justify-content:center;flex-wrap:wrap;margin-top:22px}
+.quote{border-left:3px solid var(--g);padding:2px 14px;color:var(--sub);font-style:italic;font-size:15px;max-width:660px;margin:22px auto 0}
+.card{border:1px solid var(--line);border-radius:22px;padding:22px 24px;margin-top:20px}
+.check{display:flex;gap:12px;align-items:center;padding:8px 0;cursor:pointer;font-size:16px;background:none;border:0;font-family:inherit;text-align:left;width:100%}
+.box{width:26px;height:26px;border-radius:9px;border:2px solid #c9d1cc;display:grid;place-items:center;flex:none;font-size:14px;font-weight:700;color:#fff}
+.box.on{background:var(--g);border-color:var(--g)}
+.tl{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.ov{position:fixed;inset:0;background:rgba(20,30,25,.35);display:flex;align-items:flex-end;justify-content:center;z-index:20}
+.sheet{background:#fff;border-radius:28px 28px 0 0;width:100%;max-width:560px;padding:26px 24px max(28px,env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
+.chip{background:#f3f6f4;border:0;border-radius:18px;padding:15px 18px;font-size:16px;font-weight:600;display:flex;justify-content:space-between;cursor:pointer;font-family:inherit;color:inherit}
+.chip:hover{background:#e7efe9}
+.toast{position:fixed;left:50%;bottom:max(24px,env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:#222a26;color:#fff;border-radius:16px;padding:12px 18px;display:flex;gap:16px;align-items:center;z-index:30;font-size:15px}
+.toast button{background:none;border:0;color:#7ee3ad;font-weight:700;cursor:pointer;font-size:15px;font-family:inherit}
+.list .li{display:flex;gap:14px;align-items:center;padding:14px 0;border-top:1px solid var(--line);flex-wrap:wrap}.list .li:first-child{border-top:0}
+.m{color:var(--mut);font-size:14px}
+.note{text-align:center;color:var(--mut);font-size:13px;margin-top:34px}
+:focus-visible{outline:3px solid #2b5db5;outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute"><defs><symbol id="lg" viewBox="0 0 64 64"><path d="M32 31V19" stroke="#1f9d5c" stroke-width="3" stroke-linecap="round" fill="none"/><path d="M32 25C24 25 20 20 20 14C27 14 32 18 32 25Z" fill="#4cd187"/><path d="M32 21C32 14 37 10 45 10C45 17 40 22 32 21Z" fill="#1f9d5c"/><path d="M20 39C22 32 28 31 32 31C36 31 42 32 44 39Z" fill="#3b2a20"/><path d="M8 39H52C52 51 44 58 32 58C22 58 14 53 11 45C9 43 8 41 8 39Z" fill="#8a5a3c"/><path d="M52 37C58 35 62 37 62 41C62 45 58 47 53 47" fill="#b88a66"/></symbol></defs></svg>
+<div class="wrap" id="app"></div>
+<div id="layer"></div>
+
+<script>
+/* ===== Datos de ejemplo (el script backend/ingest.py genera data/convocatorias.json con datos reales) ===== */
+const EJEMPLO = {
+  convocatorias: [
+    {id:'c1', titulo:'Plantación y restauración forestal', organismo:'Comunidad de Madrid', fuente:'BDNS', importe:230000, pct:90, dias:18, plazo_total:45, semaforo:'verde', fuera:true, pago:'Tras justificar',
+     motivo:'Paga plantación autóctona por hectárea y admite ONG como beneficiarias.',
+     cita:'«…podrán ser beneficiarias las entidades sin ánimo de lucro que desarrollen…»', url:'https://www.infosubvenciones.es/',
+     requisitos:[{t:'Entidad sin ánimo de lucro',e:'cumple'},{t:'Actuación en la Comunidad de Madrid',e:'cumple'},{t:'Cofinanciación del 10 %',e:'confirmar'},{t:'Antigüedad en el territorio',e:'cumple'}],
+     preparar:[{t:'Estatutos',perfil:true},{t:'CIF',perfil:true},{t:'Certificado de estar al corriente'},{t:'Presupuesto del proyecto'}]},
+    {id:'c2', titulo:'Recuperación de zonas quemadas', organismo:'Ministerio (estatal)', fuente:'BDNS', importe:180000, pct:80, dias:41, plazo_total:60, semaforo:'verde', fuera:false, pago:'Anticipado',
+     motivo:'Financia restauración de masa forestal tras incendios, con ONG como beneficiarias.',
+     cita:'«…proyectos de restauración de superficies forestales afectadas por incendios…»', url:'https://www.infosubvenciones.es/',
+     requisitos:[{t:'Entidad sin ánimo de lucro',e:'cumple'},{t:'Zona afectada por incendio',e:'confirmar'},{t:'Cofinanciación del 20 %',e:'confirmar'}],
+     preparar:[{t:'Estatutos',perfil:true},{t:'CIF',perfil:true},{t:'Memoria técnica del proyecto'},{t:'Certificado de la zona afectada'}]},
+    {id:'c3', titulo:'Arbolado autóctono en entornos urbanos', organismo:'Fundación privada (ejemplo)', fuente:'Fundación', importe:60000, pct:100, dias:52, plazo_total:70, semaforo:'verde', fuera:true, pago:'Anticipado',
+     motivo:'Cubre el 100 % de proyectos de arbolado autóctono promovidos por ONG.',
+     cita:'«…serán subvencionables las plantaciones de especies autóctonas en…»', url:'https://www.fundacion-biodiversidad.es/',
+     requisitos:[{t:'Entidad sin ánimo de lucro',e:'cumple'},{t:'Proyecto en entorno urbano',e:'cumple'}],
+     preparar:[{t:'Estatutos',perfil:true},{t:'CIF',perfil:true},{t:'Presupuesto del proyecto'}]},
+    {id:'c4', titulo:'Repoblación con especies autóctonas', organismo:'Diputación (ejemplo)', fuente:'BDNS', importe:45000, pct:70, dias:60, plazo_total:75, semaforo:'amarillo', fuera:false, pago:'Tras justificar',
+     motivo:'Encaja con plantación, pero exige experiencia previa en la comarca.',
+     cita:'«…acreditar experiencia mínima de dos años en el ámbito territorial…»', url:'https://www.infosubvenciones.es/',
+     requisitos:[{t:'Entidad sin ánimo de lucro',e:'cumple'},{t:'Experiencia de 2 años en la comarca',e:'confirmar'},{t:'Cofinanciación del 30 %',e:'no_cumple'}],
+     preparar:[{t:'Estatutos',perfil:true},{t:'CIF',perfil:true},{t:'Acreditación de experiencia'}]},
+    {id:'c5', titulo:'Ayudas a la investigación forestal', organismo:'Ministerio (estatal)', fuente:'BDNS', importe:300000, pct:100, dias:9, plazo_total:30, semaforo:'rojo', fuera:false,
+     motivo:'No admite ONG como beneficiarias: solo universidades y centros de investigación.',
+     cita:'«…podrán ser beneficiarios los organismos públicos de investigación y universidades…»', url:'https://www.infosubvenciones.es/', requisitos:[], preparar:[]}
+  ],
+  empresas: [
+    {id:'e1', veredicto:'encaja', promotor:'[Promotor] · Parque solar', provincia:'Madrid', ha:'12 ha', plazo:'2 años', importe:'No indicado', cita:'«…se realizará una plantación de especies autóctonas en…»', url:'https://www.boe.es/', resumen:'Debe plantar especies autóctonas como medida compensatoria. Puedes ofrecerle ejecutarlo.', contacto:'Canal público del promotor (formulario web)'},
+    {id:'e2', veredicto:'quiza', promotor:'[Promotor] · Línea eléctrica', provincia:'Toledo', ha:'No indicadas', plazo:'1 año', importe:'No indicado', cita:'«…medidas de revegetación en el entorno de la traza…»', url:'https://www.boe.es/', resumen:'Medidas de revegetación. Conviene comprobar si Reforesta puede actuar fuera de Madrid.', contacto:'Canal público del promotor (correo de sostenibilidad)'},
+    {id:'e3', veredicto:'encaja', promotor:'[Promotor] · Ampliación de cantera', provincia:'Madrid', ha:'8 ha', plazo:'18 meses', importe:'No indicado', cita:'«…restauración con plantación de encina y especies del matorral mediterráneo…»', url:'https://www.boe.es/', resumen:'Restauración con plantación de encina. Encaja con las líneas de Reforesta.', contacto:'Canal público del promotor (formulario web)'}
+  ]
+};
+
+/* ===== Estado ===== */
+const KEY='radar-reforesta-v1';
+const OBJ={dia:null, mes:20, anio:10};
+const BASE={presentadas:2, mes:8};
+let DATA=EJEMPLO, EXAMPLE=true;
+let S=load();
+function load(){try{const s=JSON.parse(localStorage.getItem(KEY));if(s&&s.dec)return s}catch(e){}return {dec:{},check:{},stage:{},emp:{}}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const eur=n=>n.toLocaleString('es-ES')+' €';
+
+/* ===== Lógica ===== */
+const queue=()=>DATA.convocatorias.filter(c=>c.semaforo!=='rojo').sort((a,b)=>(a.semaforo==='verde'?0:1)-(b.semaforo==='verde'?0:1)||a.dias-b.dias);
+const pending=()=>queue().filter(c=>!S.dec[c.id]);
+const rejected=()=>DATA.convocatorias.filter(c=>c.semaforo==='rojo');
+const presented=()=>queue().filter(c=>S.dec[c.id]&&S.dec[c.id].v==='presenta');
+const empQ=()=>DATA.empresas.filter(e=>e.veredicto!=='noencaja');
+const empPending=()=>empQ().filter(e=>!S.emp[e.id]);
+const daysLeftYear=()=>{const n=new Date();return Math.ceil((new Date(n.getFullYear(),11,31)-n)/864e5)};
+const daysLeftMonth=()=>{const n=new Date();return new Date(n.getFullYear(),n.getMonth()+1,0).getDate()-n.getDate()};
+const hoursToTomorrow=()=>{const n=new Date(),t=new Date(n);t.setDate(n.getDate()+1);t.setHours(7,0,0,0);const m=Math.round((t-n)/6e4);return Math.floor(m/60)+'h '+String(m%60).padStart(2,'0')+'min'};
+const progress=id=>{const c=DATA.convocatorias.find(x=>x.id===id);const ck=S.check[id]||{};const done=c.preparar.filter((p,i)=>p.perfil||ck[i]).length;return {done,total:c.preparar.length}};
+
+let route='inicio', justPresented=null, toast=null, toastT=null;
+function go(r){route=r;justPresented=null;render();window.scrollTo(0,0)}
+
+/* ===== Vistas ===== */
+function met(num,label,pct,obj,sub){return `<div class="met"><div class="mn">${num}</div><div class="ml">${label}</div><div class="tr" role="progressbar" aria-valuenow="${Math.round(pct)}" aria-valuemin="0" aria-valuemax="100"><i style="width:${Math.max(0,Math.min(100,pct))}%"></i></div><div class="mo">${obj}</div><div class="ms">${sub}</div></div>`}
+function nav(){
+  const items=[['inicio','Ayudas'],['empresas','Empresas'],['seguimiento','Seguimiento'],['descartadas','Descartadas']];
+  const on=route==='revision'?'inicio':route;
+  return `<nav><div class="logo" data-go="inicio"><svg width="32" height="32" aria-hidden="true"><use href="#lg"/></svg>Radar</div><span class="sp"></span>${items.map(([r,l])=>`<button class="nl ${on===r?'on':''}" data-go="${r}">${l}</button>`).join('')}${EXAMPLE?'<span class="tag ex">Datos de ejemplo</span>':''}</nav>`;
+}
+function vInicio(){
+  const q=queue(), p=pending(), rev=q.length-p.length;
+  const pres=BASE.presentadas+presented().length, mes=BASE.mes+rev;
+  const hoy=q.length?rev/q.length*100:0;
+  return `<h1 class="h">Objetivo: presentar ${OBJ.anio} solicitudes en ${new Date().getFullYear()}</h1>
+<p class="lead">Cada convocatoria que se escapa es monte que no se planta. El radar lee las bases por vosotros: <a data-go="descartadas">ver lo que ha descartado y por qué</a>.</p>
+<div class="mets">
+${met(rev,'Convocatorias revisadas hoy',hoy,'Por revisar hoy: '+q.length,'Próxima revisión en '+hoursToTomorrow())}
+${met(mes,'Revisadas este mes',mes/OBJ.mes*100,'Objetivo del mes: '+OBJ.mes,daysLeftMonth()+' días restantes')}
+${met(pres,'Solicitudes presentadas este año',pres/OBJ.anio*100,'Objetivo del año: '+OBJ.anio,daysLeftYear()+' días restantes')}
+</div>
+<div class="cta">${p.length?`<button class="btn" data-go="revision">Empezar revisión (${p.length})</button>`:`<button class="btn" data-go="seguimiento">Ir al seguimiento</button>`}</div>
+${p.length===0?'<p class="note" style="margin-top:18px">Hecho por hoy. Próxima revisión mañana a las 07:00.</p>':''}`;
+}
+function reqIcon(e){return e==='cumple'?'<u class="u1">✓</u>':e==='confirmar'?'<u class="u2">?</u>':'<u class="u3">✕</u>'}
+function vRevision(){
+  if(justPresented) return vPresentado();
+  const p=pending(); const total=queue().length;
+  if(!p.length) return vHecho();
+  const c=p[0], n=total-p.length+1;
+  const ok=c.requisitos.filter(r=>r.e==='cumple').length;
+  const fal=c.requisitos.length-ok;
+  return `<div class="row" style="margin-top:16px"><span class="tag ${c.semaforo==='verde'?'ok':'wn'}"><i class="dot"></i>${c.semaforo==='verde'?'Presenta':'Mira'}</span>${c.fuera?'<span class="tag bl">Fuera de tus fuentes</span>':''}<span class="tag ex">${n} de ${total}</span></div>
+<h1 class="h" style="margin-top:12px;font-size:clamp(30px,4.6vw,46px)">${esc(c.titulo)}</h1>
+<p class="lead" style="font-size:18px">${esc(c.motivo)} <span class="gl">${esc(c.organismo)} · ${esc(c.fuente)}</span></p>
+<div class="mets" style="margin-top:24px">
+${met(eur(c.importe),'Importe máximo',c.pct,'Cubre el '+c.pct+' % del coste','Pago: '+esc(c.pago||'según bases'))}
+${met(c.dias+' días','Hasta el plazo',c.dias/c.plazo_total*100,'Plazo: '+c.plazo_total+' días en total','Quedan '+c.dias)}
+${met(ok+' de '+c.requisitos.length,'Requisitos cumplidos',ok/c.requisitos.length*100,fal?'Falta revisar '+fal:'Todo cumplido',fal?esc(c.requisitos.find(r=>r.e!=='cumple').t):'')}
+</div>
+<div class="reqs">${c.requisitos.map(r=>`<div class="req">${reqIcon(r.e)}${esc(r.t)}</div>`).join('')}</div>
+<div class="quote">${esc(c.cita)} · <a class="gl" href="${esc(c.url)}" target="_blank" rel="noopener">ver bases ↗</a></div>
+<div class="cta" style="margin-top:26px">
+<button class="btn o" data-act="descartar">Descartar <span class="kb">←</span></button>
+<button class="btn o" data-act="luego">Mirar luego <span class="kb">↓</span></button>
+<button class="btn" data-act="presentar">Presentar <span class="kb">→</span></button></div>`;
+}
+function vPresentado(){
+  const c=DATA.convocatorias.find(x=>x.id===justPresented), pr=progress(c.id), ck=S.check[c.id]||{};
+  return `<h1 class="h">Solicitud en preparación</h1>
+<p class="lead">${esc(c.titulo)}. Reúne estos documentos antes del plazo: los datos de la entidad ya están rellenos.</p>
+<div class="mets" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr));max-width:760px;margin:30px auto 0">
+${met(pr.done+' de '+pr.total,'Documentos listos',pr.done/pr.total*100,'Objetivo: '+pr.total+' de '+pr.total,'Los del perfil ya cuentan')}
+${met(c.dias+' días','Hasta el plazo',c.dias/c.plazo_total*100,'Plazo: '+c.plazo_total+' días en total','Quedan '+c.dias)}</div>
+<div class="card" style="max-width:560px;margin-left:auto;margin-right:auto">${c.preparar.map((d,i)=>`<button class="check" data-check="${c.id}:${i}" aria-pressed="${!!(d.perfil||ck[i])}"><span class="box ${d.perfil||ck[i]?'on':''}">${d.perfil||ck[i]?'✓':''}</span>${esc(d.t)} ${d.perfil?'<span class="m">· del perfil</span>':''}</button>`).join('')}</div>
+<div class="cta"><button class="btn o" data-go="revision">Siguiente convocatoria</button><button class="btn" data-go="seguimiento">Ir al seguimiento</button></div>`;
+}
+function vHecho(){
+  const rs=queue().map(c=>S.dec[c.id]&&S.dec[c.id].v);
+  const n=v=>rs.filter(x=>x===v).length;
+  return `<div style="text-align:center;margin-top:30px"><svg width="90" height="90"><use href="#lg"/></svg></div>
+<h1 class="h" style="margin-top:6px">Hecho por hoy</h1>
+<p class="lead">Próxima revisión mañana a las 07:00. Te avisaremos si aparece algo con plazo próximo.</p>
+<div class="mets" style="max-width:720px;margin-left:auto;margin-right:auto">
+${met(n('presenta'),'Presentadas',n('presenta')/Math.max(1,rs.length)*100,'En preparación','')}
+${met(n('luego'),'Para mirar luego',n('luego')/Math.max(1,rs.length)*100,'Siguen en la cola','')}
+${met(n('descarta'),'Descartadas',n('descarta')/Math.max(1,rs.length)*100,'Con motivo','')}</div>
+<div class="cta"><button class="btn" data-go="seguimiento">Ir al seguimiento</button><button class="btn o" data-act="reabrir">Reabrir las de "mirar luego"</button></div>`;
+}
+function vSeguimiento(){
+  const ps=presented();
+  if(!ps.length) return `<h1 class="h">Seguimiento</h1><p class="lead">Aún no hay solicitudes en preparación. Cuando pulses <b>Presentar</b> en una convocatoria, aparecerá aquí con su lista de documentos y los pasos hasta la resolución.</p><div class="cta"><button class="btn" data-go="revision">Empezar revisión</button></div>`;
+  const stages=['Preparando','Presentada','Resuelta'];
+  return `<h1 class="h" style="font-size:clamp(30px,4.6vw,44px)">Seguimiento</h1><p class="lead">Sin importes agregados: solo lo que toca hacer hasta la resolución.</p>`+
+  ps.map(c=>{
+    const pr=progress(c.id), ck=S.check[c.id]||{}, st=S.stage[c.id]||0;
+    return `<div class="card"><div class="row" style="justify-content:space-between"><div><div style="font-size:20px;font-weight:600">${esc(c.titulo)}</div><div class="m">${esc(c.organismo)} · plazo en ${c.dias} días</div></div><span class="tag ${st===2?'ok':'bl'}">${stages[st]}</span></div>
+<div class="tr" style="margin:14px 0 8px;height:16px"><i style="width:${pr.done/pr.total*100}%"></i></div><div class="m">${pr.done} de ${pr.total} documentos listos</div>
+${c.preparar.map((d,i)=>`<button class="check" data-check="${c.id}:${i}" aria-pressed="${!!(d.perfil||ck[i])}"><span class="box ${d.perfil||ck[i]?'on':''}">${d.perfil||ck[i]?'✓':''}</span>${esc(d.t)}${d.perfil?' <span class="m">· del perfil</span>':''}</button>`).join('')}
+<div class="tl">${['Detectada','Requisitos','Documentos','Presentar','★ Resolución'].map((t,i)=>`<span class="tag ${i<2||(i===2&&pr.done===pr.total)||(i===3&&st>=1)||(i===4&&st===2)?'ok':'ex'}">${t}</span>`).join('<span class="m">›</span>')}</div>
+<div class="cta" style="justify-content:flex-start;margin-top:16px">${st<2?`<button class="btn o" data-stage="${c.id}">${st===0?'Marcar como presentada':'Marcar como resuelta'}</button>`:''}</div></div>`}).join('');
+}
+function vDescartadas(){
+  const mine=queue().filter(c=>S.dec[c.id]&&S.dec[c.id].v==='descarta');
+  const row=(c,why,by)=>`<div class="li"><div style="flex:1;min-width:220px"><div style="font-weight:600;font-size:17px">${esc(c.titulo)}</div><div class="m">${esc(c.organismo)} · ${esc(why)}</div></div><span class="tag ${by==='radar'?'no':'ex'}">${by==='radar'?'Descartada por el radar':'Descartada por el equipo'}</span></div>`;
+  return `<h1 class="h" style="font-size:clamp(30px,4.6vw,44px)">Descartadas</h1><p class="lead">Todo lo rechazado queda a la vista y justificado, para que el equipo pueda comprobar lo que el radar deja fuera.</p>
+<div class="card list">${rejected().map(c=>row(c,c.motivo,'radar')).join('')}${mine.map(c=>row(c,S.dec[c.id].motivo||'Sin motivo','equipo')).join('')}${!rejected().length&&!mine.length?'<p class="m">Nada descartado todavía.</p>':''}</div>`;
+}
+function vEmpresas(){
+  const p=empPending(), q=empQ();
+  const contacted=q.filter(e=>S.emp[e.id]==='contactada');
+  if(!p.length){
+    return `<h1 class="h">Empresas: hecho por hoy</h1><p class="lead">Has revisado todas las obligaciones de reforestar de esta semana.</p>
+<div class="card list">${contacted.length?contacted.map(e=>`<div class="li"><div style="flex:1"><div style="font-weight:600">${esc(e.promotor)}</div><div class="m">${esc(e.provincia)} · ${esc(e.contacto)}</div></div><span class="tag bl">Contactada</span></div>`).join(''):'<p class="m">Aún no has contactado a ninguna empresa.</p>'}</div>
+<div class="cta"><button class="btn o" data-act="emp-reabrir">Reabrir las de "mirar luego"</button></div>`;
+  }
+  const e=p[0], n=q.length-p.length+1;
+  return `<div class="row" style="margin-top:16px"><span class="tag ${e.veredicto==='encaja'?'ok':'wn'}"><i class="dot"></i>${e.veredicto==='encaja'?'Encaja':'Quizá'}</span><span class="tag ex">${esc(e.provincia)}</span><span class="tag ex">${n} de ${q.length}</span></div>
+<h1 class="h" style="margin-top:12px;font-size:clamp(30px,4.6vw,46px)">${esc(e.promotor)}</h1>
+<p class="lead" style="font-size:18px">Obligado a reforestar por su declaración de impacto ambiental. ${esc(e.resumen)}</p>
+<div class="mets" style="margin-top:26px">
+${met(esc(e.ha),'Superficie según el texto',e.ha.startsWith('No')?0:60,'Dato del BOE','Si no aparece, no se inventa')}
+${met(esc(e.plazo),'Plazo legal',50,'Para ejecutar las medidas','')}
+${met(esc(e.importe),'Importe',0,'No lo dice el texto','Mejor "no indicado" que una cifra inventada')}</div>
+<div class="quote">${esc(e.cita)} · <a class="gl" href="${esc(e.url)}" target="_blank" rel="noopener">ver BOE ↗</a></div>
+<div class="cta" style="margin-top:26px">
+<button class="btn o" data-act="emp-no">No encaja <span class="kb">←</span></button>
+<button class="btn o" data-act="emp-luego">Mirar luego <span class="kb">↓</span></button>
+<button class="btn" data-act="emp-contactar">Contactar <span class="kb">→</span></button></div>`;
+}
+
+/* ===== Render ===== */
+function render(){
+  const v={inicio:vInicio,revision:vRevision,seguimiento:vSeguimiento,descartadas:vDescartadas,empresas:vEmpresas}[route]||vInicio;
+  $('#app').innerHTML=nav()+v()+`<p class="note">${EXAMPLE?'Datos de ejemplo. Con <code>backend/ingest.py</code> se sustituyen por convocatorias reales de la BDNS leídas con IA.':'Datos de la BDNS leídos con IA. Comprueba siempre las bases originales.'} El radar lee y prioriza; no redacta propuestas.</p>`;
+}
+function showToast(msg,undo){
+  clearTimeout(toastT);
+  $('#layer').innerHTML=`<div class="toast" role="status"><span>${esc(msg)}</span>${undo?'<button data-act="undo">Deshacer</button>':''}</div>`;
+  toastT=setTimeout(()=>{$('#layer').innerHTML=''},5000);
+}
+function modal(html){$('#layer').innerHTML=`<div class="ov" data-act="close"><div class="sheet" role="dialog" aria-modal="true">${html}</div></div>`}
+
+/* ===== Acciones ===== */
+let last=null;
+function decide(id,v,motivo){last={id};S.dec[id]={v,motivo};save();render()}
+function doAct(a){
+  if(route==='revision'&&!justPresented&&pending().length){
+    const c=pending()[0];
+    if(a==='descartar'){return modal(`<h2 style="margin:0;font-size:24px">¿Por qué la descartas?</h2>${['No encaja con reforestar','No podemos pedirla (requisitos)','Plazo o importe no compensa','Otro motivo'].map((m,i)=>`<button class="chip" data-motivo="${esc(m)}">${m}<span class="m">${i+1}</span></button>`).join('')}<p class="m" style="text-align:center;margin:4px 0 0">Pasa sola a la siguiente. Se puede deshacer.</p>`)}
+    if(a==='luego'){decide(c.id,'luego');return showToast('Para mirar luego',true)}
+    if(a==='presentar'){decide(c.id,'presenta');justPresented=c.id;return render()}
+  }
+  if(route==='empresas'&&empPending().length){
+    const e=empPending()[0];
+    if(a==='emp-no'){S.emp[e.id]='no';last={emp:e.id};save();render();return showToast('Marcada como no encaja',true)}
+    if(a==='emp-luego'){S.emp[e.id]='luego';last={emp:e.id};save();render();return showToast('Para mirar luego',true)}
+    if(a==='emp-contactar'){S.emp[e.id]='contactada';last={emp:e.id};save();render();return modal(`<h2 style="margin:0;font-size:24px">Contactar con ${esc(e.promotor)}</h2><p class="m" style="margin:0">Solo usamos el canal público del promotor, nunca datos inventados:</p><div class="chip" style="cursor:default">${esc(e.contacto)}</div><p class="m" style="margin:0">Marcada como contactada. Puedes enviarle una de tus propuestas desde el apartado de Propuestas cuando esté disponible.</p><button class="btn" data-act="close">Entendido</button>`)}
+  }
+  if(a==='undo'&&last){if(last.id){delete S.dec[last.id]}if(last.emp){delete S.emp[last.emp]}save();$('#layer').innerHTML='';render()}
+  if(a==='close'){$('#layer').innerHTML=''}
+  if(a==='reabrir'){queue().forEach(c=>{if(S.dec[c.id]&&S.dec[c.id].v==='luego')delete S.dec[c.id]});save();render()}
+  if(a==='emp-reabrir'){empQ().forEach(e=>{if(S.emp[e.id]==='luego')delete S.emp[e.id]});save();render()}
+}
+document.addEventListener('click',ev=>{
+  const t=ev.target.closest('[data-go],[data-act],[data-motivo],[data-check],[data-stage]');
+  if(!t)return;
+  if(t.classList.contains('ov')&&ev.target!==t)return;
+  if(t.dataset.go){return go(t.dataset.go)}
+  if(t.dataset.motivo){const c=pending()[0];$('#layer').innerHTML='';decide(c.id,'descarta',t.dataset.motivo);return showToast('Descartada: '+t.dataset.motivo,true)}
+  if(t.dataset.check){const [id,i]=t.dataset.check.split(':');S.check[id]=S.check[id]||{};S.check[id][i]=!S.check[id][i];save();return render()}
+  if(t.dataset.stage){S.stage[t.dataset.stage]=Math.min(2,(S.stage[t.dataset.stage]||0)+1);save();return render()}
+  if(t.dataset.act){doAct(t.dataset.act)}
+});
+document.addEventListener('keydown',ev=>{
+  if(ev.target.closest('input,textarea'))return;
+  const open=$('.ov');
+  if(open){
+    if(ev.key==='Escape')$('#layer').innerHTML='';
+    const m=document.querySelectorAll('[data-motivo]');if(/^[1-4]$/.test(ev.key)&&m[+ev.key-1])m[+ev.key-1].click();return;
+  }
+  const map=route==='empresas'?{ArrowLeft:'emp-no',ArrowDown:'emp-luego',ArrowRight:'emp-contactar'}:{ArrowLeft:'descartar',ArrowDown:'luego',ArrowRight:'presentar'};
+  if(map[ev.key]&&(route==='revision'||route==='empresas')){ev.preventDefault();doAct(map[ev.key])}
+});
+
+/* ===== Arranque: usa datos reales si existe data/convocatorias.json ===== */
+(location.protocol==='file:'?Promise.reject():fetch('data/convocatorias.json')).then(r=>r.ok?r.json():Promise.reject()).then(j=>{if(j&&j.convocatorias&&j.convocatorias.length){DATA={convocatorias:j.convocatorias,empresas:j.empresas&&j.empresas.length?j.empresas:EJEMPLO.empresas};EXAMPLE=!!j.ejemplo}}).catch(()=>{}).finally(render);
+render();
+</script>
+</body>
+</html>
