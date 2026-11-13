@@ -1,0 +1,150 @@
+{
+ "encontradas": 2,
+ "total": 2,
+ "casos": [
+  {
+   "codigo": "923290",
+   "titulo": "AYUDAS CONCURRENCIA COMPETITIVA LÍNEA A DESARROLLO ACTIVIDADES INTERÉS GENERAL CONSIDERADAS INTERÉS SOCIAL, EN EL ÁMBITO DE LA INVESTIGACIÓN CIENTÍFICA Y TÉCNICA Y PROTECCIÓN MEDIO AMBIENTE EN MATERIAS DE COMPETENCIA ESTATAL. ANUALIDAD 2026.",
+   "organo": "MINISTERIO PARA LA TRANSICIÓN ECOLÓGICA Y EL RETO DEMOGRÁFICO",
+   "ambito": "ESTADO",
+   "publicada": "2026-08-03",
+   "inicio": null,
+   "fin": null,
+   "plazo_texto": "15 días hábiles tras publicación extracto BOE",
+   "abierta": false,
+   "presupuesto": 17389322.52,
+   "tipo": "Concurrencia competitiva - canónica",
+   "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/923290",
+   "url_bases": "https://www.boe.es/boe/dias/2023/07/31/pdfs/BOE-A-2023-17623.pdf",
+   "sede": "https://sede.miteco.gob.es/portal/site/seMITECO",
+   "puntuacion": 75,
+   "veredicto": "presenta",
+   "encaja": true,
+   "linea": "conservacion",
+   "motivo": "Pueden solicitarla asociaciones, fundaciones y ONG del Tercer Sector a nivel estatal, enfocadas en investigación y protección ambiental.",
+   "resumen": "Financia proyectos de investigación y desarrollo para la protección del medio ambiente.",
+   "requisitos": [
+    {
+     "texto": "Ser entidad del Tercer Sector (asociación sin ánimo de lucro)",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Tener actividad en España (ámbito estatal)",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Ser colaboradora de la Administración General del Estado",
+     "estado": "duda"
+    },
+    {
+     "texto": "Cumplir los requisitos del artículo 3.3 a) de la orden de bases reguladoras",
+     "estado": "duda"
+    },
+    {
+     "texto": "Presentar proyecto de investigación en medio ambiente",
+     "estado": "cumple"
+    }
+   ],
+   "requisitos_clave": "Ser colaboradora de la Administración General del Estado; Cumplir los requisitos del artículo 3.3 a) de la orden de bases reguladoras",
+   "cita": "destinadas a entidades del Tercer Sector u organizaciones no gubernamentales de ámbito estatal colaboradoras en el ámbito de la Administración General del Estado",
+   "porcentaje_financiado": null,
+   "importe_max": null,
+   "plazo_estimado": "2026-08-24",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 2,
+   "descripcion_reto": "MITECO · ayudas a actividades de interés general para la protección del medio ambiente (2026)",
+   "filtros": [
+    {
+     "paso": "Aparece en el barrido de la BDNS (Estado + Madrid)",
+     "ok": true
+    },
+    {
+     "paso": "No es nominativa, convenio ni beca",
+     "ok": true
+    },
+    {
+     "paso": "Concurrencia competitiva, ámbito y beneficiarios válidos",
+     "ok": true,
+     "motivo": ""
+    },
+    {
+     "paso": "Temática ambiental",
+     "ok": true
+    }
+   ],
+   "encontrada": true
+  },
+  {
+   "codigo": "904719",
+   "titulo": "SUBVENCIÓN ENTIDADES SIN ÁNIMO DE LUCRO PROYECTOS AMBIENTALES 2026",
+   "organo": "COMUNIDAD DE MADRID",
+   "ambito": "AUTONOMICA",
+   "publicada": "2026-05-11",
+   "inicio": "2026-05-26",
+   "fin": "2026-06-08",
+   "plazo_texto": "10 DÍAS HÁBILES DESDE EL INICIO DEL PLAZO DE SOLICITUD",
+   "abierta": false,
+   "presupuesto": 500000,
+   "tipo": "Concurrencia competitiva - canónica",
+   "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/904719",
+   "url_bases": "https://www.bocm.es/boletin/CM_Orden_BOCM/2024/07/26/BOCM-20240726-20.PDF",
+   "sede": "",
+   "puntuacion": 88,
+   "veredicto": "presenta",
+   "encaja": true,
+   "linea": "restauracion",
+   "motivo": "Entidades sin ánimo de lucro legalmente constituidas pueden solicitarla. La ayuda financia proyectos de conservación y restauración ambiental en la Comunidad de Madrid.",
+   "resumen": "Financia proyectos ambientales que restauren y conserven ecosistemas, biodiversidad y hábitats naturales en la Comunidad de Madrid.",
+   "requisitos": [
+    {
+     "texto": "Ser entidad sin ánimo de lucro legalmente constituida",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Estar debidamente inscrita en los registros oficiales",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Tener como ámbito territorial de actuación la Comunidad de Madrid",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Los fines estatutarios incluyan actividades subvencionables",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Acreditar experiencia en proyectos medioambientales relacionados",
+     "estado": "cumple"
+    }
+   ],
+   "requisitos_clave": "",
+   "cita": "Podrán ser beneficiarios de estas subvenciones las entidades sin ánimo de lucro legalmente constituidas que cumplan los siguientes requisitos:",
+   "porcentaje_financiado": 100,
+   "importe_max": 60000,
+   "plazo_estimado": null,
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 2,
+   "descripcion_reto": "Comunidad de Madrid · Orden 1689/2026, proyectos ambientales de entidades sin ánimo de lucro",
+   "filtros": [
+    {
+     "paso": "Aparece en el barrido de la BDNS (Estado + Madrid)",
+     "ok": true
+    },
+    {
+     "paso": "No es nominativa, convenio ni beca",
+     "ok": true
+    },
+    {
+     "paso": "Concurrencia competitiva, ámbito y beneficiarios válidos",
+     "ok": true,
+     "motivo": ""
+    },
+    {
+     "paso": "Temática ambiental",
+     "ok": true
+    }
+   ],
+   "encontrada": true
+  }
+ ]
+}

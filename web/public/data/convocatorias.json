@@ -1,6 +1,6 @@
 {
- "generado": "2026-11-13T22:19",
- "modo": "Groq (openai/gpt-oss-120b → openai/gpt-oss-120b)",
+ "generado": "2026-11-13T22:26",
+ "modo": "Groq (openai/gpt-oss-20b → openai/gpt-oss-120b)",
  "ventana_dias": 365,
  "revisadas": 5117,
  "descartadas": 5019,
@@ -12,8 +12,8 @@
   "solo para empresas": 110
  },
  "llamadas_groq": {
-  "criba": 36,
-  "decision": 1,
+  "criba": 0,
+  "decision": 0,
   "respaldo": 0
  },
  "convocatorias": [
