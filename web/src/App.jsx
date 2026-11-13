@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from "react";
 import Tarjeta from "./Tarjeta.jsx";
 import Validacion from "./Validacion.jsx";
 import Empresas from "./Empresas.jsx";
+import Proyectos from "./Proyectos.jsx";
+import { api, claveGuardada, guardarClave } from "./api.js";
 import { cargarConvocatorias, cargarValidacion, veredicto } from "./datos.js";
 
 // Chips de la pantalla 1. "valor" es el campo `linea` que devuelve el radar.
@@ -14,6 +16,10 @@ const LINEAS = [
 ];
 
 const ORDEN_VEREDICTO = { presenta: 0, mira: 1, pendiente: 2, descarta: 3 };
+// Lo que marca el equipo manda sobre el veredicto de la IA.
+const ORDEN_MARCA = { interesa: -1, descarta: 1 };
+const VISTAS = ["convocatorias", "empresas", "proyectos"];
+const vistaDeURL = () => (VISTAS.includes(location.hash.slice(1)) ? location.hash.slice(1) : "convocatorias");
 
 export default function App() {
   const [datos, setDatos] = useState(null);
@@ -21,33 +27,85 @@ export default function App() {
   const [busqueda, setBusqueda] = useState("");
   const [linea, setLinea] = useState("");
   const [validacion, setValidacion] = useState(null);
-  const [vista, setVista] = useState("convocatorias");
+  const [vista, setVista] = useState(vistaDeURL);
+  const [equipo, setEquipo] = useState(false);   // ¿clave del equipo válida?
+  const [marcas, setMarcas] = useState({});       // "convocatoria:923290" -> "interesa"
 
   useEffect(() => {
     cargarConvocatorias().then(setDatos).catch((e) => setError(e.message));
     cargarValidacion().then(setValidacion);
+    if (claveGuardada()) entrarEquipo(claveGuardada());
+    const alCambiar = () => setVista(vistaDeURL());
+    window.addEventListener("hashchange", alCambiar);
+    return () => window.removeEventListener("hashchange", alCambiar);
   }, []);
+
+  async function entrarEquipo(clave) {
+    try {
+      await api("/equipo", { clave });
+      guardarClave(clave);
+      setEquipo(true);
+      const lista = await api("/estado");
+      setMarcas(Object.fromEntries(lista.map((m) => [`${m.tipo}:${m.id}`, m.estado])));
+    } catch (e) {
+      guardarClave("");
+      setEquipo(false);
+      if (clave) alert(`No se pudo entrar: ${e.message}`);
+    }
+  }
+
+  function pedirClave() {
+    const clave = prompt("Clave del equipo de Reforesta:");
+    if (clave) entrarEquipo(clave.trim());
+  }
+
+  function salir() {
+    guardarClave("");
+    setEquipo(false);
+    setMarcas({});
+  }
+
+  // Devuelve la función para marcar un elemento (o null si no es del equipo).
+  const marcador = (tipo, id) => equipo ? async (estado) => {
+    const clave = `${tipo}:${id}`;
+    const anterior = marcas[clave];
+    setMarcas((m) => ({ ...m, [clave]: estado || undefined }));  // al instante; luego se guarda
+    try {
+      await api("/estado", { metodo: "PUT", datos: { tipo, id, estado } });
+    } catch (e) {
+      setMarcas((m) => ({ ...m, [clave]: anterior }));
+      alert(`No se pudo guardar: ${e.message}`);
+    }
+  } : null;
 
   const lista = useMemo(() => {
     if (!datos) return [];
     const q = busqueda.toLowerCase();
+    const marca = (c) => ORDEN_MARCA[marcas[`convocatoria:${c.codigo}`]] || 0;
     return datos.convocatorias
       .filter((c) => !linea || c.linea === linea)
       .filter((c) => !q || `${c.titulo} ${c.organo} ${c.resumen} ${c.motivo}`.toLowerCase().includes(q))
       .sort((a, b) =>
+        marca(a) - marca(b) ||
         ORDEN_VEREDICTO[veredicto(a)] - ORDEN_VEREDICTO[veredicto(b)] ||
         (a.fin || "9999").localeCompare(b.fin || "9999"));
-  }, [datos, busqueda, linea]);
+  }, [datos, busqueda, linea, marcas]);
 
   if (error) return <main className="estado">⚠️ {error}</main>;
   if (!datos) return <main className="estado">Cargando convocatorias…</main>;
 
   const recomendadas = datos.convocatorias.filter((c) => veredicto(c) === "presenta").length;
+  const cambiarVista = (v) => { location.hash = v; setVista(v); };
 
   return (
     <main>
       <header>
-        <h1>🌱 Radar</h1>
+        <div className="cabecera">
+          <h1>🌱 Radar</h1>
+          {equipo
+            ? <button className="enlace" onClick={salir}>Equipo Reforesta · salir</button>
+            : <button className="enlace" onClick={pedirClave}>Soy de Reforesta</button>}
+        </div>
         <p className="cobertura">
           El radar leyó <b>{datos.revisadas}</b> convocatorias, descartó <b>{datos.descartadas}</b> y
           te recomienda <b>{recomendadas}</b>.
@@ -58,36 +116,37 @@ export default function App() {
       </header>
 
       <nav className="pestanas">
-        <button className={vista === "convocatorias" ? "activo" : ""} onClick={() => setVista("convocatorias")}>
-          Convocatorias
-        </button>
-        <button className={vista === "empresas" ? "activo" : ""} onClick={() => setVista("empresas")}>
-          Empresas
-        </button>
-      </nav>
-
-      {vista === "empresas" ? <Empresas /> : (<>
-      <input
-        type="search"
-        className="buscador"
-        placeholder="Busca: charcas, plantación, educación…"
-        value={busqueda}
-        onChange={(e) => setBusqueda(e.target.value)}
-      />
-
-      <nav className="chips">
-        {LINEAS.map((l) => (
-          <button key={l.valor} className={linea === l.valor ? "activo" : ""} onClick={() => setLinea(l.valor)}>
-            {l.texto}
-          </button>
+        {[["convocatorias", "Convocatorias"], ["empresas", "Empresas"], ["proyectos", "Proyectos"]].map(([v, t]) => (
+          <button key={v} className={vista === v ? "activo" : ""} onClick={() => cambiarVista(v)}>{t}</button>
         ))}
       </nav>
 
-      <Validacion datos={validacion} />
+      {vista === "empresas" && <Empresas marcas={marcas} marcador={marcador} />}
+      {vista === "proyectos" && <Proyectos equipo={equipo} />}
+      {vista === "convocatorias" && (<>
+        <input
+          type="search"
+          className="buscador"
+          placeholder="Busca: charcas, plantación, educación…"
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+        />
 
-      <h2>Nuevas para ti</h2>
-      {lista.length ? lista.map((c) => <Tarjeta key={c.codigo} c={c} />)
-        : <p className="estado">No hay convocatorias con estos filtros.</p>}
+        <nav className="chips">
+          {LINEAS.map((l) => (
+            <button key={l.valor} className={linea === l.valor ? "activo" : ""} onClick={() => setLinea(l.valor)}>
+              {l.texto}
+            </button>
+          ))}
+        </nav>
+
+        <Validacion datos={validacion} />
+
+        <h2>Nuevas para ti</h2>
+        {lista.length ? lista.map((c) => (
+          <Tarjeta key={c.codigo} c={c} marca={marcas[`convocatoria:${c.codigo}`]}
+            onMarcar={marcador("convocatoria", c.codigo)} />
+        )) : <p className="estado">No hay convocatorias con estos filtros.</p>}
       </>)}
     </main>
   );

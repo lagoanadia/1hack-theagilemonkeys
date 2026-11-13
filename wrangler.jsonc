@@ -1,12 +1,25 @@
-// Configuración de Cloudflare Workers: sirve la web React ya compilada (web/dist).
-// En Cloudflare → Settings → Build, poner como "Build command":
-//   cd web && npm ci && npm run build
-// El JSON lo regenera cada día GitHub Actions; cada push dispara un nuevo despliegue.
+// Configuración de Cloudflare Workers.
+//  - La web React compilada (web/dist) se sirve como archivos estáticos.
+//  - /api/* lo atiende worker/index.js, que guarda los datos en D1 (base de datos SQLite gratuita).
+// En Cloudflare → Settings → Build:
+//   Build command:  cd web && npm ci && npm run build
+//   Deploy command: npx wrangler deploy
+// Secreto necesario (Settings → Variables and Secrets): CLAVE_EQUIPO = contraseña de Reforesta.
 {
   "name": "1hack-theagilemonkeys",
+  "main": "worker/index.js",
   "compatibility_date": "2025-09-01",
   "assets": {
     "directory": "./web/dist",
-    "not_found_handling": "single-page-application"
-  }
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "radar-reforesta",
+      "database_id": "65cd74d3-a2f9-4050-908c-128e89bfa921"
+    }
+  ]
 }

@@ -56,3 +56,24 @@ blockquote { margin: 0; padding: 4px 12px; border-left: 3px solid var(--verde); 
 .pestanas button { font: inherit; font-weight: 600; padding: 8px 14px; cursor: pointer; background: none;
                    border: none; border-bottom: 3px solid transparent; color: var(--suave); }
 .pestanas button.activo { color: var(--verde); border-bottom-color: var(--verde); }
+
+/* Equipo: marcas, formularios y proyectos */
+.cabecera { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.enlace { font: inherit; font-size: .85rem; background: none; border: none; color: var(--verde);
+          cursor: pointer; text-decoration: underline; padding: 0; }
+.marcas { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.marcas button { font: inherit; font-size: .85rem; padding: 5px 12px; border-radius: 999px; cursor: pointer;
+                 border: 1px solid var(--linea); background: var(--tarjeta); color: var(--texto); }
+.marcas button.on.interesa { background: var(--verde-suave); border-color: var(--verde); color: var(--verde); }
+.marcas button.on.descarta { background: var(--rojo-suave); border-color: var(--rojo); color: var(--rojo); }
+.tarjeta.apagada { opacity: .5; }
+.formulario { display: grid; gap: 8px; margin-top: 12px; }
+.formulario input, .formulario textarea { font: inherit; padding: 9px 11px; border: 1px solid var(--linea);
+                                          border-radius: 8px; background: var(--fondo); color: var(--texto); }
+.formulario textarea { min-height: 70px; resize: vertical; }
+.formulario .fila { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.boton { font: inherit; font-weight: 600; padding: 10px 16px; border-radius: 10px; border: none; cursor: pointer;
+         background: var(--verde); color: #fff; margin-top: 10px; }
+.boton:disabled { opacity: .6; }
+.aviso-error { color: var(--rojo); margin: 0; font-size: .9rem; }
+details.tarjeta summary { cursor: pointer; }

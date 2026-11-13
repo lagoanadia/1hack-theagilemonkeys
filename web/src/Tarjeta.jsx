@@ -1,13 +1,14 @@
+import Marcas from "./Marcas.jsx";
 import { ETIQUETA_VEREDICTO, diasHasta, euros, veredicto } from "./datos.js";
 
 // Una convocatoria en la lista (pantalla 1 del wireframe).
-export default function Tarjeta({ c }) {
+export default function Tarjeta({ c, marca, onMarcar }) {
   const v = veredicto(c);
   const dias = diasHasta(c.fin);
   const importe = euros(c.importe_max) || euros(c.presupuesto);
 
   return (
-    <article className={`tarjeta ${v}`}>
+    <article className={`tarjeta ${v} ${marca === "descarta" ? "apagada" : ""}`}>
       <div className="tarjeta-cabecera">
         <span className={`chip-veredicto ${v}`}>● {ETIQUETA_VEREDICTO[v]}</span>
         <span className={`plazo ${dias !== null && dias <= 20 ? "urgente" : ""}`}>
@@ -30,6 +31,7 @@ export default function Tarjeta({ c }) {
           <a href={c.url} target="_blank" rel="noopener noreferrer">Ver en BDNS ↗</a>
         </div>
       )}
+      <Marcas estado={marca} onMarcar={onMarcar} />
     </article>
   );
 }

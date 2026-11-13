@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import Marcas from "./Marcas.jsx";
 
 // Pestaña "Empresas": empresas obligadas por una declaración de impacto ambiental (BOE)
 // a ejecutar medidas que Reforesta sabe hacer. Datos: public/data/empresas.json (radar.empresas).
@@ -17,10 +18,10 @@ function ha(n) {
   return n ? `${Number(n).toLocaleString("es-ES", { maximumFractionDigits: 1 })} ha` : null;
 }
 
-function Empresa({ e }) {
+function Empresa({ e, marca, onMarcar }) {
   const a = ACCION[e.accion] || ACCION.descarta;
   return (
-    <article className="tarjeta">
+    <article className={`tarjeta ${marca === "descarta" ? "apagada" : ""}`}>
       <div className="tarjeta-cabecera">
         <span className={`chip-veredicto ${a.clase}`}>● {a.texto}</span>
         <span className="plazo">BOE {new Date(e.fecha).toLocaleDateString("es-ES")}</span>
@@ -56,11 +57,12 @@ function Empresa({ e }) {
         <strong>{ha(e.superficie_total_ha) ? `${ha(e.superficie_total_ha)} a restaurar` : ""}</strong>
         <a href={e.url} target="_blank" rel="noopener noreferrer">Ver en el BOE ↗</a>
       </div>
+      <Marcas estado={marca} onMarcar={onMarcar} />
     </article>
   );
 }
 
-export default function Empresas() {
+export default function Empresas({ marcas = {}, marcador = () => null }) {
   const [datos, setDatos] = useState(undefined);
 
   useEffect(() => {
@@ -86,7 +88,9 @@ export default function Empresas() {
       {datos.pendientes > 0 && (
         <p className="actualizado">{datos.pendientes} pendientes de analizar en la próxima ejecución.</p>
       )}
-      {datos.empresas.map((e) => <Empresa key={e.id} e={e} />)}
+      {datos.empresas.map((e) => (
+        <Empresa key={e.id} e={e} marca={marcas[`empresa:${e.id}`]} onMarcar={marcador("empresa", e.id)} />
+      ))}
     </section>
   );
 }

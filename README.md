@@ -81,6 +81,19 @@ meses). A la IA solo le pasa el arranque de la resolución y los párrafos sobre
 hectáreas**, y marca cada empresa como *Contactar*, *Mira* o *Descarta*. La web lo enseña en la
 pestaña **Empresas**, con la cita literal del BOE comprobada.
 
+## Trabajo en equipo y canal de proyectos
+
+La web tiene un pequeño backend, un Worker de Cloudflare con base de datos **D1** (gratuita):
+
+- **Equipo de Reforesta** ("Soy de Reforesta" + clave): marca convocatorias y empresas como
+  *Me interesa* / *No interesa*. Las marcas se comparten entre todo el equipo y reordenan la lista.
+- **Pestaña Proyectos**: Reforesta publica lo que quiere restaurar ("15 ha tras el incendio de
+  Valdemorillo, 30.000 €"). Cualquier empresa, sin cuenta, pulsa **"Quiero ayudar"** y deja su
+  contacto. Solo el equipo ve quién se ha interesado. Enlace para compartir: `<web>/#proyectos`.
+
+Puesta en marcha: crear la base D1 `radar-reforesta`, poner su id en `wrangler.jsonc` y añadir
+el secreto `CLAVE_EQUIPO` en el Worker. Las tablas se crean solas.
+
 ## Cómo funciona
 
 ```
@@ -127,6 +140,7 @@ radar/                 Backend en Python (se ejecuta en GitHub Actions)
   __main__.py          el flujo completo
   validar.py           prueba con convocatorias reales de Reforesta (validacion.json)
   boe.py, empresas.py  empresas obligadas a compensar según el BOE (empresas.json)
+worker/index.js        API (/api/*) con base de datos D1: marcas del equipo y canal de proyectos
 web/                   Frontend en React + Vite (se despliega en Cloudflare)
   public/data/convocatorias.json   datos que genera el radar
 data/vistas.json       caché de descartadas
@@ -205,8 +219,7 @@ se reevalúe lo ya guardado.
 2. **Aviso semanal por email** con las nuevas *Presenta*.
 3. **Más fuentes**: Fundación Biodiversidad, LIFE y el Funding & Tenders Portal de la UE,
    fundaciones privadas, y DIA autonómicas (BOCM y otros boletines) para la pestaña *Empresas*.
-4. **Canal de proyectos**: Reforesta publica sus proyectos ("reforestar 20 ha en Guadarrama") y
-   las empresas pulsan "quiero ayudar" (Worker de Cloudflare + KV).
+4. **Avisos**: email a Reforesta cuando una empresa pulsa "Quiero ayudar".
 5. **Calendario de recurrentes**: "la de la Comunidad de Madrid suele salir en mayo", para
    preparar la solicitud antes de que se publique.
 6. **Seguimiento de solicitudes** (pantalla *Mis solicitudes* del diseño).
