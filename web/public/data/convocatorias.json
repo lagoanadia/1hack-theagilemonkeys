@@ -1,6 +1,6 @@
 {
- "generado": "2026-11-13T20:34",
- "modo": "Groq (llama-3.1-8b-instant → llama-3.3-70b-versatile)",
+ "generado": "2026-11-13T20:54",
+ "modo": "Groq (openai/gpt-oss-20b → openai/gpt-oss-120b)",
  "ventana_dias": 90,
  "revisadas": 139,
  "descartadas": 136,
@@ -12,39 +12,60 @@
   "beneficiarios no incluyen ONG": 1
  },
  "llamadas_groq": {
-  "criba": 0,
-  "decision": 0,
-  "respaldo": 3
+  "criba": 3,
+  "decision": 1,
+  "respaldo": 0
  },
  "convocatorias": [
   {
-   "codigo": "926034",
-   "titulo": "Convocatoria de subvenciones de la Fundación Biodiversidad F.S.P., en régimen de concurrencia competitiva, a determinadas organizaciones no gubernamentales para el apoyo y la participación en la ejecución de políticas públicas de competencia estatal",
-   "organo": "MINISTERIO PARA LA TRANSICIÓN ECOLÓGICA Y EL RETO DEMOGRÁFICO",
-   "ambito": "ESTADO",
-   "publicada": "2026-08-24",
+   "codigo": "931297",
+   "titulo": "CONVOCATORIA DE SUBVENCIONES DEL AYUNTAMIENTO DE PINTO PARA PROYECTOS SOCIALES, CULTURALES Y MEDIOAMBIENTALES AREA PARTICIPACION CIUDADANA 2026",
+   "organo": "PINTO",
+   "ambito": "LOCAL",
+   "publicada": "2026-09-23",
    "inicio": null,
    "fin": null,
-   "plazo_texto": "20 días hábiles a partir del día siguiente de la publicación del extracto en el BOE",
+   "plazo_texto": "10 DIAS HABILES AL DIA POSTERIOR A LA PUBLICACION EN EL BOCM",
    "abierta": false,
-   "presupuesto": 800000,
+   "presupuesto": 124020.25,
    "tipo": "Concurrencia competitiva - canónica",
-   "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/926034",
-   "url_bases": "https://www.boe.es/eli/es/o/2021/07/12/ted818",
-   "sede": "https://fundacion-biodiversidad.es/",
-   "puntuacion": 79,
+   "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/931297",
+   "url_bases": "https://www.bocm.es/boletin/CM_Boletin_BOCM/2005/03/23/06900.PDF",
+   "sede": "",
+   "puntuacion": 80,
    "veredicto": "presenta",
    "encaja": true,
-   "linea": "",
-   "motivo": "Coincidencias: biodiversidad, conservacion, medio ambiente, sin animo de lucro, organizaciones no gubernamentales",
-   "resumen": "Convocatoria de subvenciones de la Fundación Biodiversidad F.S.P., en régimen de concurrencia competitiva, a determinadas organizaciones no gubernamentales para el apoyo y la participación en la ejecución de políticas públicas de competencia estatal",
-   "requisitos": [],
-   "requisitos_clave": "",
-   "cita": "",
+   "linea": "restauracion",
+   "motivo": "Pueden solicitarlo organizaciones sin ánimo de lucro que no desarrollen actividad económica y tengan sede en Madrid, para proyectos medioambientales.",
+   "resumen": "Financia proyectos medioambientales de entidades sin ánimo de lucro en la Comunidad de Madrid, sin actividad económica.",
+   "requisitos": [
+    {
+     "texto": "Ser persona jurídica que no desarrolla actividad económica",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Tener sede en la Comunidad de Madrid",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Desarrollar proyecto medioambiental",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Presentar solicitud dentro de 10 días hábiles desde la publicación",
+     "estado": "cumple"
+    },
+    {
+     "texto": "No estar ya beneficiario de otra ayuda para el mismo proyecto",
+     "estado": "duda"
+    }
+   ],
+   "requisitos_clave": "No estar ya beneficiario de otra ayuda para el mismo proyecto",
+   "cita": "Beneficiarios: PERSONAS JURÍDICAS QUE NO DESARROLLAN ACTIVIDAD ECONÓMICA",
    "porcentaje_financiado": null,
    "importe_max": null,
-   "plazo_estimado": null,
-   "metodo": "palabras_clave:pendiente_ia"
+   "plazo_estimado": "2026-10-07",
+   "metodo": "groq:openai/gpt-oss-120b"
   },
   {
    "codigo": "930967",
@@ -61,11 +82,11 @@
    "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/930967",
    "url_bases": "Pendiente de publicar",
    "sede": "",
-   "puntuacion": 75,
-   "veredicto": "presenta",
-   "encaja": true,
+   "puntuacion": 10,
+   "veredicto": "descarta",
+   "encaja": false,
    "linea": "",
-   "motivo": "Coincidencias: forestal, incendio, medio ambiente, medioambiental, madrid",
+   "motivo": "La convocatoria está dirigida a propietarios forestales privados, no a ONG sin actividad económica",
    "resumen": "SUBVENCIÓN MONTES T. PRIVADA 2026-2027 FEADER RESTAURACIÓN DAÑOS FORESTALES",
    "requisitos": [],
    "requisitos_clave": "",
@@ -73,36 +94,36 @@
    "porcentaje_financiado": null,
    "importe_max": null,
    "plazo_estimado": null,
-   "metodo": "palabras_clave:pendiente_ia"
+   "metodo": "groq:openai/gpt-oss-20b"
   },
   {
-   "codigo": "931297",
-   "titulo": "CONVOCATORIA DE SUBVENCIONES DEL AYUNTAMIENTO DE PINTO PARA PROYECTOS SOCIALES, CULTURALES Y MEDIOAMBIENTALES AREA PARTICIPACION CIUDADANA 2026",
-   "organo": "PINTO",
-   "ambito": "LOCAL",
-   "publicada": "2026-09-23",
+   "codigo": "926034",
+   "titulo": "Convocatoria de subvenciones de la Fundación Biodiversidad F.S.P., en régimen de concurrencia competitiva, a determinadas organizaciones no gubernamentales para el apoyo y la participación en la ejecución de políticas públicas de competencia estatal",
+   "organo": "MINISTERIO PARA LA TRANSICIÓN ECOLÓGICA Y EL RETO DEMOGRÁFICO",
+   "ambito": "ESTADO",
+   "publicada": "2026-08-24",
    "inicio": null,
    "fin": null,
-   "plazo_texto": "10 DIAS HABILES AL DIA POSTERIOR A LA PUBLICACION EN EL BOCM",
+   "plazo_texto": "20 días hábiles a partir del día siguiente de la publicación del extracto en el BOE",
    "abierta": false,
-   "presupuesto": 124020.25,
+   "presupuesto": 800000,
    "tipo": "Concurrencia competitiva - canónica",
-   "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/931297",
-   "url_bases": "https://www.bocm.es/boletin/CM_Boletin_BOCM/2005/03/23/06900.PDF",
-   "sede": "",
-   "puntuacion": 20,
+   "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/926034",
+   "url_bases": "https://www.boe.es/eli/es/o/2021/07/12/ted818",
+   "sede": "https://fundacion-biodiversidad.es/",
+   "puntuacion": 10,
    "veredicto": "descarta",
    "encaja": false,
    "linea": "",
-   "motivo": "Coincidencias: medioambiental, madrid",
-   "resumen": "CONVOCATORIA DE SUBVENCIONES DEL AYUNTAMIENTO DE PINTO PARA PROYECTOS SOCIALES, CULTURALES Y MEDIOAMBIENTALES AREA PARTICIPACION CIUDADANA 2026",
+   "motivo": "No cumple requisitos de ámbito estatal e inclusión en el Consejo Asesor",
+   "resumen": "Convocatoria de subvenciones de la Fundación Biodiversidad F.S.P., en régimen de concurrencia competitiva, a determinadas organizaciones no gubernamentales para el apoyo y la participación en la ejecución de políticas públicas de competencia estatal",
    "requisitos": [],
    "requisitos_clave": "",
    "cita": "",
    "porcentaje_financiado": null,
    "importe_max": null,
    "plazo_estimado": null,
-   "metodo": "palabras_clave:pendiente_ia"
+   "metodo": "groq:openai/gpt-oss-20b"
   }
  ]
 }
