@@ -88,8 +88,10 @@ BENEFICIARIOS_SOLO_EMPRESA = ["pyme y personas fisicas que desarrollan actividad
 # Groq retira modelos a menudo, así que damos listas de preferencia: al arrancar se
 # pregunta a Groq qué modelos hay y se usa el primero disponible de cada lista.
 # Para forzar uno concreto: variables de entorno GROQ_MODELO_CRIBA / GROQ_MODELO_DECISION.
-MODELOS_CRIBA = ["openai/gpt-oss-20b", "llama-3.1-8b-instant", "meta-llama/llama-4-scout-17b-16e-instruct"]
-MODELOS_DECISION = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile", "moonshotai/kimi-k2-instruct"]
+MODELOS_CRIBA = ["openai/gpt-oss-20b", "llama-3.1-8b-instant", "meta-llama/llama-4-scout-17b-16e-instruct",
+                 "qwen/qwen3-32b"]
+MODELOS_DECISION = ["openai/gpt-oss-120b", "llama-3.3-70b-versatile", "moonshotai/kimi-k2-instruct",
+                    "qwen/qwen3-32b"]
 UMBRAL_CRIBA = 40          # puntuación mínima del modelo pequeño para pasar al grande
 PAUSA_ENTRE_LLAMADAS = 2   # segundos; el SDK además espera lo que diga Groq (retry-after)
 

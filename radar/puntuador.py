@@ -190,7 +190,10 @@ class Puntuador:
             self._elegir_modelos()
 
     def _elegir_modelos(self) -> None:
-        """Pregunta a Groq qué modelos hay y elige el primero disponible de cada lista."""
+        """Pregunta a Groq qué modelos hay y prepara una cola por papel (criba / decisión).
+
+        Groq limita el cupo diario POR MODELO: si uno se agota, se pasa al siguiente.
+        """
         try:
             disponibles = {m.id for m in self.cliente.models.list().data}
         except Exception as e:
@@ -198,18 +201,34 @@ class Puntuador:
             disponibles = set(MODELOS_CRIBA + MODELOS_DECISION)
         print(f"  Modelos de Groq disponibles: {', '.join(sorted(disponibles))}")
 
-        def elegir(entorno: str, preferidos: list[str]) -> str | None:
+        def cola(entorno: str, preferidos: list[str]) -> list[str]:
             forzado = os.environ.get(entorno)
-            if forzado:
-                return forzado
-            return next((m for m in preferidos if m in disponibles), None)
+            lista = [forzado] if forzado else [m for m in preferidos if m in disponibles]
+            return list(dict.fromkeys(lista))  # sin repetidos, en orden
 
-        self.modelo_decision = elegir("GROQ_MODELO_DECISION", MODELOS_DECISION)
-        # Si no hay modelo pequeño, la criba la hace el grande (gasta más, pero funciona).
-        self.modelo_criba = elegir("GROQ_MODELO_CRIBA", MODELOS_CRIBA) or self.modelo_decision
-        if not self.modelo_decision:
+        self.cola_decision = cola("GROQ_MODELO_DECISION", MODELOS_DECISION)
+        # La criba usa primero los pequeños y, si se agotan, los grandes (gastan más, pero funciona).
+        self.cola_criba = cola("GROQ_MODELO_CRIBA", MODELOS_CRIBA + MODELOS_DECISION)
+        if not self.cola_decision:
             print("  ! Ninguno de los modelos preferidos está disponible: modo palabras clave")
             self.cliente = None
+
+    @property
+    def modelo_criba(self) -> str | None:
+        return self.cola_criba[0] if self.cola_criba else None
+
+    @property
+    def modelo_decision(self) -> str | None:
+        return self.cola_decision[0] if self.cola_decision else None
+
+    def _siguiente_modelo(self, cola: list[str], error: Exception) -> None:
+        agotado = cola.pop(0)
+        print(f"    ! Cupo de {agotado} agotado ({str(error)[:120]})")
+        if cola:
+            print(f"      -> sigo con {cola[0]}")
+        else:
+            print("      -> no quedan modelos: el resto queda pendiente para la próxima ejecución")
+            self.cupo_agotado = True
 
     @property
     def modo(self) -> str:
@@ -266,18 +285,28 @@ class Puntuador:
             self.llamadas["respaldo"] += 1
             return puntuar_por_palabras(det, "palabras_clave:pendiente_ia")
 
-        for intento in range(2):
+        fallos = 0
+        while not self.cupo_agotado and fallos < 2:
             try:
                 criba = self._criba(det)
-                if criba["puntuacion"] < UMBRAL_CRIBA:
-                    return resultado(criba["puntuacion"], f"groq:{self.modelo_criba}",
-                                     motivo=criba["motivo"], resumen=det.get("descripcion", "")[:300])
-                return self._decision(det)
             except CupoAgotado as e:
-                print(f"    ! Cupo de Groq agotado, el resto queda pendiente para mañana ({e})")
-                self.cupo_agotado = True
-                break
+                self._siguiente_modelo(self.cola_criba, e)
+                continue
             except Exception as e:  # JSON roto, red, error del servidor...
-                print(f"    ! Groq falló ({type(e).__name__}: {e}); intento {intento + 1}/2")
+                fallos += 1
+                print(f"    ! Groq falló en la criba ({type(e).__name__}: {e}); intento {fallos}/2")
+                continue
+            if criba["puntuacion"] < UMBRAL_CRIBA:
+                return resultado(criba["puntuacion"], f"groq:{self.modelo_criba}",
+                                 motivo=criba["motivo"], resumen=det.get("descripcion", "")[:300])
+            while not self.cupo_agotado and fallos < 2:
+                try:
+                    return self._decision(det)
+                except CupoAgotado as e:
+                    self._siguiente_modelo(self.cola_decision, e)
+                except Exception as e:
+                    fallos += 1
+                    print(f"    ! Groq falló en la decisión ({type(e).__name__}: {e}); intento {fallos}/2")
+            break
         self.llamadas["respaldo"] += 1
         return puntuar_por_palabras(det, "palabras_clave:pendiente_ia")
