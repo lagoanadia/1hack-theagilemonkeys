@@ -1,70 +1,190 @@
 # 🌱 Radar de convocatorias para Reforesta
 
-> 1hack A Coruña · Reto Reforesta: *que no se escape ninguna convocatoria que merezca la pena.*
+> **1hack A Coruña · Reto Reforesta**: *¿qué construirías para que Reforesta no pierda ninguna
+> convocatoria que merezca la pena y pueda restaurar más terreno?*
 
-Reforesta presenta 4-5 solicitudes al año porque **encontrar y leer** convocatorias le come
-el tiempo al equipo. Este radar hace ese trabajo cada mañana:
+🔗 **Demo:** _(enlace de Cloudflare)_ · 🎬 **Vídeo:** _(enlace al vídeo)_
 
-1. **Recolecta** todas las convocatorias estatales y de la Comunidad de Madrid del último año en la **BDNS** (Base de Datos Nacional de
-   Subvenciones), donde se publican por ley las ayudas públicas de toda España: Estado,
-   comunidades autónomas, diputaciones y ayuntamientos.
-2. **Filtra** sin IA lo que seguro no sirve: nominativas, convenios, concesiones directas,
-   no competitivas, plazos cerrados, solo para empresas y sin temática ambiental.
-   (De ~5.000 convocatorias al año quedan ~100.)
-3. **Puntúa** de 0 a 100 cada superviviente con un LLM (Groq) que lee el texto oficial y
-   lo compara con el perfil de Reforesta. Explica el motivo, resume y avisa de requisitos.
-4. **Publica** una web con la lista ordenada por encaje y plazo.
+## El problema
 
-Reforesta no redacta nada nuevo ni instala nada: abre una web y ve qué merece la pena esta semana.
+Reforesta es una ONG con más de 30 años plantando y un equipo de 6 o 7 personas. Cada hectárea
+que restaura la paga una convocatoria pública, una fundación o una empresa. Hoy presenta **4-5
+solicitudes al año**, porque encontrar convocatorias y leer decenas de páginas para saber si
+encajan le quita el tiempo que necesita para las propuestas y el trabajo de campo. Su objetivo
+es llegar a **10 solicitudes al año con el mismo equipo**.
 
-## Arquitectura
+## La solución
+
+Un **radar** que cada mañana lee todas las ayudas públicas de España, descarta lo que no sirve
+y deja a Reforesta una lista corta con un semáforo:
+
+| | Significa | Qué ve el equipo |
+|---|---|---|
+| 🟢 **Presenta** | Encaja y Reforesta puede pedirla | Resumen en una frase, importe y días que quedan |
+| 🟡 **Mira** | Encaja, pero hay algo por confirmar | Qué requisito hay que comprobar |
+| 🔴 **Descarta** | No sirve | El motivo, para fiarse del descarte |
+
+Por cada convocatoria, la IA explica **por qué**. Da los requisitos uno a uno (✓ cumple · ? duda
+· ✗ no) y una **cita literal de las bases**. El radar comprueba que esa cita aparece en el texto
+oficial, así que no puede inventársela.
+
+Reforesta no instala nada ni cambia su forma de trabajar: abre una web y ve qué merece la pena
+esta semana.
+
+## Resultados con datos reales
+
+Ejecución del 13 de noviembre de 2026 sobre la **BDNS** (Base de Datos Nacional de Subvenciones),
+con las convocatorias estatales y de la Comunidad de Madrid del último año:
+
+| Paso | Convocatorias |
+|---|---:|
+| Publicadas en la BDNS (Estado + Madrid, 12 meses) | **5.117** |
+| ✂️ Nominativas, convenios, becas… (por título) | −2.031 |
+| ✂️ No son de concurrencia competitiva | −1.104 |
+| ✂️ Plazo cerrado | −1.082 |
+| ✂️ Sin relación ambiental | −691 |
+| ✂️ Solo para empresas | −110 |
+| **Llegan a la IA** | **≈ 100** |
+
+Más del 98 % del trabajo de lectura se hace sin IA y sin coste. Groq solo lee las ≈ 100 que
+quedan, y a partir del segundo día solo las nuevas (unas pocas al día).
+
+**Validación con convocatorias reales de Reforesta.** El reto da dos ejemplos de convocatorias a
+las que Reforesta se presentó, y el radar **encuentra las dos**:
+
+- **BDNS 923290 (MITECO)**: actividades de interés general para la protección del medio ambiente.
+  La BDNS la etiqueta mal (solo "personas físicas"), pero el radar lee el texto oficial y ve que
+  es para ONG y entidades del Tercer Sector.
+- **BDNS 904719 (Comunidad de Madrid)**: subvenciones a entidades sin ánimo de lucro para proyectos
+  ambientales (la Orden 1689/2026). Su título no contiene "medio ambiente", así que una búsqueda
+  por palabras clave no la habría encontrado. El radar la encuentra porque revisa todas las
+  convocatorias.
+
+Las dos aparecen ahora como cerradas, que es correcto: sus plazos terminaron en 2026. El radar las
+habría avisado el mismo día de su publicación.
+
+## Cómo funciona
 
 ```
-GitHub Actions (cada día)
+GitHub Actions (cada mañana, gratis)
    └─ python -m radar
-        ├─ bdns.py       → barrido de la API pública de infosubvenciones.es
-        ├─ filtros.py    → reglas baratas (sin IA)
-        ├─ puntuador.py  → Groq en cascada: criba (modelo pequeño) + decisión (grande)
-        ├─ escribe data/vistas.json (descartadas: no se vuelven a descargar)
-        └─ escribe web/public/data/convocatorias.json
-Cloudflare Workers (cada push)
-   └─ web/  → app React (Vite) que lee el JSON y lo muestra
+        1. RECOLECTAR  bdns.py       Todas las convocatorias del Estado y de Madrid (API pública)
+        2. FILTRAR     filtros.py    Reglas sin IA: título, tipo, plazo, región, beneficiarios, temática
+        3. PUNTUAR     puntuador.py  Groq en cascada:
+                                       · criba con un modelo pequeño: «¿merece la pena mirarla?»
+                                       · decisión con un modelo grande: veredicto, requisitos, cita
+        4. GUARDAR     web/public/data/convocatorias.json  (lo que ve la web)
+                       data/vistas.json                    (descartadas: no se vuelven a descargar)
+Cloudflare Workers (se redespliega con cada actualización)
+   └─ web/  App React (Vite) que lee el JSON
 ```
 
-No hay servidor ni base de datos: coste 0 €. Los JSON hacen de caché, así que cada día
-solo se descargan y evalúan las convocatorias nuevas (la primera ejecución tarda unos minutos).
+**Coste: 0 €.** No hay servidor ni base de datos. Se usan GitHub Actions, el plan gratuito de
+Groq y Cloudflare.
+
+Decisiones de diseño:
+
+- **Revisar todo en lugar de buscar palabras.** Buscar en los títulos dejaba fuera convocatorias
+  reales (ver la 904719). Por eso el radar descarga todas las de Estado y Madrid y filtra después
+  con la ficha completa.
+- **Desconfiar de los metadatos de la BDNS.** Los campos de beneficiarios suelen estar mal
+  rellenados. Solo se descarta sin IA lo que es exclusivo para empresas, y la IA tiene
+  instrucciones de guiarse por el texto oficial.
+- **IA en dos pasos para no pasarse del cupo gratuito.** El modelo pequeño hace la criba y el
+  grande solo analiza lo prometedor. Si un modelo agota su cupo diario, el radar sigue con el
+  siguiente disponible. Si se agotan todos, lo que falte queda como *Pendiente de análisis* y se
+  evalúa al día siguiente: nunca se muestra como recomendada una convocatoria que la IA no ha
+  leído.
+- **No repetir trabajo.** Lo ya evaluado y lo descartado se guarda, así que cada día solo se
+  procesa lo nuevo.
+
+## Estructura
+
+```
+radar/                 Backend en Python (se ejecuta en GitHub Actions)
+  config.py            ← perfil de Reforesta, regiones, umbrales y modelos (lo que se ajusta)
+  bdns.py              cliente de la API pública de la BDNS
+  filtros.py           reglas sin IA
+  puntuador.py         Groq (criba + decisión) y modo de respaldo por palabras clave
+  __main__.py          el flujo completo
+web/                   Frontend en React + Vite (se despliega en Cloudflare)
+  public/data/convocatorias.json   datos que genera el radar
+data/vistas.json       caché de descartadas
+.github/workflows/radar.yml        ejecución diaria
+wrangler.jsonc         configuración de Cloudflare
+```
+
+### Formato de `convocatorias.json`
+
+```jsonc
+{
+  "generado": "2026-11-13T21:35",
+  "revisadas": 5117, "descartadas": 5018,
+  "descartes_por_motivo": { "plazo cerrado": 1082, "...": 0 },
+  "convocatorias": [{
+    "codigo": "923290", "titulo": "...", "organo": "...", "url": "https://www.infosubvenciones.es/...",
+    "fin": "2026-12-01", "plazo_estimado": null, "presupuesto": 17389322,
+    "veredicto": "presenta | mira | descarta | pendiente", "puntuacion": 82,
+    "linea": "restauracion | conservacion | educacion | agroambiental",
+    "resumen": "Una frase sobre qué financia", "motivo": "Por qué esta puntuación",
+    "requisitos": [{ "texto": "Entidad sin ánimo de lucro", "estado": "cumple | duda | no" }],
+    "cita": "Texto literal de las bases (comprobado)",
+    "porcentaje_financiado": 90, "importe_max": 230000
+  }]
+}
+```
 
 ## Uso local
 
 ```bash
 pip install -r requirements.txt
-export GROQ_API_KEY=gsk_...      # opcional: sin ella se usa el modo palabras clave
-python -m radar --limite 5     # --limite: prueba gastando poco cupo de Groq
-cd web && npm install && npm run dev     # abrir http://localhost:5173
+export GROQ_API_KEY=gsk_...    # opcional: sin clave funciona con palabras clave
+python -m radar --limite 5     # evalúa solo 5 convocatorias nuevas (gasta poco cupo)
+cd web && npm install && npm run dev    # http://localhost:5173
 ```
 
-Opciones: `--dias N` (ventana, 365 por defecto), `--sin-ia`, `--recalcular` (ignorar cachés), `--limite N`.
-Los modelos de Groq se eligen solos (ver `MODELOS_CRIBA` y `MODELOS_DECISION` en `radar/config.py`); para forzar uno: `GROQ_MODELO_CRIBA` / `GROQ_MODELO_DECISION`.
+Opciones: `--dias N` (ventana, 365 por defecto) · `--limite N` · `--sin-ia` · `--recalcular`
+(ignora las cachés y lo vuelve a procesar todo).
 
-## Puesta en producción (5 minutos)
+## Puesta en producción
 
-1. **GitHub → Settings → Secrets and variables → Actions** → nuevo secreto `GROQ_API_KEY`.
-2. **Cloudflare → Workers → Import a repository** → este repo.
-   Build command: `cd web && npm ci && npm run build`.
-   Deploy command: `npx wrangler deploy` (lee [`wrangler.jsonc`](wrangler.jsonc), que sirve `web/dist`).
-3. **GitHub → Actions → Radar diario → Run workflow** para la primera ejecución.
-   Cada push del workflow redespliega Cloudflare automáticamente.
+1. **GitHub → Settings → Secrets and variables → Actions → New repository secret**:
+   `GROQ_API_KEY` (como *Secret*, no como *Variable*).
+2. **Cloudflare → Workers → Import a repository**, rama `main`.
+   - Build command: `cd web && npm ci && npm run build`
+   - Deploy command: `npx wrangler deploy`
+3. **GitHub → Actions → Radar diario → Run workflow** para la primera ejecución (unos 20 minutos).
+   Después se ejecuta solo cada mañana a las 05:17 UTC.
 
 ## Personalizar
 
-Todo lo ajustable está en [`radar/config.py`](radar/config.py): perfil de la ONG, términos de
-búsqueda, descartes y pesos de palabras clave.
+Todo lo ajustable está en [`radar/config.py`](radar/config.py):
+
+- `PERFIL_REFORESTA`: lo que la IA sabe de la ONG. Cuanto más preciso (estatutos, líneas de
+  trabajo, zonas), mejor filtra.
+- `REGIONES_BDNS` / `REGIONES_VALIDAS`: dónde puede pedir ayudas Reforesta.
+- `DESCARTES_TITULO`, `PESOS_PALABRAS`, `UMBRAL_RELEVANCIA`: filtros sin IA.
+- `MODELOS_CRIBA`, `MODELOS_DECISION`, `UMBRAL_CRIBA`: modelos de Groq y cortes.
+
+Si cambias las instrucciones de la IA en `puntuador.py`, sube `VERSION_INSTRUCCIONES` para que
+se reevalúe lo ya guardado.
+
+## Limitaciones conocidas
+
+- Por ahora solo usa la BDNS, que recoge las ayudas públicas españolas. No incluye todavía el
+  programa LIFE de la UE, fundaciones privadas ni programas de RSC.
+- El perfil de Reforesta está redactado a partir de la información pública del reto. Con sus
+  estatutos y su histórico real la IA afinaría más.
+- La primera ejecución consume buena parte del cupo diario gratuito de Groq. Las siguientes
+  apenas gastan.
 
 ## Siguientes pasos
 
-- Validar con el histórico de convocatorias que Reforesta ya pidió o ganó. Con los dos ejemplos
-  públicos del reto, el radar encuentra ambas: BDNS 923290 (MITECO) y 904719 (Comunidad de Madrid,
-  proyectos ambientales de entidades sin ánimo de lucro).
-- Más fuentes: Fundación Biodiversidad, LIFE (UE), fundaciones privadas y RSC.
-- Aviso semanal por email con las nuevas recomendadas.
-- Calendario de convocatorias recurrentes ("suele salir en marzo").
+1. **Validar con el histórico completo** de convocatorias que Reforesta pidió o ganó y medir
+   cuántas habría encontrado el radar.
+2. **Aviso semanal por email** con las nuevas *Presenta*.
+3. **Más fuentes**: Fundación Biodiversidad, LIFE y el Funding & Tenders Portal de la UE,
+   fundaciones privadas y RSC (la pestaña *Empresas* del diseño).
+4. **Calendario de recurrentes**: "la de la Comunidad de Madrid suele salir en mayo", para
+   preparar la solicitud antes de que se publique.
+5. **Seguimiento de solicitudes** (pantalla *Mis solicitudes* del diseño).
