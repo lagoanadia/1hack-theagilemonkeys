@@ -138,6 +138,13 @@ radar basta con ponerla en `por_revisar`.
 `lineas`, `no_sirve`, `objetivo_anual`, `documentos` y `avisos`. El PUT reemplaza cada campo que se
 envía (las listas, enteras). Cada mañana el radar lo lee (`radar/perfil.py`) y lo usa en las
 instrucciones de Groq y en el filtro geográfico; si el perfil cambia, se reevalúa lo guardado.
+**Ficha de elegibilidad** (`ficha` en el perfil): los datos de Reforesta que piden las convocatorias
+para poder presentarse: `forma_juridica`, `anio_constitucion` (antigüedad), `utilidad_publica`,
+`sede`, `ambito_actuacion`, `registros`, `al_corriente_pagos`, `presupuesto_anual`, `voluntarios`,
+`aval_bancario`, `ongd`, `certificaciones`. La IA compara cada requisito con la ficha: si la
+entidad no lo cumple, el requisito es «no» y, si es imprescindible, la convocatoria se descarta;
+lo que no consta (null) es «duda». Se envían solo los campos que cambian; `null` = no consta.
+
 **Criterios de búsqueda** (`criterios` en el perfil, sin IA, `radar/criterios.py`):
 `importe_minimo` (por debajo → *descarta*), `cofinanciacion_maxima` en % (si hay que poner más →
 como mucho *mira*) y `dias_minimos` para preparar (si quedan menos → como mucho *mira*). Nunca

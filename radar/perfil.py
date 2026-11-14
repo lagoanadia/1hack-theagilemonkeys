@@ -13,6 +13,7 @@ Del perfil salen:
   - huella()           cambia cuando cambia el perfil: lo evaluado con otro perfil se reevalúa.
 """
 import hashlib
+from datetime import date
 import os
 from functools import lru_cache
 
@@ -46,6 +47,45 @@ def _lineas(titulo: str, elementos: list[str]) -> str:
     return f"{titulo}\n" + "\n".join(f"- {e}" for e in elementos) if elementos else ""
 
 
+FORMAS = {"asociacion": "Asociación", "fundacion": "Fundación", "cooperativa": "Cooperativa",
+          "federacion": "Federación", "otra": "Otra forma jurídica"}
+AMBITOS = {"local": "local", "autonomico": "autonómico", "estatal": "estatal", "internacional": "internacional"}
+
+
+def ficha_texto(p: dict) -> str:
+    """La ficha de elegibilidad en frases, con lo que no consta dicho explícitamente."""
+    f = p.get("ficha") or {}
+    si_no = lambda v: "sí" if v else "no"  # noqa: E731
+    datos, falta = [], []
+
+    def dato(etiqueta, valor, fmt=str):
+        (datos if valor not in (None, "", []) else falta).append(
+            f"{etiqueta}: {fmt(valor)}" if valor not in (None, "", []) else etiqueta)
+
+    dato("Forma jurídica", FORMAS.get(f.get("forma_juridica")))
+    anio = f.get("anio_constitucion")
+    dato("Año de constitución", anio, lambda a: f"{a} (antigüedad: {date.today().year - a} años)")
+    dato("Declarada de utilidad pública", f.get("utilidad_publica"), si_no)
+    dato("Sede", f.get("sede"))
+    dato("Ámbito de actuación", AMBITOS.get(f.get("ambito_actuacion")))
+    dato("Inscrita en", f.get("registros"), ", ".join)
+    dato("Al corriente con Hacienda y Seguridad Social", f.get("al_corriente_pagos"), si_no)
+    dato("Presupuesto anual", f.get("presupuesto_anual"), lambda v: f"{v:,.0f} €".replace(",", "."))
+    dato("Voluntarios", f.get("voluntarios"))
+    dato("Puede presentar aval bancario", f.get("aval_bancario"), si_no)
+    dato("Inscrita como ONGD (cooperación al desarrollo)", f.get("ongd"), si_no)
+    dato("Certificaciones", f.get("certificaciones"), ", ".join)
+    if not datos:
+        return ""
+    reglas = ("Al revisar los requisitos de una convocatoria, compáralos con esta ficha: si la ficha "
+              "muestra que la entidad NO lo cumple, el requisito es \"no\" y, si es imprescindible para "
+              "ser beneficiaria, la puntuación debe ser menor de 40. Si la ficha no lo dice, es \"duda\".")
+    texto_f = _lineas("Ficha de la entidad (datos reales para comprobar requisitos):", datos)
+    if falta:
+        texto_f += "\nNo consta: " + "; ".join(falta) + "."
+    return texto_f + "\n" + reglas
+
+
 @lru_cache(maxsize=1)
 def texto() -> str:
     p = remoto()
@@ -59,8 +99,8 @@ def texto() -> str:
         p.get("descripcion", ""),
         _lineas("Líneas de trabajo:", p.get("lineas") or []),
         _lineas("Lo que NO le sirve:", p.get("no_sirve") or []),
-        _lineas("Requisitos de la entidad (úsalos para decidir si cumple cada requisito):",
-                p.get("requisitos_entidad") or []),
+        ficha_texto(p),
+        _lineas("Otros datos de la entidad:", p.get("requisitos_entidad") or []),
     ]
     if p.get("ampliar_espana"):
         partes.append("Puede presentarse a convocatorias de cualquier comunidad autónoma de España.")

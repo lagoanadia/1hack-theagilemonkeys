@@ -110,7 +110,14 @@ const PERFIL_BASE = {
   objetivo_anual: 10,
   // Criterios de búsqueda con número (null = sin límite). El radar los aplica sin IA.
   criterios: { importe_minimo: null, cofinanciacion_maxima: null, dias_minimos: null },
-  // Lo que la entidad cumple o no cumple (lo lee la IA al revisar requisitos).
+  // Ficha de elegibilidad: lo que piden las convocatorias para poder presentarse. La IA compara
+  // cada requisito con esta ficha; lo que no se rellena (null) cuenta como "no consta" → "duda".
+  ficha: {
+    forma_juridica: "asociacion", anio_constitucion: null, utilidad_publica: null, sede: "Comunidad de Madrid",
+    ambito_actuacion: "autonomico", registros: [], al_corriente_pagos: null, presupuesto_anual: null,
+    voluntarios: null, aval_bancario: null, ongd: null, certificaciones: [],
+  },
+  // Otros datos de la entidad en texto libre (también los lee la IA).
   requisitos_entidad: [],
   documentos: [
     { nombre: "Estatutos", tengo: true, caduca: "" },
@@ -182,10 +189,31 @@ function limpiarPerfil(b) {
     const v = lista(b[campo], n, max);
     if (v) p[campo] = v;
   }
+  if (b.ficha && typeof b.ficha === "object") {
+    // Solo cambian los campos que se envían; el resto se conserva (ver PUT /api/perfil).
+    const f = b.ficha, si = (v) => (v === null || v === "" ? null : Boolean(v));
+    const formas = ["asociacion", "fundacion", "cooperativa", "federacion", "otra"];
+    const ambitos = ["local", "autonomico", "estatal", "internacional"];
+    const reglas = {
+      forma_juridica: (v) => (formas.includes(v) ? v : "otra"),
+      anio_constitucion: (v) => (v ? entero(v, 1800, 2100) ?? null : null),
+      utilidad_publica: si,
+      sede: (v) => texto(v, 120),
+      ambito_actuacion: (v) => (ambitos.includes(v) ? v : null),
+      registros: (v) => lista(v, 10, 150) || [],
+      al_corriente_pagos: si,
+      presupuesto_anual: (v) => (v ? numero(v) : null),
+      voluntarios: (v) => (v ? entero(v, 0, 100000) ?? null : null),
+      aval_bancario: si,
+      ongd: si,
+      certificaciones: (v) => lista(v, 10, 120) || [],
+    };
+    p.ficha = Object.fromEntries(Object.entries(reglas).filter(([k]) => f[k] !== undefined).map(([k, fn]) => [k, fn(f[k])]));
+  }
   if (b.criterios && typeof b.criterios === "object") {
     const c = b.criterios, n = (v, min, max) => (v === null || v === "" ? null : entero(v, min, max) ?? null);
-    p.criterios = { importe_minimo: n(c.importe_minimo, 0, 100000000),
-      cofinanciacion_maxima: n(c.cofinanciacion_maxima, 0, 100), dias_minimos: n(c.dias_minimos, 0, 365) };
+    const lim = { importe_minimo: [0, 100000000], cofinanciacion_maxima: [0, 100], dias_minimos: [0, 365] };
+    p.criterios = Object.fromEntries(Object.entries(lim).filter(([k]) => c[k] !== undefined).map(([k, [a, z]]) => [k, n(c[k], a, z)]));
   }
   if (Array.isArray(b.comunidades_extra)) {
     const validas = COMUNIDADES.map((c) => c.codigo);
@@ -443,7 +471,12 @@ async function api(request, env, ruta) {
         opciones: { comunidades: COMUNIDADES, avisos: AVISOS } });
     }
     if (metodo === "PUT") {
-      const nuevo = { ...guardado, ...limpiarPerfil(await leerJSON(request)) };
+      const cambios = limpiarPerfil(await leerJSON(request));
+      const nuevo = { ...guardado, ...cambios };
+      // Ficha y criterios se mezclan campo a campo: enviar uno no borra los demás.
+      for (const k of ["ficha", "criterios"]) {
+        if (cambios[k]) nuevo[k] = { ...PERFIL_BASE[k], ...(guardado[k] || {}), ...cambios[k] };
+      }
       await db.prepare(
         `INSERT INTO ajustes (clave, valor, actualizado, actualizado_por) VALUES ('perfil', ?, ?, ?)
          ON CONFLICT (clave) DO UPDATE SET valor = excluded.valor, actualizado = excluded.actualizado,
