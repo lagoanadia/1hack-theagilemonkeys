@@ -132,8 +132,8 @@ const ESTADOS = {
   empresa: ["nueva", "contactada", "reunion", "acuerdo", "cerrada", "descartada"],
 };
 // Motivos de descarte que siempre aparecen (el equipo puede añadir los suyos).
-const MOTIVOS_BASE = ["No es reforestación", "Piden poner mucho dinero", "Plazo muy corto",
-  "Fuera de nuestra zona", "Importe pequeño", "Sin capacidad ahora", "Exigen aval bancario"];
+const MOTIVOS_BASE = ["Fuera de nuestras líneas de trabajo", "Cofinanciación demasiado alta", "Plazo insuficiente",
+  "Fuera de nuestro ámbito territorial", "Importe insuficiente", "Sin capacidad del equipo", "Exige aval bancario"];
 // Perfil por defecto: el mismo que usa el radar en radar/config.py mientras nadie lo edite.
 const PERFIL_BASE = {
   nombre: "Asociación Reforesta",
@@ -204,15 +204,15 @@ const fecha = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(v || "") ? v : null);
 // criterio con número del perfil (lo aplica el radar sin IA); si no, es texto para la IA.
 const MIN_VECES_REGLA = 3;
 const MOTIVO_REGLA = {
-  "Piden poner mucho dinero": { campo: "cofinanciacion_maxima", accion: "Marcarlas «Mirad antes»",
-    texto: (v) => `Descartáis las que piden poner más del ${v} %` },
-  "Importe pequeño": { campo: "importe_minimo", accion: "Ocultarlas",
-    texto: (v) => `Las de menos de ${v.toLocaleString("es-ES")} € no os compensan` },
-  "Plazo muy corto": { campo: "dias_minimos", accion: "Avisadme antes",
-    texto: (v) => `Con menos de ${v} días para prepararlas soléis dejarlas` },
-  "No es reforestación": { accion: "Ocultarlas", texto: () => "Las que no son de plantar o restaurar no os interesan" },
-  "Fuera de nuestra zona": { accion: "Ocultarlas", texto: () => "Las de fuera de vuestras zonas no os interesan" },
-  "Exigen aval bancario": { accion: "Ocultarlas", texto: () => "No os interesan las que exigen aval bancario" },
+  "Cofinanciación demasiado alta": { campo: "cofinanciacion_maxima", accion: "Marcarlas para revisar",
+    texto: (v) => `Descartáis las que exigen cofinanciar más del ${v} %` },
+  "Importe insuficiente": { campo: "importe_minimo", accion: "Ocultarlas",
+    texto: (v) => `Descartáis las de importe inferior a ${v.toLocaleString("es-ES")} €` },
+  "Plazo insuficiente": { campo: "dias_minimos", accion: "Avisar antes",
+    texto: (v) => `Descartáis las que dejan menos de ${v} días de preparación` },
+  "Fuera de nuestras líneas de trabajo": { accion: "Ocultarlas", texto: () => "Descartáis las que no son de plantación ni restauración" },
+  "Fuera de nuestro ámbito territorial": { accion: "Ocultarlas", texto: () => "Descartáis las de fuera de vuestro ámbito territorial" },
+  "Exige aval bancario": { accion: "Ocultarlas", texto: () => "Descartáis las que exigen aval bancario" },
 };
 
 const TIPOS_PROPUESTA = ["plantacion", "restauracion", "voluntariado", "otro"];
@@ -698,7 +698,7 @@ async function cargarDatosDemo(db, env, request) {
   // Tres descartes por el mismo motivo: aparece la sugerencia de regla en «Lo que el radar ha aprendido».
   const convs = Object.values(await datosRadar(env, request, "convocatorias")).filter((c) => !c.demo).slice(0, 3);
   for (const c of convs) {
-    await sol("convocatoria", c.codigo, { estado: "descartada", motivos: ["Piden poner mucho dinero"], nota: "Pueden poner como máximo el 20 %" });
+    await sol("convocatoria", c.codigo, { estado: "descartada", motivos: ["Cofinanciación demasiado alta"], nota: "Pueden poner como máximo el 20 %" });
   }
   // Empresas del BOE en contacto.
   const emps = Object.values(await datosRadar(env, request, "empresas")).filter((e) => e.accion !== "descartar").slice(0, 2);
@@ -773,7 +773,7 @@ async function quitarDatosDemo(db) {
   }
   for (const id of c.documentos) qs.push(db.prepare("UPDATE solicitud_documentos SET documento_id = NULL, estado = 'falta' WHERE documento_id = ?").bind(id));
   // La regla aceptada a partir de los descartes de prueba también se va (y su criterio).
-  const regla = await db.prepare("SELECT id, criterio FROM reglas WHERE motivo = 'Piden poner mucho dinero'").first();
+  const regla = await db.prepare("SELECT id, criterio FROM reglas WHERE motivo = 'Cofinanciación demasiado alta'").first();
   if (regla) qs.push(db.prepare("DELETE FROM reglas WHERE id = ?").bind(regla.id));
   qs.push(db.prepare("DELETE FROM ajustes WHERE clave = 'datos_demo'"));
   await db.batch(qs);
@@ -978,6 +978,8 @@ const COLUMNAS_NUEVAS = [
   "ALTER TABLE interesados ADD COLUMN hectareas REAL",
 ];
 
+// Motivos de descarte renombrados a un tono más formal: se actualizan los ya guardados (idempotente).
+const MOTIVOS_RENOMBRADOS = [["Piden poner mucho dinero", "Cofinanciación demasiado alta"], ["Plazo muy corto", "Plazo insuficiente"], ["Importe pequeño", "Importe insuficiente"], ["Fuera de nuestra zona", "Fuera de nuestro ámbito territorial"], ["Sin capacidad ahora", "Sin capacidad del equipo"], ["Exigen aval bancario", "Exige aval bancario"], ["No es reforestación", "Fuera de nuestras líneas de trabajo"]];
 let esquemaListo = false;
 async function prepararEsquema(db) {
   if (esquemaListo) return;
@@ -985,6 +987,13 @@ async function prepararEsquema(db) {
   for (const sql of COLUMNAS_NUEVAS) {
     try { await db.prepare(sql).run(); } catch { /* ya existe */ }
   }
+  const ren = [];
+  for (const [viejo, nuevo] of MOTIVOS_RENOMBRADOS) {
+    ren.push(db.prepare("UPDATE solicitudes SET motivos = REPLACE(motivos, ?, ?) WHERE motivos LIKE ?").bind(JSON.stringify(viejo), JSON.stringify(nuevo), `%${viejo}%`));
+    ren.push(db.prepare("UPDATE reglas SET motivo = ? WHERE motivo = ?").bind(nuevo, viejo));
+    ren.push(db.prepare("DELETE FROM motivos WHERE texto = ?").bind(viejo));
+  }
+  try { await db.batch(ren); } catch { /* tablas aún vacías */ }
   esquemaListo = true;
 }
 

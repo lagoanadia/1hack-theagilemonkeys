@@ -149,7 +149,7 @@ export function Descarte({ a, cerrar, guardar }) {
   useEffect(() => { api('/motivos').then(l => setCatalogo(l.map(m => m.texto))).catch(() => setCatalogo([])) }, [])
   const toggle = m => setSel(sel.includes(m) ? sel.filter(x => x !== m) : [...sel, m])
   const final = [...sel, ...(nuevo.trim() && !sel.includes(nuevo.trim()) ? [nuevo.trim()] : [])]
-  const dinero = sel.includes('Piden poner mucho dinero')
+  const dinero = sel.includes('Cofinanciación demasiado alta')
   const enviar = async (motivos, extra) => { setGuardando(true); await guardar(a, motivos, extra); setGuardando(false) }
   return (
     <div className="i-dim" onClick={cerrar}>
