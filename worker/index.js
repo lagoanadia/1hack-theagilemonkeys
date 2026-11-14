@@ -1598,7 +1598,6 @@ async function api(request, env, ruta) {
     const proyecto = await db.prepare(`${SQL_PROPUESTAS} AND p.estado = 'publicada' AND p.id = ?`)
       .bind(Number(m[1])).first();
     if (!proyecto) return error("Ese proyecto ya no está disponible", 404);
-    if (conPlazas(proyecto).completa) return error("Ya no quedan plazas en este proyecto", 409);
     // Hectáreas que la empresa quiere apoyar (opcional; como mucho las de la propuesta, si las tiene).
     let ha = b.hectareas === undefined || b.hectareas === null || b.hectareas === "" ? null : numero(b.hectareas);
     if (ha !== null && (ha <= 0 || ha > 100000)) return error("hectareas: número mayor que 0");

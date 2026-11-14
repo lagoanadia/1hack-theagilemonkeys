@@ -123,9 +123,9 @@ export const solicitudesSim = () => [
 ];
 
 export const PROYECTOS_SIM = [
-  { titulo: "Bosque tras el incendio de Valdemorillo", lugar: "Valdemorillo (Madrid)", tipo: "plantacion", incluye: "Planta, plantación, riego el primer verano y fotos", descripcion: "Recuperar con encinas y quejigos una ladera quemada en 2025.", hectareas: 15, presupuesto: 30000, plazas: 3, estado: "publicada" },
-  { titulo: "Charcas para anfibios en Guadarrama", lugar: "Cercedilla (Madrid)", tipo: "restauracion", incluye: "Excavación, impermeabilización natural y seguimiento", descripcion: "Seis charcas temporales para sapo partero y tritón jaspeado.", hectareas: 2, presupuesto: 9000, plazas: 2, estado: "publicada" },
-  { titulo: "Jornada de plantación con vuestro equipo", lugar: "Soto del Real (Madrid)", tipo: "voluntariado", incluye: "Herramientas, monitores y almuerzo", descripcion: "Una mañana plantando con la plantilla: 1 ha y 400 árboles.", hectareas: 1, presupuesto: 4500, plazas: 6, estado: "publicada" },
+  { titulo: "Bosque tras el incendio de Valdemorillo", lugar: "Valdemorillo (Madrid)", tipo: "plantacion", incluye: "Planta, plantación, riego el primer verano y fotos", descripcion: "Recuperar con encinas y quejigos una ladera quemada en 2025.", hectareas: 15, presupuesto: 30000, plazas: null, estado: "publicada" },
+  { titulo: "Charcas para anfibios en Guadarrama", lugar: "Cercedilla (Madrid)", tipo: "restauracion", incluye: "Excavación, impermeabilización natural y seguimiento", descripcion: "Seis charcas temporales para sapo partero y tritón jaspeado.", hectareas: 2, presupuesto: 9000, plazas: null, estado: "publicada" },
+  { titulo: "Jornada de plantación con vuestro equipo", lugar: "Soto del Real (Madrid)", tipo: "voluntariado", incluye: "Herramientas, monitores y almuerzo", descripcion: "Una mañana plantando con la plantilla: 1 ha y 400 árboles.", hectareas: 1, presupuesto: 4500, plazas: null, estado: "publicada" },
   { titulo: "Sotos del Manzanares", lugar: "Manzanares el Real (Madrid)", tipo: "restauracion", incluye: "Bosque de ribera", descripcion: "En preparación.", hectareas: 5, presupuesto: 18000, plazas: null, estado: "borrador" },
 ];
 // Reservas: índice de la propuesta, empresa, contacto, hectáreas, estado

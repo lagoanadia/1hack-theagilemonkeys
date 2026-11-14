@@ -8,14 +8,12 @@ import { euros, hectareas } from '../datos.js'
 
 // Propuestas del equipo: GET /api/proyectos?todas=1, POST (crear), PUT /api/proyectos/:id (publicar,
 // ocultar, editar), DELETE (retirar). Reservas: GET /api/interesados, PUT /api/interesados/:id {estado}.
-// Una reserva ocupa plaza salvo que esté descartada; sin plazas, la propuesta sale como «Completa».
-const VACIA = { titulo: '', lugar: '', tipo: 'plantacion', incluye: '', descripcion: '', hectareas: '', presupuesto: '', plazas: '' }
+const VACIA = { titulo: '', lugar: '', tipo: 'plantacion', incluye: '', descripcion: '', hectareas: '', presupuesto: '' }
 const TIPOS = { plantacion: 'Plantación', restauracion: 'Restauración', voluntariado: 'Voluntariado', otro: 'Otro' }
 const ESTADO_TAG = {
   publicada: ['Publicada', 'var(--gr-l)', 'var(--gr-d)'],
   borrador: ['Borrador', '#ECEEF2', '#4A5568'],
   oculta: ['Oculta', '#ECEEF2', '#4A5568'],
-  completa: ['Completa · sin plazas', '#F7E3D4', '#9A5B2E'],
 }
 const RESERVA = { nueva: 'Nueva', contestada: 'Contestada', confirmada: 'Confirmada', descartada: 'Descartada' }
 
@@ -34,7 +32,7 @@ export default function Propuestas({ top, setToast, salir }) {
     e.preventDefault()
     setGuardando(true)
     try {
-      await api('/proyectos', { metodo: 'POST', datos: { ...form, estado, hectareas: form.hectareas || null, presupuesto: form.presupuesto || null, plazas: form.plazas || null } })
+      await api('/proyectos', { metodo: 'POST', datos: { ...form, estado, hectareas: form.hectareas || null, presupuesto: form.presupuesto || null } })
       setForm(null); setToast({ texto: estado === 'publicada' ? 'Propuesta publicada en vuestra página' : 'Guardada como borrador' })
       await recargar()
     } catch (err) { if (err instanceof ErrorSesion) salir(); else setToast({ texto: `No se pudo guardar: ${err.message}` }) }
@@ -80,7 +78,6 @@ export default function Propuestas({ top, setToast, salir }) {
           <div style={{ display: 'flex', gap: 10 }}>
             <input className="i-in" type="number" min="0" step="0.1" placeholder="Hectáreas" {...campo('hectareas')} />
             <input className="i-in" type="number" min="0" step="100" placeholder="Presupuesto (€)" {...campo('presupuesto')} />
-            <input className="i-in" type="number" min="1" step="1" placeholder="Plazas (vacío = sin límite)" {...campo('plazas')} />
           </div>
           <div style={{ display: 'flex', gap: 8 }}><button className="i-btn p sm" type="submit" disabled={guardando}>{guardando ? 'Guardando…' : 'Publicar'}</button><button className="i-btn sm" type="button" disabled={guardando} onClick={e => crear(e, 'borrador')}>Guardar borrador</button><button className="i-btn sm" type="button" onClick={() => setForm(null)}>Cancelar</button></div>
         </form>
@@ -91,13 +88,13 @@ export default function Propuestas({ top, setToast, salir }) {
         {(proy || []).map((p, i) => {
           const n = Math.max(3, Math.min(8, Math.round((p.hectareas || 4) / 1.7)))
           const k = p.reservas
-          const [et, bg, fg] = ESTADO_TAG[p.estado === 'publicada' && p.completa ? 'completa' : p.estado] || ESTADO_TAG.publicada
+          const [et, bg, fg] = ESTADO_TAG[p.estado] || ESTADO_TAG.publicada
           return (
             <div key={p.id} className="i-card" style={{ padding: '12px 14px 16px', display: 'flex', flexDirection: 'column' }}>
               {mapaLugar(p.lugar)
                 ? <div className="i-art i-art-mapa" title={p.lugar}><Svg html={mapaLugar(p.lugar)} /><span className="i-art-lugar">📍 {p.lugar.replace(/\s*\(Madrid\)/i, '')}</span></div>
                 : <div className="i-art"><Svg html={island(220, 150, n, n, 20 + i)} /></div>}
-              <div className="i-head" style={{ margin: '10px 0 4px', alignItems: 'center' }}><span className="i-tag" style={{ background: bg, color: fg }}>{et}</span><span className="i-tag">{p.plazas_libres == null ? (k === 0 ? 'Sin reservas' : k === 1 ? '1 reserva' : `${k} reservas`) : `${p.plazas_libres} de ${p.plazas} plazas libres`}</span></div>
+              <div className="i-head" style={{ margin: '10px 0 4px', alignItems: 'center' }}><span className="i-tag" style={{ background: bg, color: fg }}>{et}</span><span className="i-tag">{k === 0 ? 'Sin reservas' : k === 1 ? '1 reserva' : `${k} reservas`}</span></div>
               <b style={{ fontSize: 18 }}>{p.titulo}</b>
               <div style={{ color: 'var(--mut)', fontSize: 14 }}>{[TIPOS[p.tipo], p.lugar, hectareas(p.hectareas), euros(p.presupuesto), p.incluye || p.descripcion].filter(Boolean).join(' · ')}</div>
               <div style={{ display: 'flex', gap: 8, marginTop: 'auto', paddingTop: 12 }}>
