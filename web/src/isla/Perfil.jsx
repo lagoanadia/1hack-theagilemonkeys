@@ -11,6 +11,46 @@ const CAMPOS = ['nombre', 'cif', 'tipo_entidad', 'equipo', 'zonas', 'comunidades
 const AVISOS = { nunca: 'Nunca', cada_manana: 'Cada mañana', semanal: 'Cada semana' }
 const aLineas = t => t.split('\n').map(x => x.trim()).filter(Boolean)
 
+// Ficha de elegibilidad (ficha.* del perfil): lo que piden las convocatorias para poder presentarse.
+// La IA compara cada requisito con ella; lo que no consta (null) cuenta como «duda», no como «no».
+// Se guarda con PUT /api/perfil enviando solo los campos que cambian (el Worker mezcla campo a campo).
+const FICHA_VACIA = {
+  forma_juridica: 'asociacion', anio_constitucion: null, utilidad_publica: null, sede: '', ambito_actuacion: null,
+  registros: [], al_corriente_pagos: null, presupuesto_anual: null, voluntarios: null, aval_bancario: null, ongd: null, certificaciones: [],
+}
+const CAMPOS_FICHA = Object.keys(FICHA_VACIA)
+const FORMAS = { asociacion: 'Asociación', fundacion: 'Fundación', cooperativa: 'Cooperativa', federacion: 'Federación', otra: 'Otra' }
+const AMBITOS = { local: 'Local', autonomico: 'Autonómico', estatal: 'Estatal', internacional: 'Internacional' }
+const fichaDe = p => ({ ...FICHA_VACIA, ...(p.ficha || {}) })
+const aNumero = v => (v === '' ? null : Number(v))
+const TRI = v => (v === true ? 'Sí' : v === false ? 'No' : 'No consta')
+
+// Sí / No / No consta (null): los tres estados que entiende el radar.
+function Tri({ valor, onChange, label }) {
+  return (
+    <div className="i-seg" role="group" aria-label={label}>
+      {[[true, 'Sí'], [false, 'No'], [null, 'No consta']].map(([v, t]) => (
+        <button type="button" key={t} className={valor === v ? 'on' : ''} aria-pressed={valor === v} onClick={() => onChange(v)}>{t}</button>
+      ))}
+    </div>
+  )
+}
+
+// Lista de textos cortos con etiquetas y un campo para añadir (registros, certificaciones).
+function Lista({ items, onChange, placeholder, etiqueta, max = 10 }) {
+  const [t, setT] = useState('')
+  return (
+    <div className="tags">
+      {items.map(x => <span key={x} className="i-tag" style={{ background: 'var(--nv)', color: '#fff' }}>{x}<button type="button" aria-label={`Quitar ${x}`} onClick={() => onChange(items.filter(y => y !== x))}>×</button></span>)}
+      {items.length < max && (
+        <form className="add" onSubmit={e => { e.preventDefault(); const v = t.trim(); if (v && !items.includes(v)) onChange([...items, v]); setT('') }}>
+          <input className="i-in" maxLength={120} placeholder={placeholder} aria-label={etiqueta} value={t} onChange={e => setT(e.target.value)} />
+        </form>
+      )}
+    </div>
+  )
+}
+
 export default function Perfil({ perfil, guardarPerfil, top, presentadas, salir, setToast }) {
   const [d, setD] = useState(perfil)
   const [zona, setZona] = useState('')
@@ -21,6 +61,23 @@ export default function Perfil({ perfil, guardarPerfil, top, presentadas, salir,
   const borrador = { ...d, lineas: aLineas(lin.lineas), no_sirve: aLineas(lin.no_sirve) }
   const cambios = CAMPOS.filter(k => JSON.stringify(borrador[k]) !== JSON.stringify(perfil[k]))
   const [cifOk, cifMsg] = d.cif ? validarCif(d.cif) : [true, '']
+  const [f, setF] = useState(() => fichaDe(perfil))
+  const [guardandoF, setGuardandoF] = useState(false)
+  const setFi = (k, v) => setF(x => ({ ...x, [k]: v }))
+  const fichaGuardada = fichaDe(perfil)
+  const cambiosFicha = CAMPOS_FICHA.filter(k => JSON.stringify(f[k]) !== JSON.stringify(fichaGuardada[k]))
+  const anioHoy = new Date().getFullYear()
+  const antiguedad = f.anio_constitucion >= 1800 && f.anio_constitucion <= anioHoy ? anioHoy - f.anio_constitucion : null
+  const guardarFicha = async () => {
+    setGuardandoF(true)
+    try {
+      // PUT /api/perfil con { ficha: {…} }: solo lo que ha cambiado, el resto lo conserva el servidor.
+      const nuevo = await guardarPerfil({ ficha: Object.fromEntries(cambiosFicha.map(k => [k, f[k]])) })
+      setF(fichaDe(nuevo))
+      setToast({ texto: 'Ficha guardada. El radar la usará para descartar con más criterio' })
+    } catch (e) { setToast({ texto: `No se pudo guardar la ficha: ${e.message}` }) }
+    setGuardandoF(false)
+  }
   const guardar = async () => {
     setGuardando(true)
     try {
@@ -74,6 +131,39 @@ export default function Perfil({ perfil, guardarPerfil, top, presentadas, salir,
             <label className="i-field wide"><span>Descripción: qué hace Reforesta</span><textarea className="i-in" maxLength={1500} value={d.descripcion} onChange={e => set('descripcion', e.target.value)} /></label>
             <label className="i-field wide"><span>Líneas de trabajo (una por línea)</span><textarea className="i-in" rows={4} value={lin.lineas} onChange={e => setLin({ ...lin, lineas: e.target.value })} /></label>
             <label className="i-field wide"><span>Lo que no os sirve (una por línea)</span><textarea className="i-in" rows={4} value={lin.no_sirve} onChange={e => setLin({ ...lin, no_sirve: e.target.value })} /></label>
+          </div>
+          <div className="i-card i-perfil">
+            <div className="i-field wide" style={{ background: 'none', padding: 0 }}>
+              <b>Ficha de elegibilidad</b>
+              <span style={{ fontWeight: 400 }}>Lo que piden las convocatorias para poder presentarse. Lo que no sepáis, dejadlo en «No consta»: el radar lo tratará como una duda, no como un no.</span>
+            </div>
+            <label className="i-field"><span>Forma jurídica</span>
+              <select className="i-in" value={f.forma_juridica} onChange={e => setFi('forma_juridica', e.target.value)}>{Object.entries(FORMAS).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></label>
+            <label className="i-field"><span>Año de constitución</span>
+              <input className="i-in" type="number" min="1800" max="2100" placeholder="Año" value={f.anio_constitucion ?? ''} onChange={e => setFi('anio_constitucion', aNumero(e.target.value))} />
+              {antiguedad !== null && <small className="mut">Antigüedad: {antiguedad} {antiguedad === 1 ? 'año' : 'años'}</small>}</label>
+            <label className="i-field"><span>Sede</span>
+              <input className="i-in" maxLength={120} value={f.sede} onChange={e => setFi('sede', e.target.value)} /></label>
+            <label className="i-field"><span>Ámbito de actuación</span>
+              <select className="i-in" value={f.ambito_actuacion ?? ''} onChange={e => setFi('ambito_actuacion', e.target.value || null)}>
+                <option value="">No consta</option>{Object.entries(AMBITOS).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></label>
+            <label className="i-field"><span>Presupuesto anual (€)</span>
+              <input className="i-in" type="number" min="1" step="any" placeholder="No consta" value={f.presupuesto_anual ?? ''} onChange={e => setFi('presupuesto_anual', aNumero(e.target.value))} /></label>
+            <label className="i-field"><span>Voluntarios</span>
+              <input className="i-in" type="number" min="1" max="100000" placeholder="No consta" value={f.voluntarios ?? ''} onChange={e => setFi('voluntarios', aNumero(e.target.value))} /></label>
+            {[['utilidad_publica', 'Declarada de utilidad pública'], ['al_corriente_pagos', 'Al corriente con Hacienda y la Seguridad Social'],
+              ['aval_bancario', 'Puede presentar un aval bancario'], ['ongd', 'Inscrita como ONGD (cooperación al desarrollo)']].map(([k, t]) => (
+              <div key={k} className="i-field wide sw"><div><span>{t}</span><b>{TRI(f[k])}</b></div><Tri valor={f[k]} label={t} onChange={v => setFi(k, v)} /></div>
+            ))}
+            <div className="i-field wide"><span>Registros en los que está inscrita</span>
+              <Lista items={f.registros} onChange={v => setFi('registros', v)} placeholder="+ Registro" etiqueta="Añadir registro" /></div>
+            <div className="i-field wide"><span>Certificaciones</span>
+              <Lista items={f.certificaciones} onChange={v => setFi('certificaciones', v)} placeholder="+ Certificación" etiqueta="Añadir certificación" /></div>
+            <div className="i-field wide" style={{ background: 'none', padding: 0, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+              <button className="i-btn p" disabled={!cambiosFicha.length || guardandoF} onClick={guardarFicha}><Icon n="check" s={19} w={2.6} />{guardandoF ? 'Guardando…' : 'Guardar ficha'}</button>
+              {cambiosFicha.length > 0 && <button className="i-btn" onClick={() => setF(fichaGuardada)}>Descartar cambios</button>}
+              {cambiosFicha.length > 0 && <small className="mut">{cambiosFicha.length} {cambiosFicha.length === 1 ? 'campo cambiado' : 'campos cambiados'}</small>}
+            </div>
           </div>
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <button className="i-btn p" disabled={!cambios.length || guardando || !cifOk} onClick={guardar}><Icon n="check" s={19} w={2.6} />{guardando ? 'Guardando…' : 'Guardar cambios'}</button>
