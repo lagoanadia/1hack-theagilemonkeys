@@ -14,6 +14,13 @@
 //   GET    /api/motivos                     catálogo de motivos de descarte + usos   (equipo)
 //   POST   /api/motivos                     {texto} añadir un motivo propio          (equipo)
 //   DELETE /api/motivos/:id                 quitar un motivo propio                  (equipo)
+//   GET    /api/documentos                  biblioteca de documentos de la entidad   (equipo)
+//   POST   /api/documentos                  multipart (archivo + campos) o JSON sin archivo (equipo)
+//   PUT    /api/documentos/:id              {nombre, tipo, emitido, caduca}           (equipo)
+//   DELETE /api/documentos/:id              borrar (y su archivo)                     (equipo)
+//   GET    /api/archivos/:id                descargar el archivo                      (equipo)
+//   GET    /api/solicitudes/convocatoria/:codigo/documentos        qué documento va en cada hueco (equipo)
+//   PUT    /api/solicitudes/convocatoria/:codigo/documentos/:req   {documento_id, estado, responsable} (equipo)
 //   GET    /api/perfil                      lo que el radar sabe de Reforesta        (equipo)
 //   PUT    /api/perfil                      {nombre, zonas, ampliar_espana, ...}     (equipo)
 //   GET    /api/proyectos                   propuestas publicadas, con plazas libres  (público)
@@ -63,6 +70,16 @@ const ESQUEMA = [
   // Ajustes de la entidad (perfil): un valor JSON por clave.
   `CREATE TABLE IF NOT EXISTS ajustes (
      clave TEXT PRIMARY KEY, valor TEXT NOT NULL, actualizado TEXT NOT NULL, actualizado_por TEXT DEFAULT '')`,
+  // Biblioteca de documentos de la entidad (archivos en R2, binding ARCHIVOS).
+  `CREATE TABLE IF NOT EXISTS documentos (
+     id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT NOT NULL DEFAULT 'otro', nombre TEXT NOT NULL,
+     archivo_key TEXT, archivo_nombre TEXT, mime TEXT, tamano INTEGER, emitido TEXT, caduca TEXT,
+     subido_por TEXT DEFAULT '', creado TEXT NOT NULL)`,
+  // Qué documento va en cada hueco de una solicitud (el arrastrar y soltar).
+  `CREATE TABLE IF NOT EXISTS solicitud_documentos (
+     codigo TEXT NOT NULL, requisito TEXT NOT NULL, documento_id INTEGER, estado TEXT NOT NULL DEFAULT 'falta',
+     responsable TEXT DEFAULT '', actualizado TEXT NOT NULL, actualizado_por TEXT DEFAULT '',
+     PRIMARY KEY (codigo, requisito))`,
   // Anti-spam del formulario público: huella (hash) de la IP, nunca la IP en claro.
   `CREATE TABLE IF NOT EXISTS envios (huella TEXT NOT NULL, creado TEXT NOT NULL)`,
 ];
@@ -138,6 +155,18 @@ const COMUNIDADES = [
   ["ES62", "Región de Murcia"], ["ES70", "Canarias"],
 ].map(([codigo, nombre]) => ({ codigo, nombre }));
 const AVISOS = ["nunca", "cada_manana", "semanal"];
+const TIPOS_DOCUMENTO = ["estatutos", "registro_entidad", "cif", "representante_legal", "cert_hacienda",
+  "cert_seg_social", "declaracion_responsable", "memoria_actividades", "memoria_proyecto", "presupuesto",
+  "cuentas_anuales", "titularidad_bancaria", "permiso_propietario", "solicitud", "anexo", "otro"];
+const ESTADOS_HUECO = ["falta", "sugerido", "confirmado", "no_aplica"];
+const MIME_PERMITIDOS = ["application/pdf", "image/jpeg", "image/png",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  "application/vnd.oasis.opendocument.text", "application/vnd.oasis.opendocument.spreadsheet",
+  "application/msword", "application/vnd.ms-excel"];
+const MAX_ARCHIVO = 10 * 1024 * 1024;
+const fecha = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(v || "") ? v : null);
+
 const TIPOS_PROPUESTA = ["plantacion", "restauracion", "voluntariado", "otro"];
 const ESTADOS_PROPUESTA = ["borrador", "publicada", "oculta"];
 const ESTADOS_RESERVA = ["nueva", "contestada", "confirmada", "descartada"];
@@ -457,6 +486,114 @@ async function api(request, env, ruta) {
         "SELECT antes, despues, autor, creado FROM historial WHERE tipo = ? AND ref = ? ORDER BY n DESC LIMIT 50",
       ).bind(tipo, id).all();
       return json(results.map((h) => ({ ...h, antes: h.antes && JSON.parse(h.antes), despues: JSON.parse(h.despues) })));
+    }
+  }
+
+  // --- biblioteca de documentos
+  if (ruta === "/api/documentos") {
+    if (!equipo) return soloEquipo();
+    if (metodo === "GET") {
+      const { results } = await db.prepare(
+        "SELECT id, tipo, nombre, archivo_nombre, mime, tamano, emitido, caduca, subido_por, creado, archivo_key IS NOT NULL AS tiene_archivo FROM documentos ORDER BY tipo, id DESC",
+      ).all();
+      return json({ almacen: Boolean(env.ARCHIVOS), documentos: results.map((d) => ({ ...d, tiene_archivo: Boolean(d.tiene_archivo) })) });
+    }
+    if (metodo === "POST") {
+      const esArchivo = (request.headers.get("content-type") || "").includes("multipart/form-data");
+      let campos, archivo = null;
+      if (esArchivo) {
+        const form = await request.formData();
+        campos = Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === "string"));
+        archivo = form.get("archivo");
+        if (!archivo || typeof archivo === "string") return error("Falta el archivo");
+        if (!env.ARCHIVOS) return error("Aún no hay almacén de archivos (bucket R2 ARCHIVOS). Podéis guardarlo sin archivo.", 503);
+        if (archivo.size > MAX_ARCHIVO) return error("El archivo pesa más de 10 MB");
+        if (!MIME_PERMITIDOS.includes(archivo.type)) return error("Tipo de archivo no permitido (PDF, imagen, Word, Excel u ODF)");
+      } else {
+        campos = await leerJSON(request);
+      }
+      const nombre = texto(campos.nombre || archivo?.name, 120);
+      if (!nombre) return error("El documento necesita un nombre");
+      const tipo = TIPOS_DOCUMENTO.includes(campos.tipo) ? campos.tipo : "otro";
+      let key = null;
+      if (archivo) {
+        key = `docs/${crypto.randomUUID()}`;
+        await env.ARCHIVOS.put(key, archivo.stream(), { httpMetadata: { contentType: archivo.type } });
+      }
+      const r = await db.prepare(
+        `INSERT INTO documentos (tipo, nombre, archivo_key, archivo_nombre, mime, tamano, emitido, caduca, subido_por, creado)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(tipo, nombre, key, archivo ? texto(archivo.name, 150) : null, archivo?.type || null, archivo?.size || null,
+        fecha(campos.emitido), fecha(campos.caduca), autor, ahora()).run();
+      return json({ ok: true, id: r.meta.last_row_id }, 201);
+    }
+  }
+  ms = ruta.match(/^\/api\/documentos\/(\d+)$/);
+  if (ms) {
+    if (!equipo) return soloEquipo();
+    const id = Number(ms[1]);
+    if (metodo === "PUT") {
+      const b = await leerJSON(request), c = {};
+      if (b.nombre !== undefined) c.nombre = texto(b.nombre, 120);
+      if (b.tipo !== undefined && TIPOS_DOCUMENTO.includes(b.tipo)) c.tipo = b.tipo;
+      if (b.emitido !== undefined) c.emitido = fecha(b.emitido);
+      if (b.caduca !== undefined) c.caduca = fecha(b.caduca);
+      const k = Object.keys(c);
+      if (!k.length || c.nombre === "") return error("Nada válido que cambiar");
+      await db.prepare(`UPDATE documentos SET ${k.map((x) => `${x} = ?`).join(", ")} WHERE id = ?`).bind(...k.map((x) => c[x]), id).run();
+      return json({ ok: true });
+    }
+    if (metodo === "DELETE") {
+      const d = await db.prepare("SELECT archivo_key FROM documentos WHERE id = ?").bind(id).first();
+      if (!d) return error("Ese documento no existe", 404);
+      if (d.archivo_key && env.ARCHIVOS) await env.ARCHIVOS.delete(d.archivo_key);
+      await db.batch([
+        db.prepare("DELETE FROM documentos WHERE id = ?").bind(id),
+        db.prepare("UPDATE solicitud_documentos SET documento_id = NULL, estado = 'falta' WHERE documento_id = ?").bind(id),
+      ]);
+      return json({ ok: true });
+    }
+  }
+  ms = ruta.match(/^\/api\/archivos\/(\d+)$/);
+  if (ms && metodo === "GET") {
+    if (!equipo) return soloEquipo();
+    const d = await db.prepare("SELECT archivo_key, archivo_nombre, mime FROM documentos WHERE id = ?").bind(Number(ms[1])).first();
+    if (!d?.archivo_key || !env.ARCHIVOS) return error("Ese documento no tiene archivo", 404);
+    const obj = await env.ARCHIVOS.get(d.archivo_key);
+    if (!obj) return error("Archivo no encontrado", 404);
+    return new Response(obj.body, { headers: {
+      "content-type": d.mime || "application/octet-stream", "cache-control": "private, no-store",
+      "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(d.archivo_nombre || "documento")}`,
+    } });
+  }
+
+  // --- documentos de cada solicitud (qué va en cada hueco)
+  ms = ruta.match(/^\/api\/solicitudes\/convocatoria\/([\w.-]{1,60})\/documentos(?:\/([\w.-]{1,80}))?$/);
+  if (ms) {
+    if (!equipo) return soloEquipo();
+    const [, codigo, req] = ms;
+    if (!req && metodo === "GET") {
+      const { results } = await db.prepare(
+        `SELECT s.requisito, s.documento_id, s.estado, s.responsable, s.actualizado, s.actualizado_por,
+           d.nombre AS documento_nombre, d.caduca AS documento_caduca, d.emitido AS documento_emitido
+         FROM solicitud_documentos s LEFT JOIN documentos d ON d.id = s.documento_id WHERE s.codigo = ?`,
+      ).bind(codigo).all();
+      return json(results);
+    }
+    if (req && metodo === "PUT") {
+      const b = await leerJSON(request);
+      const docId = b.documento_id === null || b.documento_id === undefined ? null : Number(b.documento_id);
+      if (docId !== null && !(await db.prepare("SELECT 1 FROM documentos WHERE id = ?").bind(docId).first())) {
+        return error("Ese documento no está en la biblioteca", 404);
+      }
+      const estado = ESTADOS_HUECO.includes(b.estado) ? b.estado : docId ? "confirmado" : "falta";
+      await db.prepare(
+        `INSERT INTO solicitud_documentos (codigo, requisito, documento_id, estado, responsable, actualizado, actualizado_por)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (codigo, requisito) DO UPDATE SET documento_id = excluded.documento_id, estado = excluded.estado,
+           responsable = excluded.responsable, actualizado = excluded.actualizado, actualizado_por = excluded.actualizado_por`,
+      ).bind(codigo, req, docId, estado, texto(b.responsable, 40), ahora(), autor).run();
+      return json({ ok: true, estado });
     }
   }
 

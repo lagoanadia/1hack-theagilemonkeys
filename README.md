@@ -131,6 +131,17 @@ radar basta con ponerla en `por_revisar`.
 | `POST /api/proyectos/:id/interes` | Público: reservar (rechaza si no quedan plazas) |
 | `PUT /api/interesados/:id` | `{estado}`: `nueva`, `contestada`, `confirmada`, `descartada` (descartada libera la plaza) |
 
+### Documentos
+
+- El radar guarda en cada convocatoria interesante `documentos_requeridos` (nombre, `tipo`,
+  `obligatorio`, `condicion`, `antiguedad_max_meses`, `cita`), `documentos_fuente` y `plantillas`
+  (modelos oficiales de la BDNS con enlace de descarga).
+- Biblioteca: `GET/POST /api/documentos` (POST multipart con `archivo`, `nombre`, `tipo`, `emitido`,
+  `caduca`, o JSON sin archivo), `PUT/DELETE /api/documentos/:id`, `GET /api/archivos/:id`.
+- Huecos de cada solicitud: `GET /api/solicitudes/convocatoria/:codigo/documentos` y
+  `PUT .../documentos/:requisito` con `{documento_id, estado, responsable}` (el arrastrar y soltar).
+- Archivos en Cloudflare R2 (privados, solo equipo): ver `wrangler.jsonc` para activarlo.
+
 ### Perfil editable
 
 `GET/PUT /api/perfil` guarda lo que el radar sabe de Reforesta: nombre, equipo, zonas,
