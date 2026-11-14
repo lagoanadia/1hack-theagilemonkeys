@@ -4,14 +4,23 @@
 // Rutas:
 //   GET    /api/config                      Client ID de Google para el botón de login (público)
 //   GET    /api/equipo                      ¿quién soy? (email del equipo)            (equipo)
-//   GET    /api/estado                      marcas "interesa / no interesa"          (equipo)
-//   PUT    /api/estado                      {tipo, id, estado, nota}                 (equipo)
+//   GET    /api/estado                      (compatibilidad) marcas interesa/descarta (equipo)
+//   PUT    /api/estado                      (compatibilidad) {tipo, id, estado}      (equipo)
+//   GET    /api/solicitudes?tipo=           estado de cada convocatoria/empresa      (equipo)
+//   PUT    /api/solicitudes/:tipo/:id       {estado, motivos[], nota, responsable,
+//                                            siguiente_paso, fecha_paso}             (equipo)
+//   POST   /api/solicitudes/:tipo/:id/deshacer   vuelve al estado anterior           (equipo)
+//   GET    /api/solicitudes/:tipo/:id/historial  cambios, con quién y cuándo         (equipo)
+//   GET    /api/motivos                     catálogo de motivos de descarte + usos   (equipo)
+//   POST   /api/motivos                     {texto} añadir un motivo propio          (equipo)
+//   DELETE /api/motivos/:id                 quitar un motivo propio                  (equipo)
 //   GET    /api/proyectos                   proyectos publicados por Reforesta       (público)
 //   POST   /api/proyectos                   {titulo, lugar, hectareas, ...}          (equipo)
 //   DELETE /api/proyectos/:id               retirar un proyecto                      (equipo)
 //   POST   /api/proyectos/:id/interes       {empresa, contacto, mensaje}             (público)
 //   GET    /api/interesados                 empresas que quieren ayudar              (equipo)
 //
+// Quién hace cada cambio: cabecera X-Autor (nombre que se escribe al entrar), opcional.
 // "equipo" = cabecera X-Clave-Equipo igual al secreto CLAVE_EQUIPO (es lo que usa la web).
 // Preparado también, pero sin usar en la web: login con Google (Authorization: Bearer <id_token>)
 // para los emails o dominios del secreto EMAILS_EQUIPO, con el secreto GOOGLE_CLIENT_ID.
@@ -27,6 +36,23 @@ const ESQUEMA = [
   `CREATE TABLE IF NOT EXISTS interesados (
      id INTEGER PRIMARY KEY AUTOINCREMENT, proyecto_id INTEGER NOT NULL, empresa TEXT NOT NULL,
      contacto TEXT NOT NULL, mensaje TEXT DEFAULT '', creado TEXT NOT NULL)`,
+  // Ciclo de vida de cada convocatoria o empresa (sustituye a "estados").
+  `CREATE TABLE IF NOT EXISTS solicitudes (
+     tipo TEXT NOT NULL, id TEXT NOT NULL, estado TEXT NOT NULL, motivos TEXT NOT NULL DEFAULT '[]',
+     nota TEXT DEFAULT '', responsable TEXT DEFAULT '', siguiente_paso TEXT DEFAULT '',
+     fecha_paso TEXT DEFAULT '', actualizado TEXT NOT NULL, actualizado_por TEXT DEFAULT '',
+     PRIMARY KEY (tipo, id))`,
+  `CREATE TABLE IF NOT EXISTS historial (
+     n INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT NOT NULL, ref TEXT NOT NULL,
+     antes TEXT, despues TEXT NOT NULL, autor TEXT DEFAULT '', creado TEXT NOT NULL)`,
+  `CREATE TABLE IF NOT EXISTS motivos (
+     id INTEGER PRIMARY KEY AUTOINCREMENT, texto TEXT NOT NULL UNIQUE, autor TEXT DEFAULT '',
+     creado TEXT NOT NULL)`,
+  // Migración: las marcas antiguas pasan a solicitudes una sola vez.
+  `INSERT OR IGNORE INTO solicitudes (tipo, id, estado, nota, actualizado)
+     SELECT tipo, id, CASE estado WHEN 'interesa' THEN 'preparando' ELSE 'descartada' END, nota, actualizado
+     FROM estados`,
+  `DELETE FROM estados`,
   // Anti-spam del formulario público: huella (hash) de la IP, nunca la IP en claro.
   `CREATE TABLE IF NOT EXISTS envios (huella TEXT NOT NULL, creado TEXT NOT NULL)`,
 ];
@@ -38,8 +64,54 @@ async function huellaIP(request) {
   const hash = await crypto.subtle.digest("SHA-256", datos);
   return [...new Uint8Array(hash)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
-const ESTADOS = ["interesa", "descarta"];
 const TIPOS = ["convocatoria", "empresa"];
+// Estados posibles. "descartada" puede llevar motivos; cualquier paso se puede deshacer.
+const ESTADOS = {
+  convocatoria: ["por_revisar", "mas_tarde", "preparando", "presentada", "subsanar", "concedida",
+    "denegada", "plantar", "justificar", "terminada", "descartada"],
+  empresa: ["nueva", "contactada", "reunion", "acuerdo", "cerrada", "descartada"],
+};
+// Motivos de descarte que siempre aparecen (el equipo puede añadir los suyos).
+const MOTIVOS_BASE = ["No es reforestación", "Piden poner mucho dinero", "Plazo muy corto",
+  "Fuera de nuestra zona", "Importe pequeño", "Sin capacidad ahora", "Exigen aval bancario"];
+// Compatibilidad con la web actual (Me interesa / No interesa).
+const DE_ANTIGUO = { interesa: "preparando", descarta: "descartada" };
+const A_ANTIGUO = { preparando: "interesa", descartada: "descarta" };
+
+function autorDe(request) {
+  try {
+    return texto(decodeURIComponent(request.headers.get("x-autor") || ""), 40);
+  } catch {
+    return "";
+  }
+}
+
+function filaSolicitud(r) {
+  return { ...r, motivos: JSON.parse(r.motivos || "[]") };
+}
+
+// Guarda el nuevo estado y apunta en el historial cómo estaba antes (para poder deshacer).
+async function cambiarSolicitud(db, tipo, id, cambios, autor) {
+  const antes = await db.prepare("SELECT * FROM solicitudes WHERE tipo = ? AND id = ?").bind(tipo, id).first();
+  const base = antes ? filaSolicitud(antes) : { estado: "", motivos: [], nota: "", responsable: "",
+    siguiente_paso: "", fecha_paso: "" };
+  const nueva = { ...base, ...cambios, tipo, id, actualizado: ahora(), actualizado_por: autor };
+  if (nueva.estado !== "descartada") nueva.motivos = [];
+  await db.batch([
+    db.prepare(
+      `INSERT INTO solicitudes (tipo, id, estado, motivos, nota, responsable, siguiente_paso, fecha_paso,
+         actualizado, actualizado_por) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       ON CONFLICT (tipo, id) DO UPDATE SET estado = excluded.estado, motivos = excluded.motivos,
+         nota = excluded.nota, responsable = excluded.responsable, siguiente_paso = excluded.siguiente_paso,
+         fecha_paso = excluded.fecha_paso, actualizado = excluded.actualizado,
+         actualizado_por = excluded.actualizado_por`,
+    ).bind(tipo, id, nueva.estado, JSON.stringify(nueva.motivos), nueva.nota, nueva.responsable,
+      nueva.siguiente_paso, nueva.fecha_paso, nueva.actualizado, autor),
+    db.prepare("INSERT INTO historial (tipo, ref, antes, despues, autor, creado) VALUES (?, ?, ?, ?, ?, ?)")
+      .bind(tipo, id, antes ? JSON.stringify(base) : null, JSON.stringify(nueva), autor, ahora()),
+  ]);
+  return nueva;
+}
 
 let esquemaListo = false;
 async function prepararEsquema(db) {
@@ -140,29 +212,112 @@ async function api(request, env, ruta) {
     return equipo ? json({ ok: true, email: usuario.email }) : soloEquipo();
   }
 
-  // --- interesa / no interesa
+  const autor = autorDe(request);
+
+  // --- compatibilidad: Me interesa / No interesa (web actual)
   if (ruta === "/api/estado") {
     if (!equipo) return soloEquipo();
     if (metodo === "GET") {
-      const { results } = await db.prepare("SELECT tipo, id, estado, nota, actualizado FROM estados").all();
-      return json(results);
+      const { results } = await db.prepare(
+        "SELECT tipo, id, estado, nota, actualizado FROM solicitudes WHERE estado IN ('preparando', 'descartada')",
+      ).all();
+      return json(results.map((r) => ({ ...r, estado: A_ANTIGUO[r.estado] })));
     }
     if (metodo === "PUT") {
       const b = await leerJSON(request);
       const tipo = texto(b.tipo, 20), id = texto(b.id, 60);
       if (!TIPOS.includes(tipo) || !id) return error("tipo o id no válidos");
-      if (!b.estado) {  // estado vacío = quitar la marca
-        await db.prepare("DELETE FROM estados WHERE tipo = ? AND id = ?").bind(tipo, id).run();
+      if (!b.estado) {
+        await db.prepare("DELETE FROM solicitudes WHERE tipo = ? AND id = ?").bind(tipo, id).run();
         return json({ ok: true });
       }
-      if (!ESTADOS.includes(b.estado)) return error("estado no válido");
-      await db.prepare(
-        `INSERT INTO estados (tipo, id, estado, nota, actualizado) VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT (tipo, id) DO UPDATE SET estado = excluded.estado, nota = excluded.nota,
-         actualizado = excluded.actualizado`,
-      ).bind(tipo, id, b.estado, texto(b.nota), ahora()).run();
+      if (!DE_ANTIGUO[b.estado]) return error("estado no válido");
+      await cambiarSolicitud(db, tipo, id, { estado: DE_ANTIGUO[b.estado], nota: texto(b.nota) }, autor);
       return json({ ok: true });
     }
+  }
+
+  // --- ciclo de vida de convocatorias y empresas
+  if (ruta === "/api/solicitudes" && metodo === "GET") {
+    if (!equipo) return soloEquipo();
+    const tipo = new URL(request.url).searchParams.get("tipo");
+    const q = TIPOS.includes(tipo)
+      ? db.prepare("SELECT * FROM solicitudes WHERE tipo = ? ORDER BY actualizado DESC").bind(tipo)
+      : db.prepare("SELECT * FROM solicitudes ORDER BY actualizado DESC");
+    const { results } = await q.all();
+    return json(results.map(filaSolicitud));
+  }
+
+  let ms = ruta.match(/^\/api\/solicitudes\/(convocatoria|empresa)\/([\w.-]{1,60})(\/deshacer|\/historial)?$/);
+  if (ms) {
+    if (!equipo) return soloEquipo();
+    const [, tipo, id, accion] = ms;
+    if (!accion && metodo === "PUT") {
+      const b = await leerJSON(request);
+      const cambios = {};
+      if (b.estado !== undefined) {
+        if (!ESTADOS[tipo].includes(b.estado)) {
+          return error(`Estado no válido. Posibles: ${ESTADOS[tipo].join(", ")}`);
+        }
+        cambios.estado = b.estado;
+      }
+      if (Array.isArray(b.motivos)) cambios.motivos = b.motivos.map((m) => texto(m, 120)).filter(Boolean).slice(0, 10);
+      for (const campo of ["nota", "responsable", "siguiente_paso", "fecha_paso"]) {
+        if (b[campo] !== undefined) cambios[campo] = texto(b[campo], campo === "nota" ? 1000 : 120);
+      }
+      const existe = await db.prepare("SELECT 1 FROM solicitudes WHERE tipo = ? AND id = ?").bind(tipo, id).first();
+      if (!existe && !cambios.estado) return error("La primera vez hay que indicar el estado");
+      return json({ ok: true, solicitud: await cambiarSolicitud(db, tipo, id, cambios, autor) });
+    }
+    if (accion === "/deshacer" && metodo === "POST") {
+      const ultimo = await db.prepare(
+        "SELECT n, antes FROM historial WHERE tipo = ? AND ref = ? ORDER BY n DESC LIMIT 1",
+      ).bind(tipo, id).first();
+      if (!ultimo) return error("No hay nada que deshacer", 404);
+      if (ultimo.antes) {
+        await cambiarSolicitud(db, tipo, id, JSON.parse(ultimo.antes), autor);
+      } else {
+        await db.prepare("DELETE FROM solicitudes WHERE tipo = ? AND id = ?").bind(tipo, id).run();
+      }
+      // El propio "deshacer" no debe poder deshacerse en bucle: se borran ambos apuntes.
+      await db.prepare("DELETE FROM historial WHERE tipo = ? AND ref = ? AND n >= ?").bind(tipo, id, ultimo.n).run();
+      const ahoraFila = await db.prepare("SELECT * FROM solicitudes WHERE tipo = ? AND id = ?").bind(tipo, id).first();
+      return json({ ok: true, solicitud: ahoraFila ? filaSolicitud(ahoraFila) : null });
+    }
+    if (accion === "/historial" && metodo === "GET") {
+      const { results } = await db.prepare(
+        "SELECT antes, despues, autor, creado FROM historial WHERE tipo = ? AND ref = ? ORDER BY n DESC LIMIT 50",
+      ).bind(tipo, id).all();
+      return json(results.map((h) => ({ ...h, antes: h.antes && JSON.parse(h.antes), despues: JSON.parse(h.despues) })));
+    }
+  }
+
+  // --- motivos de descarte
+  if (ruta === "/api/motivos") {
+    if (!equipo) return soloEquipo();
+    if (metodo === "GET") {
+      const [{ results: propios }, { results: usados }] = await Promise.all([
+        db.prepare("SELECT id, texto, autor, creado FROM motivos ORDER BY id").all(),
+        db.prepare("SELECT motivos FROM solicitudes WHERE estado = 'descartada'").all(),
+      ]);
+      const usos = {};
+      for (const r of usados) for (const m of JSON.parse(r.motivos || "[]")) usos[m] = (usos[m] || 0) + 1;
+      const lista = [...MOTIVOS_BASE.map((t) => ({ id: null, texto: t, propio: false })),
+        ...propios.filter((m) => !MOTIVOS_BASE.includes(m.texto)).map((m) => ({ ...m, propio: true }))];
+      return json(lista.map((m) => ({ ...m, usos: usos[m.texto] || 0 })));
+    }
+    if (metodo === "POST") {
+      const t = texto((await leerJSON(request)).texto, 120);
+      if (!t) return error("Escribe el motivo");
+      await db.prepare("INSERT OR IGNORE INTO motivos (texto, autor, creado) VALUES (?, ?, ?)").bind(t, autor, ahora()).run();
+      return json({ ok: true }, 201);
+    }
+  }
+  ms = ruta.match(/^\/api\/motivos\/(\d+)$/);
+  if (ms && metodo === "DELETE") {
+    if (!equipo) return soloEquipo();
+    await db.prepare("DELETE FROM motivos WHERE id = ?").bind(Number(ms[1])).run();
+    return json({ ok: true });
   }
 
   // --- proyectos de Reforesta

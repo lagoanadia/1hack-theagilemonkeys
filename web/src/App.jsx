@@ -3,7 +3,7 @@ import Tarjeta from "./Tarjeta.jsx";
 import Validacion from "./Validacion.jsx";
 import Empresas from "./Empresas.jsx";
 import Proyectos from "./Proyectos.jsx";
-import { ErrorSesion, api, guardarSesion, sesionGuardada } from "./api.js";
+import { ErrorSesion, api, guardarNombre, guardarSesion, nombreGuardado, sesionGuardada } from "./api.js";
 import { cargarConvocatorias, cargarValidacion, veredicto } from "./datos.js";
 
 // Chips de la pantalla 1. "valor" es el campo `linea` que devuelve el radar.
@@ -61,7 +61,9 @@ export default function App() {
 
   function pedirClave() {
     const clave = prompt("Contraseña del equipo de Reforesta:");
-    if (clave?.trim()) entrarEquipo(clave.trim());
+    if (!clave?.trim()) return;
+    if (!nombreGuardado()) guardarNombre((prompt("¿Cómo te llamas? (aparece en el historial)") || "").trim().slice(0, 40));
+    entrarEquipo(clave.trim());
   }
 
   function salir() {

@@ -21,6 +21,25 @@ export function guardarSesion(token) {
   }
 }
 
+const NOMBRE = "radar-reforesta-nombre";
+
+// Nombre de quien usa este navegador: aparece en el historial ("Marta · hace 2 días").
+export function nombreGuardado() {
+  try {
+    return localStorage.getItem(NOMBRE) || "";
+  } catch {
+    return "";
+  }
+}
+
+export function guardarNombre(nombre) {
+  try {
+    if (nombre) localStorage.setItem(NOMBRE, nombre);
+  } catch {
+    /* sin almacenamiento: se envía sin nombre */
+  }
+}
+
 export class ErrorSesion extends Error {}
 
 // Datos del radar (public/data/*.json): el Worker solo los entrega al equipo.
@@ -41,6 +60,7 @@ export async function api(ruta, { metodo = "GET", datos, token = sesionGuardada(
     headers: {
       ...(datos ? { "content-type": "application/json" } : {}),
       ...(token ? { "x-clave-equipo": token } : {}),
+      ...(nombreGuardado() ? { "x-autor": encodeURIComponent(nombreGuardado()) } : {}),
     },
     body: datos ? JSON.stringify(datos) : undefined,
   });

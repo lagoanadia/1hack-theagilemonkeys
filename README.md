@@ -102,6 +102,24 @@ Puesta en marcha:
 El Worker también trae preparado el login con Google (secretos `GOOGLE_CLIENT_ID` y `EMAILS_EQUIPO`),
 para cuando Reforesta prefiera entrar con su cuenta en lugar de con una contraseña compartida.
 
+### API del ciclo de vida (para el frontend)
+
+Todas con la cabecera `X-Clave-Equipo` (y opcionalmente `X-Autor: <nombre>`):
+
+| Ruta | Qué hace |
+|---|---|
+| `GET /api/solicitudes?tipo=convocatoria` | Estado de cada convocatoria (o `empresa`) |
+| `PUT /api/solicitudes/convocatoria/:codigo` | `{estado, motivos[], nota, responsable, siguiente_paso, fecha_paso}` |
+| `POST /api/solicitudes/:tipo/:id/deshacer` | Vuelve al estado anterior |
+| `GET /api/solicitudes/:tipo/:id/historial` | Cambios, con quién y cuándo |
+| `GET/POST /api/motivos`, `DELETE /api/motivos/:id` | Catálogo de motivos de descarte, con cuántas veces se ha usado cada uno |
+
+Estados de convocatoria: `por_revisar`, `mas_tarde`, `preparando`, `presentada`, `subsanar`,
+`concedida`, `denegada`, `plantar`, `justificar`, `terminada`, `descartada`. De empresa: `nueva`,
+`contactada`, `reunion`, `acuerdo`, `cerrada`, `descartada`. Sin fila en `solicitudes`, una
+convocatoria está "por revisar" con el veredicto del radar; para recuperar una descartada por el
+radar basta con ponerla en `por_revisar`.
+
 ## Cómo funciona
 
 ```
