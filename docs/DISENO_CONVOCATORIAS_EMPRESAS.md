@@ -11,13 +11,13 @@
 - Descartadas: una sección por motivo (los del equipo) y «Descartadas por el radar» al final (solo se puede sacar de ahí). Arrastrar a otro motivo reclasifica; «+ Nueva sección» crea un motivo.
 
 **Empresas**
-- **Las 5 que más encajan** arriba (la nº 1 a doble ancho), con puntuación grande; después **Nuevas de hoy** (panel blanco con el mensaje «Ey, siguen apareciendo muchas ofertas de empresas, pero estas son las nuevas») y **El resto**.
+- **Nuevas:** rejilla de 4 fichas, ordenadas por encaje, solo con las que aún no se han tratado. Cada una se **añade a En contacto** o se **descarta**; las detectadas hoy llevan la etiqueta «Nueva».
 - Ficha en bloques separados por filetes: identidad (inicial de color + promotor + proyecto) · qué tienen que hacer · datos clave en rejilla (sector, ubicación, tamaño, encaje) · etiquetas · medidas / BOE · acción. Se escanea en 2 segundos: la cifra de encaje es lo más grande de la ficha.
-- «En contacto» (segunda fase) es un tablero de columnas con una plantilla por columna.
+- **En contacto** (segunda fase) es una tabla: una fila por empresa a lo ancho y las fases Contactadas · Recordatorio · Reunión · Cerradas como columnas. La fase actual se marca con su fecha (contactada, volver a contactar, reunión) y las anteriores salen hechas.
 
 ## 2. Contacto automatizado (segunda fase)
 
-### A. Tablero de arrastrar y soltar con plantilla por columna (implementada)
+### A. Tabla por fases con arrastrar y soltar y plantilla por fase (implementada)
 ```
 Por escribir │ Primer mensaje ✉ │ Recordatorio ✉ │ Reunión │ Acuerdo
  [Empresa]  ─┼─► arrastrar ─────► se abre el borrador con la plantilla

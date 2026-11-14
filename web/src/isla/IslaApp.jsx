@@ -135,7 +135,7 @@ export default function IslaApp({ salir }) {
   let page
   if (radar.error) page = <div className="i-card i-empty" role="alert">No se pudieron cargar los datos: {radar.error}<br /><button className="i-btn p sm" style={{ margin: '14px auto 0' }} onClick={radar.reintentar}>Reintentar</button></div>
   else if (!radar.cargado) page = <div className="i-card i-empty">Cargando convocatorias…</div>
-  else if (vista === 'conv') page = <Convocatorias {...{ radar, visibles, ruta, etapa, ir, top, curId, setCurId, decidir, setDescartando, cambiarEstado, cambiarPaso, recuperar, reclasificar, seg, perfil, tab }} />
+  else if (vista === 'conv') page = <Convocatorias {...{ radar, visibles, ruta, etapa, ir, top, curId, setCurId, decidir, setDescartando, cambiarEstado, cambiarPaso, recuperar, reclasificar, seg, perfil, tab, avisar: (texto, go) => setToast({ texto, go, aviso: true }) }} />
   else if (vista === 'presentar') page = <Presentar a={items.find(a => a.id === selId)} {...{ top, ir, presentar, perfil, objetivo }} presentadas={radar.etapas.presentadas} />
   else if (vista === 'empresas') page = <Empresas {...{ top, radar, q, tab }} cambiarEstado={cambiarEstadoEmpresa} />
   else if (vista === 'mapa') page = <Mapa {...{ top, salir }} />
@@ -156,7 +156,7 @@ export default function IslaApp({ salir }) {
       </aside>
       <div className={`i-page ${vista === 'conv' && etapa === 'revisar' && radar.cargado && !radar.error ? 'fit' : ''}`}>{page}</div>
       {descartando && <Descarte a={descartando} cerrar={() => setDescartando(null)} guardar={guardarDescarte} />}
-      {toast && <div className="i-toast" role="status"><Icon n="check" s={18} w={2.6} />{toast.texto}{toast.go && <button className="go" onClick={() => { toast.go[1](); setToast(null) }}>{toast.go[0]} →</button>}{toast.undo && <button onClick={() => { toast.undo(); setToast(null) }}><Icon n="undo" s={16} w={2.4} />Deshacer</button>}</div>}
+      {toast && <div className={`i-toast ${toast.aviso ? 'aviso' : ''}`} role="status"><Icon n={toast.aviso ? 'alert' : 'check'} s={18} w={2.6} />{toast.texto}{toast.go && <button className="go" onClick={() => { toast.go[1](); setToast(null) }}>{toast.go[0]} →</button>}{toast.undo && <button onClick={() => { toast.undo(); setToast(null) }}><Icon n="undo" s={16} w={2.4} />Deshacer</button>}</div>}
     </div>
   )
 }

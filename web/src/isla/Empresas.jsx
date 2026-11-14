@@ -1,14 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from './Icon.jsx'
-import Tablero from './Tablero.jsx'
-import { useSecciones } from '../tablero.js'
 import { nombreGuardado } from '../api.js'
 import { etapaEmpresa, hectareas } from '../datos.js'
 
 // Pantalla «Empresas»: datos de empresas.json (declaraciones de impacto ambiental del BOE) y su estado
 // de contacto con PUT /api/solicitudes/empresa/:id (nueva, contactada, reunion, acuerdo, cerrada, descartada).
-//  · Nuevas: las 5 que más encajan, las «nuevas de hoy» y el resto.
-//  · Contacto (segunda fase): tablero de arrastrar y soltar con una plantilla de mensaje por columna.
+//  · Nuevas: rejilla de fichas; cada una se añade a «En contacto» o se descarta.
+//  · En contacto (segunda fase): tabla con una fila por empresa y sus fases, con fechas y plantillas de mensaje.
 const SEGS = [['nueva', 'Nuevas'], ['contactada', 'En contacto'], ['cerrada', 'Cerradas'], ['descartada', 'Descartadas']]
 const ACCION = { contactar: 'Obligada a reforestar', mira: 'Mirad si encaja', descarta: 'El radar la descarta' }
 const SECTOR = { hibrido: 'Eólico + solar', infraestructura: 'Infraestructura', eolico: 'Eólico', solar: 'Solar', linea_electrica: 'Línea eléctrica', otro: 'Otro sector' }
@@ -25,15 +23,14 @@ const diasDesde = f => Math.round((new Date(new Date().toDateString()) - new Dat
 const fechaLarga = f => new Date(`${String(f).slice(0, 10)}T00:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 const porEncaje = (a, b) => (b.encaje ?? 0) - (a.encaje ?? 0) || (b.fecha || '').localeCompare(a.fecha || '')
 
-// Fase de contacto: columnas del tablero, cada una con su plantilla de mensaje (o su estado).
-const COLUMNAS = [
-  { id: 'por_escribir', nombre: 'Por escribir', color: 'gris', nota: 'sin mensaje aún' },
-  { id: 'm1', nombre: 'Primer mensaje', color: 'azul', plantilla: 'm1', nota: '✉ plantilla' },
-  { id: 'rec', nombre: 'Recordatorio', color: 'ambar', plantilla: 'rec', nota: '✉ plantilla' },
-  { id: 'reunion', nombre: 'Reunión', color: 'navy', estado: 'reunion' },
-  { id: 'acuerdo', nombre: 'Acuerdo', color: 'verde', estado: 'acuerdo' },
+// Fase de contacto (segunda fase): una fila por empresa y una celda por fase. Contactadas y Recordatorio llevan plantilla.
+const FASES = [
+  { id: 'contactada', nombre: 'Contactadas', plantilla: 'm1' },
+  { id: 'recordatorio', nombre: 'Recordatorio', plantilla: 'rec' },
+  { id: 'reunion', nombre: 'Reunión', estado: 'reunion' },
+  { id: 'cerrada', nombre: 'Cerradas', estado: 'cerrada' },
 ]
-const SIGUE = { por_escribir: ['m1', 'Escribir primer mensaje'], m1: ['rec', 'Escribir recordatorio'], rec: ['reunion', 'Hemos quedado'], reunion: ['acuerdo', 'Hay acuerdo'], acuerdo: ['cerrada', 'Cerrar'] }
+const mas = n => { const d = new Date(); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 const PLANTILLAS = {
   m1: {
     nombre: 'Primer contacto', espera: 7,
@@ -88,17 +85,18 @@ export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
 
   const cuenta = k => todas.filter(e => etapaEmpresa(e) === k).length
   const filtro = e => !q || `${e.promotor} ${e.proyecto} ${e.ubicacion}`.toLowerCase().includes(q.toLowerCase())
-  const nuevas = useMemo(() => todas.filter(e => etapaEmpresa(e) === 'nueva' && filtro(e)), [todas, q]) // eslint-disable-line react-hooks/exhaustive-deps
-  const top5 = useMemo(() => nuevas.filter(e => e.accion !== 'descarta').sort(porEncaje).slice(0, 5), [nuevas])
-  const deHoy = useMemo(() => nuevas.filter(e => vistas[e.id] === hoy).sort(porEncaje), [nuevas, vistas, hoy])
-  const resto = useMemo(() => nuevas.filter(e => !top5.includes(e) && !deHoy.includes(e)).sort(porEncaje), [nuevas, top5, deHoy])
+  const nuevas = useMemo(() => todas.filter(e => etapaEmpresa(e) === 'nueva' && filtro(e)).sort(porEncaje), [todas, q]) // eslint-disable-line react-hooks/exhaustive-deps
   const otras = useMemo(() => todas.filter(e => etapaEmpresa(e) === seg && filtro(e)).sort(porEncaje), [todas, seg, q]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const ofrecer = e => cambiarEstado(e, 'contactada', 'Pasa a «En contacto»', ['Escribirles', () => { setSeg('contactada'); setBorrador({ e, plantilla: 'm1' }) }])
+  // «Añadir a En contacto» las pasa a la segunda fase (y se puede escribir el primer mensaje desde el aviso).
+  const anadir = e => {
+    tab.cambiarRaiz(d => ({ ...d, contactos: { ...d.contactos, [e.id]: { col: 'contactada', fechas: { contactada: hoyISO() }, envios: [] } } }))
+    cambiarEstado(e, 'contactada', 'Añadida a «En contacto»', ['Escribir mensaje', () => { setSeg('contactada'); setBorrador({ e, plantilla: 'm1', destino: 'contactada' }) }])
+  }
   const acciones = e => (
     <div className="em-acc">
-      <button className="i-btn p sm" onClick={() => ofrecer(e)}><Icon n="send" s={17} />Ofrecernos a ejecutarlo</button>
-      <button className="i-link" onClick={() => cambiarEstado(e, 'descartada', 'Empresa descartada')}>No nos interesa</button>
+      <button className="i-btn p sm" onClick={() => anadir(e)}><Icon n="plus" s={17} w={2.6} />Añadir a En contacto</button>
+      <button className="i-link" onClick={() => cambiarEstado(e, 'descartada', 'Empresa descartada')}>Descartar</button>
     </div>
   )
 
@@ -113,32 +111,9 @@ export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
         {radar.emp == null && <div className="i-card i-empty">Todavía no hay datos de empresas. El radar los genera cada mañana.</div>}
 
         {radar.emp != null && seg === 'nueva' && (
-          <>
-            {nuevas.length === 0 && <div className="i-card i-empty">Nada nuevo por ahora. El radar vuelve a mirar el BOE mañana.</div>}
-            {top5.length > 0 && (
-              <section className="em-bloque" aria-labelledby="em-top">
-                <div className="em-tit"><h2 id="em-top">Las 5 que más encajan</h2><span>Ordenadas por encaje con lo que hace Reforesta</span></div>
-                <div className="em-top">{top5.map((e, i) => <Ficha key={e.id} e={e} puesto={i + 1} grande={i === 0} nueva={vistas[e.id] === hoy} pie={acciones(e)} />)}</div>
-              </section>
-            )}
-            {nuevas.length > 0 && (
-              <section className="em-bloque em-hoy" aria-labelledby="em-hoy">
-                <div className="em-hoy-h">
-                  <span className="em-ic"><Icon n="bell" s={22} /></span>
-                  <div><h2 id="em-hoy">Nuevas de hoy</h2><p>{deHoy.length
-                    ? 'Ey, siguen apareciendo muchas ofertas de empresas, pero estas son las nuevas.'
-                    : 'Hoy no ha aparecido ninguna nueva. Os lo diremos en cuanto haya alguna.'}</p></div>
-                </div>
-                {deHoy.length > 0 && <div className="em-grid">{deHoy.map(e => <Ficha key={e.id} e={e} nueva pie={acciones(e)} />)}</div>}
-              </section>
-            )}
-            {resto.length > 0 && (
-              <section className="em-bloque" aria-labelledby="em-resto">
-                <div className="em-tit"><h2 id="em-resto">El resto</h2><span>{resto.length} empresas más</span></div>
-                <div className="em-grid">{resto.map(e => <Ficha key={e.id} e={e} pie={acciones(e)} />)}</div>
-              </section>
-            )}
-          </>
+          nuevas.length === 0
+            ? <div className="i-card i-empty">Nada nuevo por ahora. El radar vuelve a mirar el BOE mañana.</div>
+            : <div className="em-grid em-g4">{nuevas.map(e => <Ficha key={e.id} e={e} nueva={vistas[e.id] === hoy} pie={acciones(e)} />)}</div>
         )}
 
         {radar.emp != null && seg === 'contactada' && <Contacto lista={otras} {...{ tab, cambiarEstado, setBorrador }} />}
@@ -188,48 +163,71 @@ function Ficha({ e, puesto, grande, nueva, pie }) {
   )
 }
 
-// Segunda fase: tablero de columnas. Arrastrar una empresa a «Primer mensaje» o «Recordatorio» abre el borrador
-// con su plantilla; «Reunión» y «Acuerdo» actualizan el estado. Todo se puede hacer con teclado (asa ⠿ o el botón de cada tarjeta).
+// Segunda fase: una fila por empresa y una celda por fase. La fase actual se marca y lleva su fecha (cuándo se
+// contactó, cuándo volver a contactar, cuándo es la reunión); las anteriores salen hechas y las siguientes vacías.
+// Se mueve arrastrando la fila a otra fase o pulsando la celda («Mover aquí»); Contactadas y Recordatorio abren el borrador.
 function Contacto({ lista, tab, cambiarEstado, setBorrador }) {
   const contactos = tab.datos.contactos
-  const colDe = useCallback(e => (e.estado === 'reunion' ? 'reunion' : e.estado === 'acuerdo' ? 'acuerdo' : contactos[e.id]?.col || 'por_escribir'), [contactos])
-  const extra = useMemo(() => ({ fija: true, disponer: { secs: COLUMNAS.map(c => ({ ...c, fija: true })), posDe: colDe } }), [colDe])
-  const t = useSecciones(tab, 'contacto', lista, porEncaje, extra)
-  const fijar = (e, col, mas = {}) => tab.cambiarRaiz(d => ({ ...d, contactos: { ...d.contactos, [e.id]: { ...(d.contactos[e.id] || {}), col, ...mas } } }))
+  const [arrastra, setArrastra] = useState(null)
+  const dragId = useRef(null)   // síncrono: los eventos de arrastre llegan antes que el render
+  const [sobre, setSobre] = useState(null)
+  const hoy = hoyISO()
+  const faseDe = e => (e.estado === 'reunion' ? 'reunion' : contactos[e.id]?.col === 'recordatorio' ? 'recordatorio' : 'contactada')
+  const fijar = (e, col, fechas = {}) => tab.cambiarRaiz(d => { const c = d.contactos[e.id] || {}; return { ...d, contactos: { ...d.contactos, [e.id]: { ...c, col, fechas: { ...(c.fechas || {}), ...fechas } } } } })
+  const fecha = (e, k, v) => tab.cambiarRaiz(d => { const c = d.contactos[e.id] || {}; return { ...d, contactos: { ...d.contactos, [e.id]: { ...c, fechas: { ...(c.fechas || {}), [k]: v } } } } })
   const ir = (e, dest) => {
-    const c = COLUMNAS.find(x => x.id === dest)
+    if (dest === faseDe(e)) return
+    const f = FASES.find(x => x.id === dest)
+    if (f.plantilla) { if (e.estado === 'reunion') cambiarEstado(e, 'contactada', 'Vuelve a contactadas'); return setBorrador({ e, plantilla: f.plantilla, destino: dest }) }   // se coloca al marcar como enviado
     if (dest === 'cerrada') return cambiarEstado(e, 'cerrada', 'Movida a cerradas')
-    if (c.plantilla) { setBorrador({ e, plantilla: c.plantilla, destino: dest }); return }   // se coloca al marcar como enviado
-    fijar(e, dest)
-    if (c.estado) cambiarEstado(e, c.estado, `Actualizada: ${c.nombre.toLowerCase()}`)
-    else if (e.estado !== 'contactada') cambiarEstado(e, 'contactada', 'Vuelve a «Por escribir»')
-  }
-  const mover = (id, dest, idx, desde) => {
-    const e = lista.find(x => x.id === id)
-    if (!e) return
-    if (dest === desde) { t.onReordenar(id, dest, idx); return }
-    ir(e, dest)
+    fijar(e, dest, { [dest]: contactos[e.id]?.fechas?.[dest] || hoy })
+    if (f.estado) cambiarEstado(e, f.estado, `Actualizada: ${f.nombre.toLowerCase()}`)
   }
   return (
-    <Tablero {...t} layout="columnas" onMover={mover} onColor={undefined} nombreItem={e => nombreCorto(e)} vacio="Arrastrad una empresa aquí"
-      izq={<span className="i-hint">Arrastrad cada empresa a la columna siguiente: se prepara el mensaje solo.</span>}
-      card={(e, col) => {
-        const c = contactos[e.id], ult = c?.envios?.at(-1), toca = c?.recordar && c.recordar <= hoyISO() && col.id === 'm1'
-        const sig = SIGUE[col.id]
+    <div className="ec" role="table" aria-label="Empresas en contacto, por fase">
+      <div className="ec-cab" role="row"><span role="columnheader">Empresas</span>{FASES.map(f => <span key={f.id} role="columnheader">{f.nombre}</span>)}</div>
+      {lista.length === 0 && <div className="i-card i-empty">Ninguna en contacto. Añadid empresas desde «Nuevas».</div>}
+      {lista.map(e => {
+        const c = contactos[e.id] || {}, fs = c.fechas || {}, k = FASES.findIndex(f => f.id === faseDe(e))
+        const toca = fs.volver && fs.volver <= hoy && k < 2
         return (
-          <article className="em-k">
-            <div className="em-id">
+          <div key={e.id} role="row" className={`ec-fila ${arrastra === e.id ? 'lev' : ''}`} draggable
+            onPointerDown={ev => { ev.currentTarget.draggable = !ev.target.closest('input,select,textarea,a,button') }}
+            onDragStart={ev => { ev.dataTransfer.setData('text/plain', e.id); ev.dataTransfer.effectAllowed = 'move'; dragId.current = e.id; requestAnimationFrame(() => setArrastra(dragId.current)) }}
+            onDragEnd={() => { dragId.current = null; setArrastra(null); setSobre(null) }}>
+            <div className="ec-emp" role="cell">
+              <span className="em-grip" aria-hidden="true"><svg width="12" height="16" viewBox="0 0 14 18" fill="currentColor">{[3, 9, 15].map(y => [3, 11].map(x => <circle key={`${x}${y}`} cx={x} cy={y} r="1.6" />))}</svg></span>
               <span className={`em-ini peq ${TONOS[hash(e.id) % TONOS.length]}`} aria-hidden="true">{iniciales(e)}</span>
-              <div className="em-nom"><h3 title={e.promotor}>{nombreCorto(e)}</h3><p title={e.proyecto}>{e.proyecto}</p></div>
+              <div className="em-nom"><h3 title={e.promotor}>{nombreCorto(e)}</h3><p title={e.proyecto}>{e.proyecto}</p>
+                <div className="ec-pie"><span className={`i-tag em-enc-t ${nivel(e.encaje ?? 0)}`}>Encaje {e.encaje ?? 0}</span>{toca && <span className="i-tag em-nueva">Toca volver a contactar</span>}
+                  <button className="i-link" onClick={() => cambiarEstado(e, 'descartada', 'Empresa descartada')}>Descartar</button></div></div>
             </div>
-            <div className="em-por"><span className="i-tag">{e.ubicacion || 'Sin ubicación'}</span><span className={`i-tag em-enc-t ${nivel(e.encaje ?? 0)}`}>Encaje {e.encaje ?? 0}</span></div>
-            {ult && <p className="em-ult"><Icon n="send" s={13} />{PLANTILLAS[ult.plantilla]?.nombre || 'Mensaje'} · {fechaLarga(ult.fecha)}</p>}
-            {c?.recordar && col.id === 'm1' && <p className={`em-rec ${toca ? 'toca' : ''}`}><Icon n="clock" s={14} />{toca ? 'Toca escribir el recordatorio' : `Recordatorio el ${fechaLarga(c.recordar)}`}</p>}
-            {sig && <button className={`i-btn sm ${toca ? 'p' : ''}`} onClick={() => ir(e, sig[0])}>{`${sig[1]}${sig[0] === 'cerrada' ? '' : ' →'}`}</button>}
-            {col.id !== 'por_escribir' && <button className="i-link em-menos" onClick={() => ir(e, 'por_escribir')}>Volver a «Por escribir»</button>}
-          </article>
+            {FASES.map((f, i) => {
+              const hecha = i < k, actual = i === k, abajo = sobre && sobre.id === e.id && sobre.f === f.id
+              return (
+                <div key={f.id} role="cell" className={`ec-cel ${hecha ? 'hecha' : actual ? 'actual' : ''} ${abajo ? 'sobre' : ''}`}
+                  onDragOver={ev => { if (dragId.current === e.id) { ev.preventDefault(); setSobre({ id: e.id, f: f.id }) } }} onDragLeave={() => setSobre(null)}
+                  onDrop={ev => { ev.preventDefault(); setSobre(null); if (dragId.current === e.id) ir(e, f.id); dragId.current = null }}>
+                  <i className="ec-nodo" aria-hidden="true">{hecha && <Icon n="check" s={12} w={3.6} />}</i>
+                  {hecha && <span className="ec-t">{fs[f.id] ? `${f.id === 'contactada' ? 'Contactada' : f.id === 'recordatorio' ? 'Recordatorio enviado' : f.nombre} · ${fechaLarga(fs[f.id])}` : f.nombre}</span>}
+                  {actual && f.id === 'contactada' && <>
+                    <b>{fs.contactada ? `Desde el ${fechaLarga(fs.contactada)}` : 'En contacto'}</b>
+                    {c.envios?.length ? <label className="ec-f">Volver a contactar<input type="date" className="i-in" value={fs.volver || ''} onChange={ev => fecha(e, 'volver', ev.target.value)} /></label>
+                      : <button className="i-btn sm p" onClick={() => setBorrador({ e, plantilla: 'm1', destino: 'contactada' })}>Escribir mensaje</button>}</>}
+                  {actual && f.id === 'recordatorio' && <>
+                    <b>Enviado el {fs.recordatorio ? fechaLarga(fs.recordatorio) : '—'}</b>
+                    <label className="ec-f">Volver a contactar<input type="date" className="i-in" value={fs.volver || ''} onChange={ev => fecha(e, 'volver', ev.target.value)} /></label></>}
+                  {actual && f.id === 'reunion' && <>
+                    <b>{fs.reunion ? `Reunión el ${fechaLarga(fs.reunion)}` : 'Reunión'}</b>
+                    <label className="ec-f">{fs.reunion ? 'Cambiar fecha' : 'Poner fecha'}<input type="date" className="i-in" value={fs.reunion || ''} onChange={ev => fecha(e, 'reunion', ev.target.value)} /></label></>}
+                  {i > k && <button className="ec-mover" onClick={() => ir(e, f.id)} aria-label={`Mover ${nombreCorto(e)} a ${f.nombre}`}>{i === k + 1 ? 'Siguiente fase →' : 'Mover aquí'}</button>}
+                </div>
+              )
+            })}
+          </div>
         )
-      }} />
+      })}
+    </div>
   )
 }
 
@@ -238,16 +236,16 @@ function Borrador({ e, plantilla, destino, cerrar, tab }) {
   const pl = PLANTILLAS[plantilla]
   const [asunto, setAsunto] = useState(() => rellenar(pl.asunto, e))
   const [cuerpo, setCuerpo] = useState(() => rellenar(pl.cuerpo, e))
-  const [recordar, setRecordar] = useState(plantilla === 'm1')
+  const [recordar, setRecordar] = useState(true)
   const [copiado, setCopiado] = useState(false)
   useEffect(() => { const k = ev => { if (ev.key === 'Escape') cerrar() }; addEventListener('keydown', k); return () => removeEventListener('keydown', k) }, [cerrar])
   const copiar = async () => { try { await navigator.clipboard.writeText(`${asunto}\n\n${cuerpo}`); setCopiado(true); setTimeout(() => setCopiado(false), 2500) } catch { /* sin portapapeles */ } }
   const enviado = () => {
-    const mas = new Date(); mas.setDate(mas.getDate() + pl.espera)
-    const rec = `${mas.getFullYear()}-${String(mas.getMonth() + 1).padStart(2, '0')}-${String(mas.getDate()).padStart(2, '0')}`
+    const fase = destino || (plantilla === 'rec' ? 'recordatorio' : 'contactada')
     tab.cambiarRaiz(d => {
       const c = d.contactos[e.id] || {}
-      return { ...d, contactos: { ...d.contactos, [e.id]: { ...c, col: destino || plantilla, envios: [...(c.envios || []), { plantilla, fecha: hoyISO() }], recordar: recordar ? rec : plantilla === 'm1' ? '' : c.recordar } } }
+      return { ...d, contactos: { ...d.contactos, [e.id]: { ...c, col: fase, envios: [...(c.envios || []), { plantilla, fecha: hoyISO() }],
+        fechas: { ...(c.fechas || {}), [fase]: hoyISO(), ...(recordar ? { volver: mas(pl.espera) } : {}) } } } }
     })
     cerrar()
   }
@@ -262,7 +260,7 @@ function Borrador({ e, plantilla, destino, cerrar, tab }) {
         <label className="em-camp">Asunto<input className="i-in" value={asunto} onChange={ev => setAsunto(ev.target.value)} /></label>
         <label className="em-camp">Mensaje<textarea className="i-in" rows={11} value={cuerpo} onChange={ev => setCuerpo(ev.target.value)} autoFocus /></label>
         <p className="em-aviso"><Icon n="info" s={15} />El BOE no publica correos: buscad el de contacto de la empresa por su canal público (web o registro) y pegadlo al enviar.</p>
-        {plantilla === 'm1' && <label className="cb"><input type="checkbox" checked={recordar} onChange={ev => setRecordar(ev.target.checked)} />Recordarme en {pl.espera} días si no contestan</label>}
+        <label className="cb"><input type="checkbox" checked={recordar} onChange={ev => setRecordar(ev.target.checked)} />Recordarme en {pl.espera} días si no contestan</label>
         <div className="em-bor-acc">
           <a className="i-btn" href={`mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`}><Icon n="send" s={18} />Abrir en mi correo</a>
           <button className="i-btn" onClick={copiar}><Icon n={copiado ? 'check' : 'doc'} s={18} w={copiado ? 3 : 2} />{copiado ? 'Copiado' : 'Copiar'}</button>

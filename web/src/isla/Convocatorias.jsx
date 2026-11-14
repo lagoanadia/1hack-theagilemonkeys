@@ -236,14 +236,19 @@ function Mas({ children, texto = 'Más detalles' }) {
 }
 
 // En proceso: las que habéis elegido presentar. «Presentar» las pasa a Presentado.
-function Preparando({ lista, ir, seg, setDescartando, cambiarEstado, tab }) {
+function Preparando({ lista, ir, seg, setDescartando, cambiarEstado, avisar, tab }) {
   const prog = useProgresoDocs(lista)
   const t = useSecciones(tab, 'preparando', lista, porPlazo)
   return (
     <Tablero {...t} vacio="Nada en proceso. Las que marquéis «Presentar» en el Radar aparecerán aquí."
       izq={<span className="i-hint">{lista.length ? 'Arrastrad las tarjetas para ordenarlas o clasificarlas' : 'Aquí van las convocatorias que decidís presentar'}</span>}
       card={a => {
-        const s = segDe(seg, a.id), p = prog[a.id], listo = p && p.total > 0 && p.hechos >= p.total
+        const s = segDe(seg, a.id), p = prog[a.id], listo = Boolean(p) && p.hechos >= p.total
+        // Hasta que no estén todos los documentos no se puede presentar: avisa con «Requisitos incompletos».
+        const presentar = () => {
+          if (listo) return cambiarEstado(a, 'presentada')
+          avisar(p ? `Requisitos incompletos: faltan ${p.total - p.hechos} ${p.total - p.hechos === 1 ? 'documento' : 'documentos'}` : 'Estamos comprobando los papeles. Probad en un momento', ['Ver papeles', () => ir('presentar', a.id)])
+        }
         return (
           <article className="tc">
             <div className="tc-tags"><span className="i-tag" title={a.organo}>{a.organo}</span></div>
@@ -256,7 +261,7 @@ function Preparando({ lista, ir, seg, setDescartando, cambiarEstado, tab }) {
             <div className="tc-acc">
               <button className="i-link" onClick={() => ir('presentar', a.id)}><Icon n="doc" s={16} />Ver papeles</button>
               <span style={{ flex: 1 }} />
-              <button className={`i-btn sm ${listo ? 'p' : ''}`} title={listo ? 'Tenéis todos los documentos' : 'Aún faltan documentos, pero podéis presentarla'} onClick={() => cambiarEstado(a, 'presentada')}>Presentar</button>
+              <button className={`i-btn sm ${listo ? 'p' : 'bloq'}`} aria-disabled={!listo} title={listo ? 'Tenéis todos los documentos' : 'Faltan documentos: subidlos antes de presentar'} onClick={presentar}>{!listo && <Icon n="alert" s={16} />}Presentar</button>
             </div>
             <Mas>
               <p><b>Siguiente paso:</b> {s?.siguiente_paso || 'Presentar la solicitud'}</p>
@@ -296,7 +301,6 @@ function Presentado({ lista, cambiarEstado, cambiarPaso, seg, perfil, ir, tab })
   const term = useMemo(() => lista.filter(fin), [lista])
   const ver = vista === 'marcha' ? enMarcha : term
   const cmp = useCallback((a, b) => (segDe(seg, a.id)?.dias ?? 9999) - (segDe(seg, b.id)?.dias ?? 9999), [seg])
-  const prog = useProgresoDocs(lista)
   const t = useSecciones(tab, 'presentadas', ver, cmp)
   const avisos = (seg?.avisos || []).filter(x => x.tipo === 'convocatoria')
   return (
@@ -319,7 +323,6 @@ function Presentado({ lista, cambiarEstado, cambiarPaso, seg, perfil, ir, tab })
                 {cierre ? <div><span>Estado</span><b>{a.estado === 'terminada' ? 'Terminada' : 'Denegada'}</b></div>
                   : <div className={`cuenta ${s?.nivel || 'sin_fecha'}`}><span title={s?.siguiente_paso}>{s?.siguiente_paso || 'Siguiente paso'}</span><b>{cuenta(s?.dias)}</b>{s?.fecha_paso ? <small>{fechaCorta(s.fecha_paso)}</small> : <small>Sin fecha</small>}</div>}
               </div>
-              <Prog p={prog[a.id]} />
               <div className="i-msg tc-msg" style={{ background: alerta ? 'var(--co-l)' : 'var(--soft)', color: alerta ? 'var(--co-d)' : 'var(--nv)' }}>{MENSAJE[a.estado]}</div>
               {sig.length > 0 && <div className="tc-acc"><button className={`i-btn sm ${alerta || ['urgente', 'vencido', 'pronto'].includes(s?.nivel) ? 'p' : ''}`} style={{ flex: 1 }} onClick={() => cambiarEstado(a, sig[0][0])}>{sig[0][1]} →</button></div>}
               <Mas>

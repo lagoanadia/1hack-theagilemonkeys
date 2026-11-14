@@ -182,9 +182,9 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
             {plazo && <p>{a.plazoEstimado ? 'plazo estimado, ' : ''}hasta el {plazo.getDate()} de {MESL[plazo.getMonth()]}</p>}
             <Svg html={island(300, 200, Math.min(presentadas + 1, objetivo), objetivo)} style={{ display: 'block', margin: '6px 0 0' }} />
             <p className="tree">Al presentarla plantáis el árbol n.º {presentadas + 1}</p>
-            <button className="i-btn p" style={{ width: '100%' }} onClick={() => presentar(a)}><Icon n="check" s={19} w={2.6} />Presentar</button>
+            <button className="i-btn p" style={{ width: '100%' }} aria-disabled={faltan > 0} onClick={() => (faltan > 0 ? setError(`Requisitos incompletos: ${faltan === 1 ? 'falta 1 documento' : `faltan ${faltan} documentos`}. Subidlos o asignadlos antes de presentar.`) : presentar(a))}><Icon n={faltan > 0 ? 'alert' : 'check'} s={19} w={2.6} />Presentar</button>
             {a.url && <a className="i-link" style={{ marginTop: 10 }} href={a.url} target="_blank" rel="noopener noreferrer">Ver convocatoria en la BDNS ↗</a>}
-            {faltan > 0 && <small className="warn">Aún os {faltan === 1 ? 'falta 1 documento' : `faltan ${faltan} documentos`}</small>}
+            {faltan > 0 && <small className="warn">Requisitos incompletos: {faltan === 1 ? 'falta 1 documento' : `faltan ${faltan} documentos`}</small>}
           </div>
         </div>
       </div>
