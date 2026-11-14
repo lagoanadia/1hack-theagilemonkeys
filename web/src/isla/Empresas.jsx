@@ -1,13 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Icon from './Icon.jsx'
 import { nombreGuardado } from '../api.js'
-import { etapaEmpresa, hectareas } from '../datos.js'
+import { diasHasta, etapaEmpresa, hectareas } from '../datos.js'
 
 // Pantalla «Empresas»: datos de empresas.json (declaraciones de impacto ambiental del BOE) y su estado
 // de contacto con PUT /api/solicitudes/empresa/:id (nueva, contactada, reunion, acuerdo, cerrada, descartada).
-//  · Descubrir: rejilla de fichas; cada una se añade a «En proceso» o se descarta.
-//  · En proceso (segunda fase): tabla con una fila por empresa y sus fases, con fechas y plantillas de mensaje.
-const SEGS = [['nueva', 'Descubrir'], ['contactada', 'En proceso'], ['cerrada', 'Cerradas'], ['descartada', 'Descartadas']]
+//  · Nuevas: rejilla de fichas; cada una se añade a «En contacto» o se descarta.
+//  · En contacto (segunda fase): tabla con una fila por empresa y sus fases, con fechas y plantillas de mensaje.
+const SEGS = [['nueva', 'Nuevas'], ['contactada', 'En contacto'], ['cerrada', 'Cerradas'], ['descartada', 'Descartadas']]
 const ACCION = { contactar: 'Contactar', mira: 'Valorar', descarta: 'Descartar' }
 const SECTOR = { hibrido: 'Eólico + solar', infraestructura: 'Infraestructura', eolico: 'Eólico', solar: 'Solar', linea_electrica: 'Línea eléctrica', otro: 'Otro sector' }
 const TONOS = ['t0', 't1', 't2', 't3', 't4']
@@ -23,13 +23,6 @@ const diasDesde = f => Math.round((new Date(new Date().toDateString()) - new Dat
 const fechaLarga = f => new Date(`${String(f).slice(0, 10)}T00:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 const porEncaje = (a, b) => (b.encaje ?? 0) - (a.encaje ?? 0) || (b.fecha || '').localeCompare(a.fecha || '')
 
-// Fase de contacto (segunda fase): una fila por empresa y una celda por fase. Contactadas y Recordatorio llevan plantilla.
-const FASES = [
-  { id: 'contactada', nombre: 'Contactadas', plantilla: 'm1' },
-  { id: 'recordatorio', nombre: 'Recordatorio', plantilla: 'rec' },
-  { id: 'reunion', nombre: 'Reunión', estado: 'reunion' },
-  { id: 'cerrada', nombre: 'Cerradas', estado: 'cerrada' },
-]
 const mas = n => { const d = new Date(); d.setDate(d.getDate() + n); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 const PLANTILLAS = {
   m1: {
@@ -83,7 +76,6 @@ export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
     tab.cambiarRaiz(d => ({ ...d, vistas: { ...d.vistas, ...Object.fromEntries(faltan.map(e => [e.id, primera && !(e.fecha && diasDesde(e.fecha) <= 14) ? 'antes' : hoy])) } }))
   }, [tab.listo, radar.emp, todas.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const cuenta = k => todas.filter(e => etapaEmpresa(e) === k).length
   const filtro = e => (!q || `${e.promotor} ${e.proyecto} ${e.ubicacion}`.toLowerCase().includes(q.toLowerCase()))
   const nuevas = useMemo(() => todas.filter(e => etapaEmpresa(e) === 'nueva' && filtro(e)).sort(porEncaje), [todas, q]) // eslint-disable-line react-hooks/exhaustive-deps
   const otras = useMemo(() => todas.filter(e => etapaEmpresa(e) === seg && filtro(e)).sort(porEncaje), [todas, seg, q]) // eslint-disable-line react-hooks/exhaustive-deps
@@ -91,11 +83,11 @@ export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
   // «Añadir a En contacto» las pasa a la segunda fase (y se puede escribir el primer mensaje desde el aviso).
   const anadir = e => {
     tab.cambiarRaiz(d => ({ ...d, contactos: { ...d.contactos, [e.id]: { col: 'contactada', fechas: { contactada: hoyISO() }, envios: [] } } }))
-    cambiarEstado(e, 'contactada', 'Añadida a «En proceso»', ['Escribir mensaje', () => { setSeg('contactada'); setBorrador({ e, plantilla: 'm1', destino: 'contactada' }) }])
+    cambiarEstado(e, 'contactada', 'Añadida a «En contacto»', ['Escribir mensaje', () => { setSeg('contactada'); setBorrador({ e, plantilla: 'm1', destino: 'contactada' }) }])
   }
   const acciones = e => (
     <div className="em-acc">
-      <button className="i-btn p sm" onClick={() => anadir(e)}><Icon n="plus" s={17} w={2.6} />Añadir a En proceso</button>
+      <button className="i-btn p sm" onClick={() => anadir(e)}><Icon n="plus" s={17} w={2.6} />Añadir a En contacto</button>
       <button className="i-link" onClick={() => cambiarEstado(e, 'descartada', 'Empresa descartada')}>Descartar</button>
     </div>
   )
@@ -105,7 +97,7 @@ export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
       {top('Empresas · BOE')}
       <div className="em">
         <div className="i-head" style={{ alignItems: 'center', marginBottom: 6 }}>
-          <div className="i-seg" role="group" aria-label="Fase">{SEGS.map(([k, l]) => <button key={k} aria-pressed={seg === k} className={seg === k ? 'on' : ''} onClick={() => setSeg(k)}>{l} · {cuenta(k)}</button>)}</div>
+          <div className="i-seg" role="group" aria-label="Fase">{SEGS.map(([k, l]) => <button key={k} aria-pressed={seg === k} className={seg === k ? 'on' : ''} onClick={() => setSeg(k)}>{l}</button>)}</div>
         </div>
         {radar.emp == null && <div className="i-card i-empty">Todavía no hay datos de empresas. El radar los genera cada mañana.</div>}
 
@@ -139,10 +131,10 @@ function Ficha({ e, puesto, grande, nueva, pie }) {
         <div className="em-nom"><h3 title={e.promotor}>{nombreCorto(e)}</h3><p title={e.proyecto}>{e.proyecto}</p></div>
         <div className="em-et">{puesto && <span className="i-tag em-pos">Nº {puesto}</span>}{nueva && <span className="i-tag em-nueva">Nueva</span>}</div>
       </header>
-      <div className="em-res"><p>{e.resumen}</p></div>
+      <div className="em-res"><small className="em-que">Qué abarca</small><p>{e.que_abarca || e.resumen}</p></div>
       <dl className="em-datos">
+        <div className="ubi"><dt>Ubicación</dt><dd title={e.ubicacion}>{e.ubicacion || 'No indicada'}</dd></div>
         <div><dt>Sector</dt><dd>{SECTOR[e.tipo] || 'Otro'}</dd></div>
-        <div><dt>Ubicación</dt><dd title={e.ubicacion}>{e.ubicacion || 'No indicada'}</dd></div>
         <div><dt>Tamaño</dt><dd className={tam || ha ? '' : 'i-ni'}>{tam || hectareas(ha) || 'No indicado'}</dd></div>
         <div className={`enc ${nivel(n)}`}><dt>Afinidad</dt><dd><b>{n}</b><span>/ 100</span></dd></div>
       </dl>
@@ -161,70 +153,129 @@ function Ficha({ e, puesto, grande, nueva, pie }) {
   )
 }
 
-// Segunda fase: una fila por empresa y una celda por fase. La fase actual se marca y lleva su fecha (cuándo se
-// contactó, cuándo volver a contactar, cuándo es la reunión); las anteriores salen hechas y las siguientes vacías.
-// Se mueve arrastrando la fila a otra fase o pulsando la celda («Mover aquí»); Contactadas y Recordatorio abren el borrador.
-function Contacto({ lista, tab, cambiarEstado, setBorrador }) {
-  const contactos = tab.datos.contactos
-  const [arrastra, setArrastra] = useState(null)
-  const dragId = useRef(null)   // síncrono: los eventos de arrastre llegan antes que el render
-  const [sobre, setSobre] = useState(null)
-  const hoy = hoyISO()
-  const faseDe = e => (e.estado === 'reunion' ? 'reunion' : contactos[e.id]?.col === 'recordatorio' ? 'recordatorio' : 'contactada')
-  const fijar = (e, col, fechas = {}) => tab.cambiarRaiz(d => { const c = d.contactos[e.id] || {}; return { ...d, contactos: { ...d.contactos, [e.id]: { ...c, col, fechas: { ...(c.fechas || {}), ...fechas } } } } })
-  const fecha = (e, k, v) => tab.cambiarRaiz(d => { const c = d.contactos[e.id] || {}; return { ...d, contactos: { ...d.contactos, [e.id]: { ...c, fechas: { ...(c.fechas || {}), [k]: v } } } } })
-  const ir = (e, dest) => {
-    if (dest === faseDe(e)) return
-    const f = FASES.find(x => x.id === dest)
-    if (f.plantilla) { if (e.estado === 'reunion') cambiarEstado(e, 'contactada', 'Vuelve a contactadas'); return setBorrador({ e, plantilla: f.plantilla, destino: dest }) }   // se coloca al marcar como enviado
-    if (dest === 'cerrada') return cambiarEstado(e, 'cerrada', 'Movida a cerradas')
-    fijar(e, dest, { [dest]: contactos[e.id]?.fechas?.[dest] || hoy })
-    if (f.estado) cambiarEstado(e, f.estado, `Actualizada: ${f.nombre.toLowerCase()}`)
+// Segunda fase, agrupada por lo que toca hacer: Toca escribir → Esperando respuesta → Reunión.
+// Cada empresa muestra su contacto (correo, teléfono, web; el BOE no lo trae, se añade a mano o se busca con un clic)
+// y el siguiente paso con su botón. Los recordatorios y reuniones se pueden bajar al calendario (.ics).
+const hoyYMD = () => hoyISO()
+const diaSemana = f => new Date(`${f}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })
+function descargarIcs({ titulo, fecha, descripcion }) {
+  const ymd = fecha.replace(/-/g, '')
+  const sig = new Date(`${fecha}T00:00:00`); sig.setDate(sig.getDate() + 1)
+  const fin = `${sig.getFullYear()}${String(sig.getMonth() + 1).padStart(2, '0')}${String(sig.getDate()).padStart(2, '0')}`
+  const esc = t => String(t).replace(/[\\;,]/g, m => `\\${m}`).replace(/\n/g, '\\n')
+  const cuerpo = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Radar de Reforesta//ES', 'BEGIN:VEVENT', `UID:${ymd}-${Math.random().toString(36).slice(2)}@radar-reforesta`, `DTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').slice(0, 15)}Z`,
+    `DTSTART;VALUE=DATE:${ymd}`, `DTEND;VALUE=DATE:${fin}`, `SUMMARY:${esc(titulo)}`, `DESCRIPTION:${esc(descripcion || '')}`, 'END:VEVENT', 'END:VCALENDAR'].join('\r\n')
+  const url = URL.createObjectURL(new Blob([cuerpo], { type: 'text/calendar' }))
+  const a = Object.assign(document.createElement('a'), { href: url, download: 'recordatorio-reforesta.ics' })
+  document.body.appendChild(a); a.click(); a.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 2000)
+}
+const IcoMail = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" /><path d="m4 8 8 6 8-6" /></svg>
+
+// Correo, teléfono y web de la empresa (guardados en el tablero compartido). Se añaden a mano; «Buscar contacto» abre una búsqueda.
+function Contactos({ e, tab }) {
+  const c = tab.datos.contactos[e.id]?.contacto || {}
+  const [editando, setEditando] = useState(false)
+  const [f, setF] = useState({ email: c.email || '', telefono: c.telefono || '', web: c.web || '' })
+  const [copiado, setCopiado] = useState('')
+  const hay = c.email || c.telefono || c.web
+  const guardar = ev => {
+    ev.preventDefault()
+    tab.cambiarRaiz(d => { const x = d.contactos[e.id] || {}; return { ...d, contactos: { ...d.contactos, [e.id]: { ...x, contacto: { email: f.email.trim(), telefono: f.telefono.trim(), web: f.web.trim() } } } } })
+    setEditando(false)
+  }
+  const copiar = async (t, k) => { try { await navigator.clipboard.writeText(t); setCopiado(k); setTimeout(() => setCopiado(''), 1800) } catch { /* sin portapapeles */ } }
+  const buscar = `https://www.google.com/search?q=${encodeURIComponent(`${nombreCorto(e)} contacto`)}`
+  const chip = (k, icono, texto, href) => (
+    <span key={k} className="n2-c">{icono}{href ? <a href={href} target={k === 'web' ? '_blank' : undefined} rel="noopener noreferrer"><b>{texto}</b></a> : <b>{texto}</b>}
+      <button type="button" aria-label={`Copiar ${texto}`} onClick={() => copiar(texto, k)}>{copiado === k ? <Icon n="check" s={15} w={3} /> : <Icon n="doc" s={15} />}</button></span>
+  )
+  if (editando) {
+    return (
+      <form className="n2-form" onSubmit={guardar}>
+        <label>Correo<input className="i-in" type="email" autoFocus maxLength={120} placeholder="info@empresa.es" value={f.email} onChange={ev => setF({ ...f, email: ev.target.value })} /></label>
+        <label>Teléfono<input className="i-in" maxLength={40} placeholder="91 000 00 00" value={f.telefono} onChange={ev => setF({ ...f, telefono: ev.target.value })} /></label>
+        <label>Web<input className="i-in" maxLength={120} placeholder="empresa.es" value={f.web} onChange={ev => setF({ ...f, web: ev.target.value })} /></label>
+        <div className="acc"><button className="i-btn p sm" type="submit">Guardar</button><button type="button" className="i-btn sm" onClick={() => setEditando(false)}>Cancelar</button></div>
+      </form>
+    )
   }
   return (
-    <div className="ec" role="table" aria-label="Empresas en proceso, por fase">
-      <div className="ec-cab" role="row"><span role="columnheader">Empresas</span>{FASES.map(f => <span key={f.id} role="columnheader">{f.nombre}</span>)}</div>
-      {lista.length === 0 && <div className="i-card i-empty">Ninguna en proceso. Añadid empresas desde «Descubrir».</div>}
-      {lista.map(e => {
-        const c = contactos[e.id] || {}, fs = c.fechas || {}, k = FASES.findIndex(f => f.id === faseDe(e))
-        const toca = fs.volver && fs.volver <= hoy && k < 2
-        return (
-          <div key={e.id} role="row" className={`ec-fila ${arrastra === e.id ? 'lev' : ''}`} draggable
-            onPointerDown={ev => { ev.currentTarget.draggable = !ev.target.closest('input,select,textarea,a,button') }}
-            onDragStart={ev => { ev.dataTransfer.setData('text/plain', e.id); ev.dataTransfer.effectAllowed = 'move'; dragId.current = e.id; requestAnimationFrame(() => setArrastra(dragId.current)) }}
-            onDragEnd={() => { dragId.current = null; setArrastra(null); setSobre(null) }}>
-            <div className="ec-emp" role="cell">
-              <span className="em-grip" aria-hidden="true"><svg width="12" height="16" viewBox="0 0 14 18" fill="currentColor">{[3, 9, 15].map(y => [3, 11].map(x => <circle key={`${x}${y}`} cx={x} cy={y} r="1.6" />))}</svg></span>
-              <span className={`em-ini peq ${TONOS[hash(e.id) % TONOS.length]}`} aria-hidden="true">{iniciales(e)}</span>
-              <div className="em-nom"><h3 title={e.promotor}>{nombreCorto(e)}</h3><p title={e.proyecto}>{e.proyecto}</p>
-                <div className="ec-pie"><span className={`i-tag em-enc-t ${nivel(e.encaje ?? 0)}`}>Afinidad {e.encaje ?? 0}</span>{toca && <span className="i-tag em-nueva">Toca volver a contactar</span>}
-                  <button className="i-link" onClick={() => cambiarEstado(e, 'descartada', 'Empresa descartada')}>Descartar</button></div></div>
-            </div>
-            {FASES.map((f, i) => {
-              const hecha = i < k, actual = i === k, abajo = sobre && sobre.id === e.id && sobre.f === f.id
+    <>
+      {c.email && chip('email', IcoMail, c.email, `mailto:${c.email}`)}
+      {c.telefono && chip('tel', <Icon n="phone" s={16} />, c.telefono, `tel:${c.telefono.replace(/\s/g, '')}`)}
+      {c.web && chip('web', <Icon n="globe" s={16} />, c.web.replace(/^https?:\/\//, ''), /^https?:/.test(c.web) ? c.web : `https://${c.web}`)}
+      {!hay && <div className="n2-no">Aún no tenéis un contacto de esta empresa. El BOE no lo publica.</div>}
+      <div className="n2-bot">
+        <button className="i-btn sm" onClick={() => setEditando(true)}><Icon n="plus" s={16} w={2.6} />{hay ? 'Cambiar contacto' : 'Añadir correo o teléfono'}</button>
+        {!hay && <a className="i-btn sm" href={buscar} target="_blank" rel="noopener noreferrer"><Icon n="search" s={16} />Buscar contacto</a>}
+      </div>
+      <p className="n2-f">{hay ? 'Añadido por vosotros' : 'La búsqueda se abre en otra pestaña'}</p>
+    </>
+  )
+}
+
+function Contacto({ lista, tab, cambiarEstado, setBorrador }) {
+  const contactos = tab.datos.contactos
+  const hoy = hoyYMD()
+  const datosDe = e => contactos[e.id] || {}
+  const grupoDe = e => (e.estado === 'reunion' ? 'reunion' : datosDe(e).envios?.length ? 'espera' : 'escribir')
+  const fecha = (e, k, v) => tab.cambiarRaiz(d => { const c = d.contactos[e.id] || {}; return { ...d, contactos: { ...d.contactos, [e.id]: { ...c, fechas: { ...(c.fechas || {}), [k]: v } } } } })
+  const descartar = e => cambiarEstado(e, 'descartada', 'Empresa descartada')
+  const grupos = ['escribir', 'espera', 'reunion'].map(g => ({ g, items: lista.filter(e => grupoDe(e) === g) }))
+  const nEscribir = grupos[0].items.length
+  const nToca = grupos[1].items.filter(e => datosDe(e).fechas?.volver && datosDe(e).fechas.volver <= hoy).length
+  const resumen = [nEscribir && `escribir a ${nEscribir} ${nEscribir === 1 ? 'empresa' : 'empresas'}`, nToca && `volver a escribir a ${nToca}`].filter(Boolean).join(' y ')
+  const META = {
+    escribir: ['ambar', 'Toca escribir', 'Primer mensaje'], espera: ['azul', 'Esperando respuesta', 'Seguimiento'], reunion: ['verde', 'Reunión', 'Acordada'],
+  }
+  const Cal = ({ e, f, titulo, texto }) => (
+    <button className="i-btn sm" onClick={() => descargarIcs({ titulo: `${titulo} ${nombreCorto(e)}`, fecha: f, descripcion: `${e.proyecto}. ${e.url || ''}` })}><Icon n="cal" s={17} />{texto}</button>
+  )
+  return (
+    <div className="n2">
+      <div className="n2-hoy"><span className="n2-ic"><Icon n="bell" s={22} /></span>
+        <div><b>{lista.length === 0 ? 'Todavía no hay empresas en contacto.' : resumen ? `Hoy toca: ${resumen}.` : 'No hay nada urgente hoy. Todo está en marcha.'}</b>
+          <p>{lista.length === 0 ? 'Añadid empresas desde «Nuevas» y aparecerán aquí.' : 'Cada empresa dice cuál es su siguiente paso. El correo y el teléfono los añadís vosotros: el BOE no los publica.'}</p></div></div>
+      {grupos.filter(x => x.items.length).map(({ g, items }) => (
+        <section key={g} className={`i-sec c-${META[g][0]}`} aria-label={META[g][1]}>
+          <header className="i-sec-h"><i className="dot" aria-hidden="true" /><h3 className="nm">{META[g][1]}</h3><span className="n">{items.length}</span><span className="nota">{META[g][2]}</span></header>
+          <div className="n2-lista">
+            {items.map(e => {
+              const c = datosDe(e), fs = c.fechas || {}, tiene = c.contacto?.email || c.contacto?.telefono || c.contacto?.web
+              const dias = fs.volver ? diasHasta(fs.volver) : null
               return (
-                <div key={f.id} role="cell" className={`ec-cel ${hecha ? 'hecha' : actual ? 'actual' : ''} ${abajo ? 'sobre' : ''}`}
-                  onDragOver={ev => { if (dragId.current === e.id) { ev.preventDefault(); setSobre({ id: e.id, f: f.id }) } }} onDragLeave={() => setSobre(null)}
-                  onDrop={ev => { ev.preventDefault(); setSobre(null); if (dragId.current === e.id) ir(e, f.id); dragId.current = null }}>
-                  <i className="ec-nodo" aria-hidden="true">{hecha && <Icon n="check" s={12} w={3.6} />}</i>
-                  {hecha && <span className="ec-t">{fs[f.id] ? `${f.id === 'contactada' ? 'Contactada' : f.id === 'recordatorio' ? 'Recordatorio enviado' : f.nombre} · ${fechaLarga(fs[f.id])}` : f.nombre}</span>}
-                  {actual && f.id === 'contactada' && <>
-                    <b>{fs.contactada ? `Desde el ${fechaLarga(fs.contactada)}` : 'En contacto'}</b>
-                    {c.envios?.length ? <label className="ec-f">Volver a contactar<input type="date" className="i-in" value={fs.volver || ''} onChange={ev => fecha(e, 'volver', ev.target.value)} /></label>
-                      : <button className="i-btn sm p" onClick={() => setBorrador({ e, plantilla: 'm1', destino: 'contactada' })}>Escribir mensaje</button>}</>}
-                  {actual && f.id === 'recordatorio' && <>
-                    <b>Enviado el {fs.recordatorio ? fechaLarga(fs.recordatorio) : '—'}</b>
-                    <label className="ec-f">Volver a contactar<input type="date" className="i-in" value={fs.volver || ''} onChange={ev => fecha(e, 'volver', ev.target.value)} /></label></>}
-                  {actual && f.id === 'reunion' && <>
-                    <b>{fs.reunion ? `Reunión el ${fechaLarga(fs.reunion)}` : 'Reunión'}</b>
-                    <label className="ec-f">{fs.reunion ? 'Cambiar fecha' : 'Poner fecha'}<input type="date" className="i-in" value={fs.reunion || ''} onChange={ev => fecha(e, 'reunion', ev.target.value)} /></label></>}
-                  {i > k && <button className="ec-mover" onClick={() => ir(e, f.id)} aria-label={`Mover ${nombreCorto(e)} a ${f.nombre}`}>{i === k + 1 ? 'Siguiente fase →' : 'Mover aquí'}</button>}
-                </div>
+                <article key={e.id} className="n2-fila">
+                  <div className="n2-emp"><span className={`em-ini peq ${TONOS[hash(e.id) % TONOS.length]}`} aria-hidden="true">{iniciales(e)}</span>
+                    <div className="em-nom"><h3 title={e.promotor}>{nombreCorto(e)}</h3><p title={e.proyecto}>{e.proyecto}</p>
+                      <div className="ec-pie"><span className={`i-tag em-enc-t ${nivel(e.encaje ?? 0)}`}>Afinidad {e.encaje ?? 0}</span><button className="i-link" onClick={() => descartar(e)}>Descartar</button></div></div></div>
+                  <div className="n2-con"><small>Contacto</small><Contactos e={e} tab={tab} /></div>
+                  <div className="n2-paso"><small>Siguiente paso</small>
+                    {g === 'escribir' && <>
+                      <b>{tiene ? 'Escribirles el primer mensaje' : 'Conseguir un contacto'}</b>
+                      <p>{tiene ? 'El mensaje ya viene rellenado con los datos del proyecto.' : 'Sin correo no se puede enviar, pero podéis preparar el mensaje.'}</p>
+                      <div className="n2-bot"><button className={`i-btn sm ${tiene ? 'p' : ''}`} onClick={() => setBorrador({ e, plantilla: 'm1', destino: 'contactada' })}><Icon n="send" s={17} />Escribir mensaje</button>
+                        <Cal e={e} f={mas(7)} titulo="Volver a escribir a" texto="Recordarme en 7 días" /></div></>}
+                    {g === 'espera' && <>
+                      <b>{fs.volver ? `Volver a escribirles el ${fechaLarga(fs.volver)}` : 'Poned una fecha para volver a escribirles'}</b>
+                      <p>{dias === null ? 'Así no se os olvida el seguimiento.' : dias <= 0 ? 'Ya toca: escribid el recordatorio.' : `Faltan ${dias} ${dias === 1 ? 'día' : 'días'}. Si contestan, pasadla a «Reunión».`}</p>
+                      <label className="i-fecha">Volver a contactar<input type="date" className="i-in" value={fs.volver || ''} onChange={ev => fecha(e, 'volver', ev.target.value)} /></label>
+                      <div className="n2-bot"><button className={`i-btn sm ${dias !== null && dias <= 0 ? 'p' : ''}`} onClick={() => setBorrador({ e, plantilla: 'rec', destino: 'recordatorio' })}><Icon n="send" s={17} />Escribir recordatorio</button>
+                        {fs.volver && <Cal e={e} f={fs.volver} titulo="Volver a escribir a" texto="Añadir al calendario" />}
+                        <button className="i-btn sm" onClick={() => { fecha(e, 'reunion', fs.reunion || ''); cambiarEstado(e, 'reunion', 'Pasa a «Reunión»') }}>Han contestado</button></div></>}
+                    {g === 'reunion' && <>
+                      <b>{fs.reunion ? `Reunión el ${diaSemana(fs.reunion)}` : 'Poned la fecha de la reunión'}</b>
+                      <p>Preparad: superficie, especies y calendario de plantación.</p>
+                      <label className="i-fecha">Fecha de la reunión<input type="date" className="i-in" value={fs.reunion || ''} onChange={ev => fecha(e, 'reunion', ev.target.value)} /></label>
+                      <div className="n2-bot">{fs.reunion && <Cal e={e} f={fs.reunion} titulo="Reunión con" texto="Añadir al calendario" />}
+                        <button className="i-btn sm" onClick={() => cambiarEstado(e, 'cerrada', 'Movida a cerradas')}>Hay acuerdo</button></div></>}
+                  </div>
+                </article>
               )
             })}
           </div>
-        )
-      })}
+        </section>
+      ))}
     </div>
   )
 }
@@ -257,10 +308,10 @@ function Borrador({ e, plantilla, destino, cerrar, tab }) {
         <p className="i-sub" style={{ margin: '4px 0 12px' }}>Ya está rellenado con los datos del proyecto. Cambiad lo que queráis.</p>
         <label className="em-camp">Asunto<input className="i-in" value={asunto} onChange={ev => setAsunto(ev.target.value)} /></label>
         <label className="em-camp">Mensaje<textarea className="i-in" rows={11} value={cuerpo} onChange={ev => setCuerpo(ev.target.value)} autoFocus /></label>
-        <p className="em-aviso"><Icon n="info" s={15} />El BOE no publica correos: buscad el de contacto de la empresa por su canal público (web o registro) y pegadlo al enviar.</p>
+        {!tab.datos.contactos[e.id]?.contacto?.email && <p className="em-aviso"><Icon n="info" s={15} />Aún no tenéis el correo de esta empresa (el BOE no lo publica). Añadidlo en su ficha o pegadlo al enviar.</p>}
         <label className="cb"><input type="checkbox" checked={recordar} onChange={ev => setRecordar(ev.target.checked)} />Recordarme en {pl.espera} días si no contestan</label>
         <div className="em-bor-acc">
-          <a className="i-btn" href={`mailto:?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`}><Icon n="send" s={18} />Abrir en mi correo</a>
+          <a className="i-btn" href={`mailto:${tab.datos.contactos[e.id]?.contacto?.email || ''}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`}><Icon n="send" s={18} />Abrir en mi correo</a>
           <button className="i-btn" onClick={copiar}><Icon n={copiado ? 'check' : 'doc'} s={18} w={copiado ? 3 : 2} />{copiado ? 'Copiado' : 'Copiar'}</button>
           <span style={{ flex: 1 }} />
           <button className="i-btn p" onClick={enviado}><Icon n="check" s={19} w={2.6} />Ya lo he enviado</button>
