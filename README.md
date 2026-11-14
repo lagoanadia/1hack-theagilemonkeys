@@ -3,7 +3,7 @@
 > **1hack A Coruña · Reto Reforesta**: *¿qué construirías para que Reforesta no pierda ninguna
 > convocatoria que merezca la pena y pueda restaurar más terreno?*
 
-🔗 **Web:** [1hack-theagilemonkeys.radar-reforesta.workers.dev](https://1hack-theagilemonkeys.radar-reforesta.workers.dev) · 🎬 **Vídeo:** _(enlace al vídeo)_
+🔗 **Web:** [1hack-theagilemonkeys.radar-reforesta.workers.dev](https://1hack-theagilemonkeys.radar-reforesta.workers.dev) 
 
 ## El problema
 
