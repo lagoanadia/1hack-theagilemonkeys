@@ -17,9 +17,8 @@
     "not_found_handling": "single-page-application",
     "run_worker_first": ["/api/*", "/data/*"]
   },
-  // Almacén de documentos (Cloudflare R2). Para activarlo: crear el bucket "radar-reforesta-docs"
-  // en Cloudflare → R2 y quitar las dos barras de la línea siguiente. Sin él, todo funciona salvo
-  // subir archivos (se pueden apuntar los documentos con su caducidad, sin archivo).
+  // Almacén de documentos. Sin R2, los archivos se guardan en la propia D1 (gratis, sin tarjeta).
+  // Opcional (R2 pide añadir método de pago): crear el bucket "radar-reforesta-docs" y quitar las barras.
   // "r2_buckets": [{ "binding": "ARCHIVOS", "bucket_name": "radar-reforesta-docs" }],
   // Correo de avisos cada mañana a las 07:23 UTC (después del radar de GitHub Actions, 05:17 UTC).
   "triggers": { "crons": ["23 7 * * *"] },

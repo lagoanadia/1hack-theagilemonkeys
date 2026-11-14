@@ -80,7 +80,10 @@ const ESQUEMA = [
   // Ajustes de la entidad (perfil): un valor JSON por clave.
   `CREATE TABLE IF NOT EXISTS ajustes (
      clave TEXT PRIMARY KEY, valor TEXT NOT NULL, actualizado TEXT NOT NULL, actualizado_por TEXT DEFAULT '')`,
-  // Biblioteca de documentos de la entidad (archivos en R2, binding ARCHIVOS).
+  // Archivos guardados en la propia D1 cuando no hay R2 (archivo_key "d1:..."), en trozos de 500 KB.
+  `CREATE TABLE IF NOT EXISTS archivo_trozos (
+     clave TEXT NOT NULL, n INTEGER NOT NULL, datos BLOB NOT NULL, PRIMARY KEY (clave, n))`,
+  // Biblioteca de documentos de la entidad (archivos en R2 si existe el binding ARCHIVOS; si no, en D1).
   `CREATE TABLE IF NOT EXISTS documentos (
      id INTEGER PRIMARY KEY AUTOINCREMENT, tipo TEXT NOT NULL DEFAULT 'otro', nombre TEXT NOT NULL,
      archivo_key TEXT, archivo_nombre TEXT, mime TEXT, tamano INTEGER, emitido TEXT, caduca TEXT,
@@ -329,6 +332,38 @@ function valorRegla(campo, descartadas, convocatorias) {
   }
   if (campo === "dias_minimos") return 15;
   return null;
+}
+
+// ---------- Almacén de archivos: R2 si está configurado; si no, la propia D1 (gratis, sin tarjeta) ----------
+const TROZO = 500 * 1024;
+async function guardarArchivo(env, db, archivo) {
+  if (env.ARCHIVOS) {
+    const key = `docs/${crypto.randomUUID()}`;
+    await env.ARCHIVOS.put(key, archivo.stream(), { httpMetadata: { contentType: archivo.type } });
+    return key;
+  }
+  const key = `d1:${crypto.randomUUID()}`;
+  const bytes = new Uint8Array(await archivo.arrayBuffer());
+  const trozos = [];
+  for (let i = 0, n = 0; i < bytes.length || n === 0; i += TROZO, n++) {
+    trozos.push(db.prepare("INSERT INTO archivo_trozos (clave, n, datos) VALUES (?, ?, ?)").bind(key, n, bytes.slice(i, i + TROZO)));
+  }
+  await db.batch(trozos);
+  return key;
+}
+async function leerArchivo(env, db, key) {
+  if (!key.startsWith("d1:")) return env.ARCHIVOS ? (await env.ARCHIVOS.get(key))?.body || null : null;
+  const { results } = await db.prepare("SELECT datos FROM archivo_trozos WHERE clave = ? ORDER BY n").bind(key).all();
+  if (!results.length) return null;
+  const partes = results.map((r) => new Uint8Array(r.datos));
+  const out = new Uint8Array(partes.reduce((s, p) => s + p.length, 0));
+  let o = 0;
+  for (const p of partes) { out.set(p, o); o += p.length; }
+  return out;
+}
+async function borrarArchivo(env, db, key) {
+  if (key.startsWith("d1:")) await db.prepare("DELETE FROM archivo_trozos WHERE clave = ?").bind(key).run();
+  else if (env.ARCHIVOS) await env.ARCHIVOS.delete(key);
 }
 
 // Siguiente paso que se propone al entrar en cada estado (si el equipo no escribe otro).
@@ -743,7 +778,7 @@ async function api(request, env, ruta) {
       const { results } = await db.prepare(
         "SELECT id, tipo, nombre, archivo_nombre, mime, tamano, emitido, caduca, subido_por, creado, archivo_key IS NOT NULL AS tiene_archivo FROM documentos ORDER BY tipo, id DESC",
       ).all();
-      return json({ almacen: Boolean(env.ARCHIVOS), documentos: results.map((d) => ({ ...d, tiene_archivo: Boolean(d.tiene_archivo) })) });
+      return json({ almacen: env.ARCHIVOS ? "r2" : "d1", documentos: results.map((d) => ({ ...d, tiene_archivo: Boolean(d.tiene_archivo) })) });
     }
     if (metodo === "POST") {
       const esArchivo = (request.headers.get("content-type") || "").includes("multipart/form-data");
@@ -753,7 +788,6 @@ async function api(request, env, ruta) {
         campos = Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === "string"));
         archivo = form.get("archivo");
         if (!archivo || typeof archivo === "string") return error("Falta el archivo");
-        if (!env.ARCHIVOS) return error("Aún no hay almacén de archivos (bucket R2 ARCHIVOS). Podéis guardarlo sin archivo.", 503);
         if (archivo.size > MAX_ARCHIVO) return error("El archivo pesa más de 10 MB");
         if (!MIME_PERMITIDOS.includes(archivo.type)) return error("Tipo de archivo no permitido (PDF, imagen, Word, Excel u ODF)");
       } else {
@@ -764,8 +798,7 @@ async function api(request, env, ruta) {
       const tipo = TIPOS_DOCUMENTO.includes(campos.tipo) ? campos.tipo : "otro";
       let key = null;
       if (archivo) {
-        key = `docs/${crypto.randomUUID()}`;
-        await env.ARCHIVOS.put(key, archivo.stream(), { httpMetadata: { contentType: archivo.type } });
+        key = await guardarArchivo(env, db, archivo);
       }
       const r = await db.prepare(
         `INSERT INTO documentos (tipo, nombre, archivo_key, archivo_nombre, mime, tamano, emitido, caduca, subido_por, creado)
@@ -793,7 +826,7 @@ async function api(request, env, ruta) {
     if (metodo === "DELETE") {
       const d = await db.prepare("SELECT archivo_key FROM documentos WHERE id = ?").bind(id).first();
       if (!d) return error("Ese documento no existe", 404);
-      if (d.archivo_key && env.ARCHIVOS) await env.ARCHIVOS.delete(d.archivo_key);
+      if (d.archivo_key) await borrarArchivo(env, db, d.archivo_key);
       await db.batch([
         db.prepare("DELETE FROM documentos WHERE id = ?").bind(id),
         db.prepare("UPDATE solicitud_documentos SET documento_id = NULL, estado = 'falta' WHERE documento_id = ?").bind(id),
@@ -805,10 +838,10 @@ async function api(request, env, ruta) {
   if (ms && metodo === "GET") {
     if (!equipo) return soloEquipo();
     const d = await db.prepare("SELECT archivo_key, archivo_nombre, mime FROM documentos WHERE id = ?").bind(Number(ms[1])).first();
-    if (!d?.archivo_key || !env.ARCHIVOS) return error("Ese documento no tiene archivo", 404);
-    const obj = await env.ARCHIVOS.get(d.archivo_key);
-    if (!obj) return error("Archivo no encontrado", 404);
-    return new Response(obj.body, { headers: {
+    if (!d?.archivo_key) return error("Ese documento no tiene archivo", 404);
+    const cuerpo = await leerArchivo(env, db, d.archivo_key);
+    if (!cuerpo) return error("Archivo no encontrado", 404);
+    return new Response(cuerpo, { headers: {
       "content-type": d.mime || "application/octet-stream", "cache-control": "private, no-store",
       "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(d.archivo_nombre || "documento")}`,
     } });

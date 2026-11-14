@@ -140,7 +140,7 @@ radar basta con ponerla en `por_revisar`.
   `caduca`, o JSON sin archivo), `PUT/DELETE /api/documentos/:id`, `GET /api/archivos/:id`.
 - Huecos de cada solicitud: `GET /api/solicitudes/convocatoria/:codigo/documentos` y
   `PUT .../documentos/:requisito` con `{documento_id, estado, responsable}` (el arrastrar y soltar).
-- Archivos en Cloudflare R2 (privados, solo equipo): ver `wrangler.jsonc` para activarlo.
+- Archivos privados (solo equipo), hasta 10 MB: se guardan en D1 (gratis); si se configura R2, en R2.
 
 ### Avisos por correo
 
