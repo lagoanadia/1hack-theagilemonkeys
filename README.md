@@ -120,6 +120,17 @@ Estados de convocatoria: `por_revisar`, `mas_tarde`, `preparando`, `presentada`,
 convocatoria está "por revisar" con el veredicto del radar; para recuperar una descartada por el
 radar basta con ponerla en `por_revisar`.
 
+### Propuestas y reservas
+
+| Ruta | Qué hace |
+|---|---|
+| `GET /api/proyectos` | Público: propuestas publicadas con `plazas_libres` (null = sin límite) y `completa` |
+| `GET /api/proyectos?todas=1` | Equipo: también borradores y ocultas, con nº de reservas |
+| `POST /api/proyectos` | `{titulo, lugar, tipo, incluye, descripcion, hectareas, presupuesto, plazas, estado}` |
+| `PUT /api/proyectos/:id` | Editar o cambiar `estado`: `borrador`, `publicada`, `oculta` |
+| `POST /api/proyectos/:id/interes` | Público: reservar (rechaza si no quedan plazas) |
+| `PUT /api/interesados/:id` | `{estado}`: `nueva`, `contestada`, `confirmada`, `descartada` (descartada libera la plaza) |
+
 ### Perfil editable
 
 `GET/PUT /api/perfil` guarda lo que el radar sabe de Reforesta: nombre, equipo, zonas,

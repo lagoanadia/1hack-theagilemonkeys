@@ -7,8 +7,8 @@ import { euros, hectareas } from '../datos.js'
 // Página pública para empresas: lista de GET /api/proyectos y reserva con POST /api/proyectos/:id/interes.
 // No pide contraseña. Anti-spam: campo trampa «web» (invisible) y límite de envíos en el servidor.
 const VACIO = { empresa: '', persona: '', email: '', mensaje: '', web: '', ok: false }
-// TODO backend: plazas libres por proyecto, estado borrador/publicada y «avisadme si hay plazas».
-// Hoy un proyecto está publicado hasta que el equipo lo retira (DELETE /api/proyectos/:id).
+// Solo llegan las propuestas publicadas; cada una trae plazas_libres (null = sin límite) y completa.
+// TODO backend: «avisadme si quedan plazas».
 
 export default function Publica({ equipo, onEntrar }) {
   const [lista, setLista] = useState(null)
@@ -73,10 +73,11 @@ export default function Publica({ equipo, onEntrar }) {
                 <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '10px 0 0' }}>
                   {p.hectareas > 0 && <span className="i-tag">{hectareas(p.hectareas)}</span>}
                   {p.presupuesto > 0 && <span className="i-tag">{euros(p.presupuesto)}</span>}
+                  {p.plazas_libres != null && <span className="i-tag" style={p.completa ? { background: '#F7E3D4', color: '#9A5B2E' } : undefined}>{p.completa ? 'Completa' : `${p.plazas_libres} ${p.plazas_libres === 1 ? 'plaza libre' : 'plazas libres'}`}</span>}
                 </span>
                 <b style={{ fontSize: 20, margin: '8px 0 2px' }}>{p.titulo}</b>
-                <div style={{ color: 'var(--mut)', fontSize: 14.5, minHeight: 40 }}>{[p.lugar, p.descripcion].filter(Boolean).join(' · ')}</div>
-                <button className="i-btn p sm" style={{ marginTop: 12 }} onClick={() => setSel(p)}>Reservar sin compromiso</button>
+                <div style={{ color: 'var(--mut)', fontSize: 14.5, minHeight: 40 }}>{[p.lugar, p.incluye || p.descripcion].filter(Boolean).join(' · ')}</div>
+                <button className="i-btn p sm" style={{ marginTop: 12 }} disabled={p.completa} onClick={() => setSel(p)}>{p.completa ? 'Sin plazas por ahora' : 'Reservar sin compromiso'}</button>
               </div>
             )
           })}

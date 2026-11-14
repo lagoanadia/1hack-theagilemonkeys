@@ -16,11 +16,15 @@
 //   DELETE /api/motivos/:id                 quitar un motivo propio                  (equipo)
 //   GET    /api/perfil                      lo que el radar sabe de Reforesta        (equipo)
 //   PUT    /api/perfil                      {nombre, zonas, ampliar_espana, ...}     (equipo)
-//   GET    /api/proyectos                   proyectos publicados por Reforesta       (público)
-//   POST   /api/proyectos                   {titulo, lugar, hectareas, ...}          (equipo)
-//   DELETE /api/proyectos/:id               retirar un proyecto                      (equipo)
+//   GET    /api/proyectos                   propuestas publicadas, con plazas libres  (público)
+//   GET    /api/proyectos?todas=1           también borradores y ocultas              (equipo)
+//   POST   /api/proyectos                   {titulo, lugar, tipo, incluye, plazas,
+//                                            hectareas, presupuesto, estado}         (equipo)
+//   PUT    /api/proyectos/:id               editar, publicar u ocultar                (equipo)
+//   DELETE /api/proyectos/:id               retirar (archivar) una propuesta          (equipo)
 //   POST   /api/proyectos/:id/interes       {empresa, contacto, mensaje}             (público)
 //   GET    /api/interesados                 empresas que quieren ayudar              (equipo)
+//   PUT    /api/interesados/:id             {estado: nueva|contestada|confirmada|descartada} (equipo)
 //   DELETE /api/interesados/:id             borrar una reserva (pruebas, spam)       (equipo)
 //
 // Quién hace cada cambio: cabecera X-Autor (nombre que se escribe al entrar), opcional.
@@ -123,6 +127,32 @@ const COMUNIDADES = [
   ["ES62", "Región de Murcia"], ["ES70", "Canarias"],
 ].map(([codigo, nombre]) => ({ codigo, nombre }));
 const AVISOS = ["nunca", "cada_manana", "semanal"];
+const TIPOS_PROPUESTA = ["plantacion", "restauracion", "voluntariado", "otro"];
+const ESTADOS_PROPUESTA = ["borrador", "publicada", "oculta"];
+const ESTADOS_RESERVA = ["nueva", "contestada", "confirmada", "descartada"];
+
+// Propuesta con sus plazas: una reserva ocupa plaza salvo que esté descartada.
+const SQL_PROPUESTAS = `SELECT p.id, p.titulo, p.lugar, p.tipo, p.incluye, p.descripcion, p.hectareas,
+    p.presupuesto, p.plazas, p.estado, p.creado, p.actualizado,
+    (SELECT COUNT(*) FROM interesados i WHERE i.proyecto_id = p.id AND i.estado != 'descartada') AS reservas
+  FROM proyectos p WHERE p.activo = 1`;
+function conPlazas(p) {
+  const libres = p.plazas == null ? null : Math.max(0, p.plazas - p.reservas);
+  return { ...p, plazas_libres: libres, completa: libres === 0 };
+}
+function camposPropuesta(b) {
+  const c = {};
+  if (b.titulo !== undefined) c.titulo = texto(b.titulo, 150);
+  if (b.lugar !== undefined) c.lugar = texto(b.lugar, 150);
+  if (b.incluye !== undefined) c.incluye = texto(b.incluye, 300);
+  if (b.descripcion !== undefined) c.descripcion = texto(b.descripcion, 2000);
+  if (b.hectareas !== undefined) c.hectareas = numero(b.hectareas);
+  if (b.presupuesto !== undefined) c.presupuesto = numero(b.presupuesto);
+  if (b.plazas !== undefined) c.plazas = b.plazas === null || b.plazas === "" ? null : entero(b.plazas, 1, 1000) ?? null;
+  if (b.tipo !== undefined && TIPOS_PROPUESTA.includes(b.tipo)) c.tipo = b.tipo;
+  if (b.estado !== undefined && ESTADOS_PROPUESTA.includes(b.estado)) c.estado = b.estado;
+  return c;
+}
 
 function lista(valor, maxElems, maxLargo) {
   return Array.isArray(valor) ? valor.map((v) => texto(v, maxLargo)).filter(Boolean).slice(0, maxElems) : undefined;
@@ -199,10 +229,24 @@ async function cambiarSolicitud(db, tipo, id, cambios, autor) {
   return nueva;
 }
 
+// Columnas añadidas después de crear las tablas: se intentan una a una (si ya existen, falla y se ignora).
+const COLUMNAS_NUEVAS = [
+  "ALTER TABLE proyectos ADD COLUMN tipo TEXT DEFAULT 'plantacion'",
+  "ALTER TABLE proyectos ADD COLUMN incluye TEXT DEFAULT ''",
+  "ALTER TABLE proyectos ADD COLUMN plazas INTEGER",
+  "ALTER TABLE proyectos ADD COLUMN estado TEXT DEFAULT 'publicada'",
+  "ALTER TABLE proyectos ADD COLUMN actualizado TEXT",
+  "ALTER TABLE interesados ADD COLUMN estado TEXT DEFAULT 'nueva'",
+  "ALTER TABLE interesados ADD COLUMN actualizado_por TEXT DEFAULT ''",
+];
+
 let esquemaListo = false;
 async function prepararEsquema(db) {
   if (esquemaListo) return;
   await db.batch(ESQUEMA.map((sql) => db.prepare(sql)));
+  for (const sql of COLUMNAS_NUEVAS) {
+    try { await db.prepare(sql).run(); } catch { /* ya existe */ }
+  }
   esquemaListo = true;
 }
 
@@ -427,28 +471,43 @@ async function api(request, env, ruta) {
     return json({ ok: true });
   }
 
-  // --- proyectos de Reforesta
+  // --- propuestas de Reforesta (lo que ofrecen a las empresas)
   if (ruta === "/api/proyectos") {
     if (metodo === "GET") {
+      const todas = new URL(request.url).searchParams.get("todas") === "1";
+      if (todas && !equipo) return soloEquipo();
       const { results } = await db.prepare(
-        "SELECT id, titulo, lugar, hectareas, presupuesto, descripcion, creado FROM proyectos WHERE activo = 1 ORDER BY id DESC",
+        `${SQL_PROPUESTAS}${todas ? "" : " AND p.estado = 'publicada'"} ORDER BY p.id DESC`,
       ).all();
-      return json(results);
+      return json(results.map(conPlazas).map((p) => (todas ? p : { ...p, reservas: undefined })));
     }
     if (metodo === "POST") {
       if (!equipo) return soloEquipo();
-      const b = await leerJSON(request);
-      const titulo = texto(b.titulo, 150);
-      if (!titulo) return error("El proyecto necesita un título");
+      const c = { tipo: "plantacion", estado: "publicada", ...camposPropuesta(await leerJSON(request)) };
+      if (!c.titulo) return error("La propuesta necesita un título");
       const r = await db.prepare(
-        "INSERT INTO proyectos (titulo, lugar, hectareas, presupuesto, descripcion, creado) VALUES (?, ?, ?, ?, ?, ?)",
-      ).bind(titulo, texto(b.lugar, 150), numero(b.hectareas), numero(b.presupuesto),
-        texto(b.descripcion, 2000), ahora()).run();
+        `INSERT INTO proyectos (titulo, lugar, tipo, incluye, descripcion, hectareas, presupuesto, plazas, estado,
+           creado, actualizado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(c.titulo, c.lugar || "", c.tipo, c.incluye || "", c.descripcion || "", c.hectareas ?? null,
+        c.presupuesto ?? null, c.plazas ?? null, c.estado, ahora(), ahora()).run();
       return json({ ok: true, id: r.meta.last_row_id }, 201);
     }
   }
 
   let m = ruta.match(/^\/api\/proyectos\/(\d+)$/);
+  if (m && metodo === "PUT") {
+    if (!equipo) return soloEquipo();
+    const c = camposPropuesta(await leerJSON(request));
+    if (c.titulo === "") return error("La propuesta necesita un título");
+    const claves = Object.keys(c);
+    if (!claves.length) return error("Nada que cambiar");
+    const r = await db.prepare(
+      `UPDATE proyectos SET ${claves.map((k) => `${k} = ?`).join(", ")}, actualizado = ? WHERE id = ? AND activo = 1`,
+    ).bind(...claves.map((k) => c[k] ?? null), ahora(), Number(m[1])).run();
+    if (!r.meta.changes) return error("Esa propuesta no existe", 404);
+    const p = await db.prepare(`${SQL_PROPUESTAS} AND p.id = ?`).bind(Number(m[1])).first();
+    return json({ ok: true, propuesta: conPlazas(p) });
+  }
   if (m && metodo === "DELETE") {
     if (!equipo) return soloEquipo();
     await db.prepare("UPDATE proyectos SET activo = 0 WHERE id = ?").bind(Number(m[1])).run();
@@ -467,9 +526,10 @@ async function api(request, env, ruta) {
     if (n >= MAX_ENVIOS_POR_HORA) return error("Demasiados envíos seguidos. Prueba dentro de un rato.", 429);
     const empresa = texto(b.empresa, 150), contacto = texto(b.contacto, 150);
     if (!empresa || !contacto) return error("Indica el nombre de la empresa y un contacto");
-    const proyecto = await db.prepare("SELECT id FROM proyectos WHERE id = ? AND activo = 1")
+    const proyecto = await db.prepare(`${SQL_PROPUESTAS} AND p.estado = 'publicada' AND p.id = ?`)
       .bind(Number(m[1])).first();
     if (!proyecto) return error("Ese proyecto ya no está disponible", 404);
+    if (conPlazas(proyecto).completa) return error("Ya no quedan plazas en este proyecto", 409);
     await db.prepare(
       "INSERT INTO interesados (proyecto_id, empresa, contacto, mensaje, creado) VALUES (?, ?, ?, ?, ?)",
     ).bind(proyecto.id, empresa, contacto, texto(b.mensaje, 1000), ahora()).run();
@@ -478,6 +538,14 @@ async function api(request, env, ruta) {
   }
 
   ms = ruta.match(/^\/api\/interesados\/(\d+)$/);
+  if (ms && metodo === "PUT") {
+    if (!equipo) return soloEquipo();
+    const { estado } = await leerJSON(request);
+    if (!ESTADOS_RESERVA.includes(estado)) return error(`Estado no válido. Posibles: ${ESTADOS_RESERVA.join(", ")}`);
+    const r = await db.prepare("UPDATE interesados SET estado = ?, actualizado_por = ? WHERE id = ?")
+      .bind(estado, autor, Number(ms[1])).run();
+    return r.meta.changes ? json({ ok: true }) : error("Esa reserva no existe", 404);
+  }
   if (ms && metodo === "DELETE") {
     if (!equipo) return soloEquipo();
     await db.prepare("DELETE FROM interesados WHERE id = ?").bind(Number(ms[1])).run();
@@ -487,7 +555,8 @@ async function api(request, env, ruta) {
   if (ruta === "/api/interesados" && metodo === "GET") {
     if (!equipo) return soloEquipo();
     const { results } = await db.prepare(
-      `SELECT i.id, i.proyecto_id, p.titulo AS proyecto, i.empresa, i.contacto, i.mensaje, i.creado
+      `SELECT i.id, i.proyecto_id, p.titulo AS proyecto, i.empresa, i.contacto, i.mensaje, i.creado,
+         i.estado, i.actualizado_por
        FROM interesados i JOIN proyectos p ON p.id = i.proyecto_id ORDER BY i.id DESC`,
     ).all();
     return json(results);
