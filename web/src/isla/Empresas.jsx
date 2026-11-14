@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Icon from './Icon.jsx'
+import Menu from './Menu.jsx'
 import { nombreGuardado } from '../api.js'
 import { diasHasta, etapaEmpresa, hectareas } from '../datos.js'
 
@@ -7,6 +8,7 @@ import { diasHasta, etapaEmpresa, hectareas } from '../datos.js'
 // de contacto con PUT /api/solicitudes/empresa/:id (nueva, contactada, reunion, acuerdo, cerrada, descartada).
 //  · Nuevas: rejilla de fichas; cada una se añade a «En contacto» o se descarta.
 //  · En contacto (segunda fase): tabla con una fila por empresa y sus fases, con fechas y plantillas de mensaje.
+const ICONOS = { nueva: 'inbox', contactada: 'chat', cerrada: 'check', descartada: 'archive' }
 const SEGS = [['nueva', 'Nuevas'], ['contactada', 'En contacto'], ['cerrada', 'Cerradas'], ['descartada', 'Descartadas']]
 const ACCION = { contactar: 'Contactar', mira: 'Valorar', descarta: 'Descartar' }
 const SECTOR = { hibrido: 'Eólico + solar', infraestructura: 'Infraestructura', eolico: 'Eólico', solar: 'Solar', linea_electrica: 'Línea eléctrica', otro: 'Otro sector' }
@@ -94,11 +96,8 @@ export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
 
   return (
     <>
-      {top('Empresas · BOE')}
+      {top(null, false, <Menu etiqueta="Fase de las empresas" valor={seg} onChange={setSeg} items={SEGS.map(([id, texto]) => ({ id, texto, icono: ICONOS[id] }))} />)}
       <div className="em">
-        <div className="i-head" style={{ alignItems: 'center', marginBottom: 6 }}>
-          <div className="i-seg" role="group" aria-label="Fase">{SEGS.map(([k, l]) => <button key={k} aria-pressed={seg === k} className={seg === k ? 'on' : ''} onClick={() => setSeg(k)}>{l}</button>)}</div>
-        </div>
         {radar.emp == null && <div className="i-card i-empty">Todavía no hay datos de empresas. El radar los genera cada mañana.</div>}
 
         {radar.emp != null && seg === 'nueva' && (

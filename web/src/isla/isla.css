@@ -842,3 +842,14 @@ html,body{margin:0}
 @media (max-width:900px){.ag-fila{grid-template-columns:40px 1fr auto}.ag-que,.ag-acc{display:none}}
 .i-art.i-art-mapa{height:190px;display:flex;align-items:center;justify-content:center;padding:8px 0;background:linear-gradient(#F4F7F1,#E8EFE4)}.i-art.i-art-mapa span{height:100%;display:flex;justify-content:center}.i-art.i-art-mapa svg{height:100%!important;width:auto!important;max-height:none!important}
 .i-art.i-art-mapa{position:relative}.i-art-lugar{position:absolute;left:12px;bottom:10px;background:rgba(255,255,255,.92);border-radius:999px;padding:4px 11px;font-size:13px;font-weight:700;color:var(--nv);height:auto!important}
+
+/* ---- Menú de apartados único (Menu.jsx): Convocatorias, Empresas y Perfil ---- */
+.i-menu{display:inline-flex;align-items:center;gap:4px;background:#fff;border-radius:999px;padding:5px;box-shadow:0 1px 0 var(--ln),0 10px 24px -20px rgba(27,39,66,.4);min-width:0}
+.i-menu button{position:relative;display:flex!important;align-items:center;gap:9px;height:48px;padding:0 20px!important;border-radius:999px!important;font-weight:600;font-size:16.5px;color:var(--mut);white-space:nowrap;transition:background .12s,color .12s}
+.i-menu button:hover{background:#F1F4F0!important;color:var(--nv)}
+.i-menu button.on{background:var(--nvs)!important;color:#fff}
+.i-menu button svg{flex:none}
+.i-menu .sep{width:2px;height:26px;background:var(--ln);border-radius:2px;margin:0 4px}
+.i-menu .pt{position:absolute;top:8px;right:10px;width:10px;height:10px;border-radius:50%;background:var(--co);box-shadow:0 0 0 2.5px #fff}
+.i-menu button.on .pt{box-shadow:0 0 0 2.5px var(--nvs)}
+@media (max-width:1250px){.i-menu button{padding:0 14px!important;font-size:15.5px}.i-menu button:not(.on) .t{display:none}}

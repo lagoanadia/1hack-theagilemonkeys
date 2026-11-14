@@ -5,6 +5,7 @@ import { api } from '../api.js'
 import { LINEAS, descartadaPor, etapaDe, fechaCorta } from '../datos.js'
 import { useSecciones } from '../tablero.js'
 import Tablero from './Tablero.jsx'
+import Menu from './Menu.jsx'
 import { useProgresoDocs } from './papeles.js'
 
 // Pantalla «Convocatorias»: Radar → En proceso → Presentado, y Descartadas (icono aparte).
@@ -36,31 +37,14 @@ const enlaceFrase = a => {
 
 export default function Convocatorias(props) {
   const { radar, visibles, etapa, ir, top, seg, perfil } = props
-  const n = { revisar: 0, preparando: 0, presentadas: 0, descartadas: 0 }
-  visibles.forEach(a => { n[etapaDe(a)]++ })
-  const etapas = [['revisar', 'Radar', 'radar', 'Por revisar'], ['preparando', 'En proceso', 'doc', 'Preparando papeles'], ['presentadas', 'Presentado', 'send', 'Enviadas']]
-  // El ciclo de vida ocupa el sitio del título: Radar → En proceso → Presentado, y aparte Descartadas.
-  const ciclo = (
-    <nav className="i-ciclo" aria-label="Fase de las convocatorias">
-      <ol>
-        {etapas.map(([k, t, ic, sub], i) => (
-          <Fragment key={k}>
-            <li><button className={`e ${etapa === k ? 'on' : ''} ${k === 'revisar' && n.revisar ? 'hot' : ''}`} aria-current={etapa === k ? 'page' : undefined} aria-label={`${t}: ${n[k]}`} onClick={() => ir(k)}>
-              <span className="ic"><Icon n={ic} s={25} /></span><span className="tx"><b>{t}</b><small>{sub}</small></span><span className="ct">{n[k]}</span>
-            </button></li>
-            {i < 2 && <li className="arr" aria-hidden="true"><Icon n="keyR" s={18} w={2.6} /></li>}
-          </Fragment>
-        ))}
-      </ol>
-      <span className="sep" aria-hidden="true" />
-      <button className={`e ap ${etapa === 'descartadas' ? 'on' : ''}`} aria-current={etapa === 'descartadas' ? 'page' : undefined} aria-label={`Descartadas: ${n.descartadas}`} onClick={() => ir('descartadas')}>
-        <span className="ic"><Icon n="archive" s={22} /></span><span className="tx"><b>Descartadas</b></span><span className="ct">{n.descartadas}</span>
-      </button>
-    </nav>
+  const menu = (
+    <Menu etiqueta="Fase de las convocatorias" valor={etapa} onChange={ir} items={[
+      { id: 'revisar', icono: 'radar', texto: 'Radar' }, { id: 'preparando', icono: 'doc', texto: 'En proceso' },
+      { id: 'presentadas', icono: 'send', texto: 'Presentado' }, { id: 'descartadas', icono: 'archive', texto: 'Descartadas', separador: true }]} />
   )
   return (
     <>
-      {top(null, false, ciclo)}
+      {top(null, false, menu)}
       {etapa === 'revisar' && <Revisar {...props} generado={radar.conv?.generado} />}
       {etapa === 'preparando' && <Preparando {...props} lista={visibles.filter(a => etapaDe(a) === 'preparando')} />}
       {etapa === 'presentadas' && <Presentado {...props} seg={seg} perfil={perfil} lista={visibles.filter(a => etapaDe(a) === 'presentadas')} />}

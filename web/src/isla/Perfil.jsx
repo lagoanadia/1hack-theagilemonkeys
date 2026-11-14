@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
+import Menu from './Menu.jsx'
 import { island } from './lp.js'
 import { validarCif } from './cif.js'
 import { api, apiTexto } from '../api.js'
@@ -237,18 +238,8 @@ export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, pre
   const sucia = ([k, , , , campos]) => campos.some(c => cambios.includes(c)) || (k === 'elegibilidad' && cambiosFicha.length > 0)
   return (
     <>
-      {top('Perfil')}
+      {top(null, false, <Menu tabs etiqueta="Apartados del perfil" valor={tab} onChange={setTab} items={PESTANAS.map(x => ({ id: x[0], icono: x[1], texto: x[2], punto: sucia(x) }))} />)}
       {!perfil.guardado && <p className="i-sub" style={{ margin: '0 0 12px' }}>Todavía es el perfil de partida: guardadlo para que quede como vuestro.</p>}
-      <div className="pf-tabs" role="tablist" aria-label="Apartados del perfil">
-        {PESTANAS.map(x => (
-          <button key={x[0]} role="tab" aria-selected={tab === x[0]} className={`pf-tab ${tab === x[0] ? 'on' : ''}`} onClick={() => setTab(x[0])}>
-            <span className="ic"><Icon n={x[1]} s={24} /></span>
-            <span className="tx"><b>{x[2]}</b><small>{x[3]}</small></span>
-            {sucia(x) && <i className="pt" title="Cambios sin guardar" aria-label="Cambios sin guardar" />}
-          </button>
-        ))}
-      </div>
-
       {tab === 'entidad' && (
         <div className="pf-dos">
           <div className="pf-col">
