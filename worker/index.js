@@ -21,6 +21,10 @@
 //   GET    /api/archivos/:id                descargar el archivo                      (equipo)
 //   GET    /api/solicitudes/convocatoria/:codigo/documentos        qué documento va en cada hueco (equipo)
 //   PUT    /api/solicitudes/convocatoria/:codigo/documentos/:req   {documento_id, estado, responsable} (equipo)
+//   GET    /api/reglas                      reglas del equipo + sugerencias detectadas (equipo)
+//   POST   /api/reglas                      {motivo, accion: aceptar|ignorar} o {texto} (equipo)
+//   PUT    /api/reglas/:id                  {texto}                                   (equipo)
+//   DELETE /api/reglas/:id                  quitar (y deshacer su criterio)           (equipo)
 //   GET    /api/perfil                      lo que el radar sabe de Reforesta        (equipo)
 //   PUT    /api/perfil                      {nombre, zonas, ampliar_espana, ...}     (equipo)
 //   GET    /api/proyectos                   propuestas publicadas, con plazas libres  (público)
@@ -80,6 +84,10 @@ const ESQUEMA = [
      codigo TEXT NOT NULL, requisito TEXT NOT NULL, documento_id INTEGER, estado TEXT NOT NULL DEFAULT 'falta',
      responsable TEXT DEFAULT '', actualizado TEXT NOT NULL, actualizado_por TEXT DEFAULT '',
      PRIMARY KEY (codigo, requisito))`,
+  // Reglas aprendidas: las del equipo, las aceptadas de una sugerencia y las sugerencias ignoradas.
+  `CREATE TABLE IF NOT EXISTS reglas (
+     id INTEGER PRIMARY KEY AUTOINCREMENT, texto TEXT NOT NULL, origen TEXT NOT NULL, motivo TEXT DEFAULT '',
+     criterio TEXT, autor TEXT DEFAULT '', creado TEXT NOT NULL)`,
   // Anti-spam del formulario público: huella (hash) de la IP, nunca la IP en claro.
   `CREATE TABLE IF NOT EXISTS envios (huella TEXT NOT NULL, creado TEXT NOT NULL)`,
 ];
@@ -167,6 +175,21 @@ const MIME_PERMITIDOS = ["application/pdf", "image/jpeg", "image/png",
 const MAX_ARCHIVO = 10 * 1024 * 1024;
 const fecha = (v) => (/^\d{4}-\d{2}-\d{2}$/.test(v || "") ? v : null);
 
+// Cómo se convierte un motivo de descarte repetido en una regla. Si tiene "campo", la regla es un
+// criterio con número del perfil (lo aplica el radar sin IA); si no, es texto para la IA.
+const MIN_VECES_REGLA = 3;
+const MOTIVO_REGLA = {
+  "Piden poner mucho dinero": { campo: "cofinanciacion_maxima", accion: "Marcarlas «Mirad antes»",
+    texto: (v) => `Descartáis las que piden poner más del ${v} %` },
+  "Importe pequeño": { campo: "importe_minimo", accion: "Ocultarlas",
+    texto: (v) => `Las de menos de ${v.toLocaleString("es-ES")} € no os compensan` },
+  "Plazo muy corto": { campo: "dias_minimos", accion: "Avisadme antes",
+    texto: (v) => `Con menos de ${v} días para prepararlas soléis dejarlas` },
+  "No es reforestación": { accion: "Ocultarlas", texto: () => "Las que no son de plantar o restaurar no os interesan" },
+  "Fuera de nuestra zona": { accion: "Ocultarlas", texto: () => "Las de fuera de vuestras zonas no os interesan" },
+  "Exigen aval bancario": { accion: "Ocultarlas", texto: () => "No os interesan las que exigen aval bancario" },
+};
+
 const TIPOS_PROPUESTA = ["plantacion", "restauracion", "voluntariado", "otro"];
 const ESTADOS_PROPUESTA = ["borrador", "publicada", "oculta"];
 const ESTADOS_RESERVA = ["nueva", "contestada", "confirmada", "descartada"];
@@ -231,8 +254,9 @@ function limpiarPerfil(b) {
       ambito_actuacion: (v) => (ambitos.includes(v) ? v : null),
       registros: (v) => lista(v, 10, 150) || [],
       al_corriente_pagos: si,
-      presupuesto_anual: (v) => (v ? numero(v) : null),
-      voluntarios: (v) => (v ? entero(v, 0, 100000) ?? null : null),
+      // 0 es un valor válido (p. ej. 0 voluntarios); solo null o "" significan «no consta».
+      presupuesto_anual: (v) => (v === null || v === "" ? null : numero(v) ?? null),
+      voluntarios: (v) => (v === null || v === "" ? null : entero(v, 0, 100000) ?? null),
       aval_bancario: si,
       ongd: si,
       certificaciones: (v) => lista(v, 10, 120) || [],
@@ -255,6 +279,43 @@ function limpiarPerfil(b) {
     })).filter((d) => d.nombre);
   }
   return Object.fromEntries(Object.entries(p).filter(([, v]) => v !== undefined));
+}
+
+async function leerPerfil(db) {
+  const fila = await db.prepare("SELECT valor, actualizado, actualizado_por FROM ajustes WHERE clave = 'perfil'").first();
+  return { fila, guardado: fila ? JSON.parse(fila.valor) : {} };
+}
+async function guardarPerfil(db, cambios, autor) {
+  const { guardado } = await leerPerfil(db);
+  const nuevo = { ...guardado, ...cambios };
+  // Ficha y criterios se mezclan campo a campo: enviar uno no borra los demás.
+  for (const k of ["ficha", "criterios"]) {
+    if (cambios[k]) nuevo[k] = { ...PERFIL_BASE[k], ...(guardado[k] || {}), ...cambios[k] };
+  }
+  await db.prepare(
+    `INSERT INTO ajustes (clave, valor, actualizado, actualizado_por) VALUES ('perfil', ?, ?, ?)
+     ON CONFLICT (clave) DO UPDATE SET valor = excluded.valor, actualizado = excluded.actualizado,
+     actualizado_por = excluded.actualizado_por`,
+  ).bind(JSON.stringify(nuevo), ahora(), autor).run();
+  return nuevo;
+}
+
+// Valor propuesto para una regla con número, a partir de lo que el equipo ha descartado.
+function valorRegla(campo, descartadas, convocatorias) {
+  if (campo === "cofinanciacion_maxima") {
+    // El modal de descarte guarda "Pueden poner como máximo el X %" en la nota: el valor más repetido.
+    const pcts = descartadas.map((d) => Number((d.nota || "").match(/máximo el (\d+) %/)?.[1])).filter((n) => n > 0);
+    if (!pcts.length) return 20;
+    const veces = {};
+    for (const n of pcts) veces[n] = (veces[n] || 0) + 1;
+    return Number(Object.entries(veces).sort((a, b) => b[1] - a[1])[0][0]);
+  }
+  if (campo === "importe_minimo") {
+    const importes = descartadas.map((d) => convocatorias[d.id]?.importe_max).filter((n) => n > 0);
+    return importes.length ? Math.ceil((Math.max(...importes) + 1) / 5000) * 5000 : 10000;
+  }
+  if (campo === "dias_minimos") return 15;
+  return null;
 }
 
 // Compatibilidad con la web actual (Me interesa / No interesa).
@@ -597,28 +658,91 @@ async function api(request, env, ruta) {
     }
   }
 
+  // --- reglas aprendidas
+  if (ruta === "/api/reglas") {
+    if (!equipo) return soloEquipo();
+    const sugerencias = async () => {
+      const { results: desc } = await db.prepare(
+        "SELECT id, motivos, nota FROM solicitudes WHERE tipo = 'convocatoria' AND estado = 'descartada'").all();
+      const { results: hechas } = await db.prepare("SELECT motivo FROM reglas WHERE motivo != ''").all();
+      const yaTratados = new Set(hechas.map((r) => r.motivo));
+      let convocatorias = {};
+      try {
+        const r = await env.ASSETS.fetch(new Request(new URL("/data/convocatorias.json", request.url)));
+        convocatorias = Object.fromEntries((await r.json()).convocatorias.map((c) => [c.codigo, c]));
+      } catch { /* sin datos del radar: valores por defecto */ }
+      const porMotivo = {};
+      for (const d of desc) for (const m of JSON.parse(d.motivos || "[]")) (porMotivo[m] ||= []).push(d);
+      return Object.entries(porMotivo)
+        .filter(([m, l]) => l.length >= MIN_VECES_REGLA && !yaTratados.has(m))
+        .map(([m, l]) => {
+          const def = MOTIVO_REGLA[m] || { accion: "Tenerlo en cuenta", texto: () => `No os interesan las que: ${m.toLowerCase()}` };
+          const valor = def.campo ? valorRegla(def.campo, l, convocatorias) : null;
+          return { motivo: m, veces: l.length, texto: def.texto(valor), accion: def.accion,
+            criterio: def.campo ? { campo: def.campo, valor } : null };
+        })
+        .sort((a, b) => b.veces - a.veces);
+    };
+    if (metodo === "GET") {
+      const { results } = await db.prepare(
+        "SELECT id, texto, origen, motivo, criterio, autor, creado FROM reglas WHERE origen != 'ignorada' ORDER BY id DESC").all();
+      return json({ sugerencias: await sugerencias(),
+        reglas: results.map((r) => ({ ...r, criterio: r.criterio ? JSON.parse(r.criterio) : null })) });
+    }
+    if (metodo === "POST") {
+      const b = await leerJSON(request);
+      if (b.motivo) {
+        const sug = (await sugerencias()).find((x) => x.motivo === b.motivo);
+        if (!sug) return error("No hay ninguna sugerencia con ese motivo", 404);
+        const origen = b.accion === "ignorar" ? "ignorada" : "aceptada";
+        await db.prepare("INSERT INTO reglas (texto, origen, motivo, criterio, autor, creado) VALUES (?, ?, ?, ?, ?, ?)")
+          .bind(sug.texto, origen, sug.motivo, sug.criterio ? JSON.stringify(sug.criterio) : null, autor, ahora()).run();
+        if (origen === "aceptada" && sug.criterio) {
+          await guardarPerfil(db, { criterios: { [sug.criterio.campo]: sug.criterio.valor } }, autor);
+        }
+        return json({ ok: true, origen }, 201);
+      }
+      const t = texto(b.texto, 200);
+      if (!t) return error("Escribid la regla");
+      const r = await db.prepare("INSERT INTO reglas (texto, origen, autor, creado) VALUES (?, 'equipo', ?, ?)")
+        .bind(t, autor, ahora()).run();
+      return json({ ok: true, id: r.meta.last_row_id }, 201);
+    }
+  }
+  ms = ruta.match(/^\/api\/reglas\/(\d+)$/);
+  if (ms) {
+    if (!equipo) return soloEquipo();
+    const regla = await db.prepare("SELECT * FROM reglas WHERE id = ?").bind(Number(ms[1])).first();
+    if (!regla) return error("Esa regla no existe", 404);
+    if (metodo === "PUT") {
+      const t = texto((await leerJSON(request)).texto, 200);
+      if (!t) return error("Escribid la regla");
+      await db.prepare("UPDATE reglas SET texto = ? WHERE id = ?").bind(t, regla.id).run();
+      return json({ ok: true });
+    }
+    if (metodo === "DELETE") {
+      await db.prepare("DELETE FROM reglas WHERE id = ?").bind(regla.id).run();
+      if (regla.criterio) {  // quitar la regla deshace su criterio
+        await guardarPerfil(db, { criterios: { [JSON.parse(regla.criterio).campo]: null } }, autor);
+      }
+      return json({ ok: true });
+    }
+  }
+
   // --- perfil de la entidad (lo lee el radar cada mañana)
   if (ruta === "/api/perfil") {
     if (!equipo) return soloEquipo();
     const fila = await db.prepare("SELECT valor, actualizado, actualizado_por FROM ajustes WHERE clave = 'perfil'").first();
     const guardado = fila ? JSON.parse(fila.valor) : {};
     if (metodo === "GET") {
-      return json({ ...PERFIL_BASE, ...guardado, guardado: Boolean(fila),
+      const { results: rt } = await db.prepare(
+        "SELECT texto FROM reglas WHERE origen IN ('equipo', 'aceptada') AND criterio IS NULL ORDER BY id").all();
+      return json({ ...PERFIL_BASE, ...guardado, guardado: Boolean(fila) || rt.length > 0, reglas: rt.map((r) => r.texto),
         actualizado: fila?.actualizado || null, actualizado_por: fila?.actualizado_por || "",
         opciones: { comunidades: COMUNIDADES, avisos: AVISOS } });
     }
     if (metodo === "PUT") {
-      const cambios = limpiarPerfil(await leerJSON(request));
-      const nuevo = { ...guardado, ...cambios };
-      // Ficha y criterios se mezclan campo a campo: enviar uno no borra los demás.
-      for (const k of ["ficha", "criterios"]) {
-        if (cambios[k]) nuevo[k] = { ...PERFIL_BASE[k], ...(guardado[k] || {}), ...cambios[k] };
-      }
-      await db.prepare(
-        `INSERT INTO ajustes (clave, valor, actualizado, actualizado_por) VALUES ('perfil', ?, ?, ?)
-         ON CONFLICT (clave) DO UPDATE SET valor = excluded.valor, actualizado = excluded.actualizado,
-         actualizado_por = excluded.actualizado_por`,
-      ).bind(JSON.stringify(nuevo), ahora(), autor).run();
+      const nuevo = await guardarPerfil(db, limpiarPerfil(await leerJSON(request)), autor);
       return json({ ok: true, perfil: { ...PERFIL_BASE, ...nuevo, guardado: true } });
     }
   }

@@ -142,6 +142,15 @@ radar basta con ponerla en `por_revisar`.
   `PUT .../documentos/:requisito` con `{documento_id, estado, responsable}` (el arrastrar y soltar).
 - Archivos en Cloudflare R2 (privados, solo equipo): ver `wrangler.jsonc` para activarlo.
 
+### Reglas aprendidas
+
+Cuando un motivo de descarte se repite 3 veces, `GET /api/reglas` lo devuelve como **sugerencia**
+(`{sugerencias, reglas}`). Si la regla tiene número (cofinanciación, importe, plazo), al aceptarla
+(`POST /api/reglas {motivo, accion:"aceptar"}`) se convierte en un **criterio del perfil** y el radar
+la aplica sin IA; la cifra sale de lo que el equipo marcó al descartar («como máximo el 30 %»).
+Las reglas escritas a mano (`POST {texto}`) van a las instrucciones de Groq. `accion:"ignorar"`
+la descarta para siempre; `DELETE /api/reglas/:id` la quita y deshace su criterio.
+
 ### Perfil editable
 
 `GET/PUT /api/perfil` guarda lo que el radar sabe de Reforesta: nombre, equipo, zonas,

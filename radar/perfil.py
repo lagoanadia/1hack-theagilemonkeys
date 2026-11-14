@@ -99,6 +99,7 @@ def texto() -> str:
         p.get("descripcion", ""),
         _lineas("Líneas de trabajo:", p.get("lineas") or []),
         _lineas("Lo que NO le sirve:", p.get("no_sirve") or []),
+        _lineas("Reglas del equipo (lo que no les interesa, aprendido de sus descartes):", p.get("reglas") or []),
         ficha_texto(p),
         _lineas("Otros datos de la entidad:", p.get("requisitos_entidad") or []),
     ]
