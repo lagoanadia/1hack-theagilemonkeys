@@ -16,8 +16,9 @@ import { COLORES, COLOR_NOMBRE } from '../tablero.js'
 //   onReordenar (itemId, destId, idx) guarda el orden
 //   onColor / onPlegar / onNueva / onRenombrar / onBorrar: si no se pasan, esa opción no aparece
 //   izq         nodo a la izquierda de la barra (filtros, ayuda)
+//   ocultarVacias  no enseña las secciones sin tarjetas (salvo mientras se arrastra, para poder soltar en ellas)
 //   layout      'franjas' (por defecto: secciones apiladas con tarjetas en rejilla) | 'columnas'
-export default function Tablero({ secciones, card, onMover, onReordenar, onColor, onPlegar, onNueva, onRenombrar, onBorrar, izq, layout = 'franjas', tope = 12, vacio = 'Arrastrad una tarjeta aquí', nombreItem = a => a.titulo }) {
+export default function Tablero({ secciones, card, onMover, onReordenar, onColor, onPlegar, onNueva, onRenombrar, onBorrar, izq, layout = 'franjas', tope = 12, ocultarVacias = false, vacio = 'Arrastrad una tarjeta aquí', nombreItem = a => a.titulo }) {
   const [drag, setDrag] = useState(null)       // {id, from, teclado}
   const [over, setOver] = useState(null)       // {sec, idx}
   const [menu, setMenu] = useState(null)       // id de sección con el menú abierto
@@ -155,7 +156,7 @@ export default function Tablero({ secciones, card, onMover, onReordenar, onColor
       </div>
       <div className="i-sr" role="status" aria-live="assertive">{anuncio}</div>
       <div className="i-secs">
-        {secciones.map(sec => {
+        {secciones.filter(sec => !ocultarVacias || sec.items.length > 0 || (drag && !sec.noSoltar)).map(sec => {
           const abierta = col || !sec.plegada, resaltada = over?.sec === sec.id && drag
           const lim = topes[sec.id] || tope, hueco = resaltada ? over.idx : -1
           const huecoNodo = <div key="hueco" className="i-tc-hueco" ref={huecoRef} aria-hidden="true" />

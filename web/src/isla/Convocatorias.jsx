@@ -225,6 +225,18 @@ function Ruta({ p, estado }) {
   )
 }
 
+// En proceso y Presentado: rejilla simple de tarjetas, sin secciones ni arrastrar.
+function Rejilla({ izq, items, card, vacio }) {
+  return (
+    <div className="i-bd">
+      {izq && <div className="i-bar"><div className="izq">{izq}</div></div>}
+      <div className="i-sec-b i-rejilla">
+        {items.length === 0 ? <div className="i-sec-v">{vacio}</div> : items.map(a => <div key={a.id} className="i-tc">{card(a)}</div>)}
+      </div>
+    </div>
+  )
+}
+
 function Mas({ children, texto = 'Más detalles' }) {
   const [abierto, setAbierto] = useState(false)
   return (
@@ -236,12 +248,11 @@ function Mas({ children, texto = 'Más detalles' }) {
 }
 
 // En proceso: las que habéis elegido presentar. «Presentar» las pasa a Presentado.
-function Preparando({ lista, ir, seg, setDescartando, cambiarEstado, avisar, tab }) {
+function Preparando({ lista, ir, seg, setDescartando, cambiarEstado, avisar }) {
   const prog = useProgresoDocs(lista)
-  const t = useSecciones(tab, 'preparando', lista, porPlazo)
+  const items = useMemo(() => [...lista].sort(porPlazo), [lista])
   return (
-    <Tablero {...t} vacio="Nada en proceso. Las que marquéis «Presentar» en el Radar aparecerán aquí."
-      izq={<span className="i-hint">{lista.length ? 'Arrastrad las tarjetas para ordenarlas o clasificarlas' : 'Aquí van las convocatorias que decidís presentar'}</span>}
+    <Rejilla items={items} vacio="Nada en proceso. Las que marquéis «Presentar» en el Radar aparecerán aquí."
       card={a => {
         const s = segDe(seg, a.id), p = prog[a.id], listo = Boolean(p) && p.hechos >= p.total
         // Hasta que no estén todos los documentos no se puede presentar: avisa con «Requisitos incompletos».
@@ -294,21 +305,17 @@ const MENSAJE = {
   concedida: '¡Os la han concedido! Toca plantar.', plantar: 'Ahora toca plantar.', justificar: 'Último paso: justificar el gasto.',
   denegada: 'No ha sido concedida.', terminada: 'Terminada. ¡Un árbol más en la isla!',
 }
-function Presentado({ lista, cambiarEstado, cambiarPaso, seg, perfil, ir, tab }) {
+function Presentado({ lista, cambiarEstado, cambiarPaso, seg, perfil, ir }) {
   const [vista, setVista] = useState('marcha')
   const fin = a => a.estado === 'terminada' || a.estado === 'denegada'
   const enMarcha = useMemo(() => lista.filter(a => !fin(a)), [lista])
   const term = useMemo(() => lista.filter(fin), [lista])
   const ver = vista === 'marcha' ? enMarcha : term
   const cmp = useCallback((a, b) => (segDe(seg, a.id)?.dias ?? 9999) - (segDe(seg, b.id)?.dias ?? 9999), [seg])
-  const t = useSecciones(tab, 'presentadas', ver, cmp)
-  const avisos = (seg?.avisos || []).filter(x => x.tipo === 'convocatoria')
+  const items = useMemo(() => [...ver].sort(cmp), [ver, cmp])
   return (
     <>
-      {avisos.length > 0 && vista === 'marcha' && (
-        <div className="i-avisos" role="status" style={{ marginBottom: 10 }}>{avisos.map(x => <div key={`${x.tipo}${x.id}`} className={x.nivel}><Icon n="bell" s={16} />{x.texto}</div>)}</div>
-      )}
-      <Tablero {...t} vacio={vista === 'marcha' ? 'No hay solicitudes en marcha. Las que presentéis aparecerán aquí.' : 'Aún no hay solicitudes finalizadas.'}
+      <Rejilla items={items} vacio={vista === 'marcha' ? 'No hay solicitudes en marcha. Las que presentéis aparecerán aquí.' : 'Aún no hay solicitudes finalizadas.'}
         izq={<div className="i-seg" role="group" aria-label="Filtro"><button aria-pressed={vista === 'marcha'} className={vista === 'marcha' ? 'on' : ''} onClick={() => setVista('marcha')}>En marcha · {enMarcha.length}</button><button aria-pressed={vista === 'term'} className={vista === 'term' ? 'on' : ''} onClick={() => setVista('term')}>Finalizado · {term.length}</button></div>}
         card={a => {
           const p = PASO_DE[a.estado], s = segDe(seg, a.id), sig = SIGUIENTE[a.estado] || []
@@ -341,6 +348,15 @@ function Presentado({ lista, cambiarEstado, cambiarPaso, seg, perfil, ir, tab })
 // Descartadas: una sección por motivo. «Descartadas por el radar» recoge lo que el radar descartó (solo se
 // puede sacar de ahí); el resto son los motivos del equipo (GET /api/motivos). Arrastrar una tarjeta a otro
 // motivo la reclasifica (PUT con motivos); «Nueva sección» crea un motivo (POST /api/motivos).
+// Por qué la descartó el radar: el motivo que escribe la IA, agrupado en pocas secciones.
+const MOTIVOS_RADAR = [
+  ['beneficiario', 'Radar · Reforesta no puede pedirla', /beneficiari|personas f[ií]sicas|propietari|comunidades de|municipios|entidad(es)? local|empresas|alumnos|dirigida a|solo pueden|no es (una )?entidad|no gestiona/i],
+  ['tema', 'Radar · No es de medio ambiente', /medio ambiente|ambiental|tem[aá]tica|conservaci[oó]n|reforest|misi[oó]n/i],
+  ['zona', 'Radar · Fuera de su zona', /[aá]mbito|zona|territori|comunidad aut|provincia/i],
+  ['dinero', 'Radar · Importe o cofinanciación', /importe|cofinanc|aportaci|presupuesto/i],
+]
+const motivoRadar = a => (MOTIVOS_RADAR.find(([, , re]) => re.test(a.motivo || '')) || ['otros'])[0]
+
 function Descartadas({ lista, recuperar, reclasificar, tab }) {
   const [cat, setCat] = useState([])
   const cargar = useCallback(() => api('/motivos').then(l => setCat(l.map(m => m.texto))).catch(() => {}), [])
@@ -353,30 +369,32 @@ function Descartadas({ lista, recuperar, reclasificar, tab }) {
       secs: [
         ...nombres.map(m => ({ id: `m:${m}`, nombre: m, plegadaInicial: !usos[m] })),
         { id: 'sin', nombre: 'Sin motivo', fija: true, plegadaInicial: !lista.some(a => motivoDe(a) === '') },
-        { id: 'radar', nombre: 'Descartadas por el radar', color: 'azul', fija: true, noSoltar: true },
+        ...MOTIVOS_RADAR.map(([id, nombre]) => ({ id: `radar:${id}`, nombre, color: 'azul', fija: true, noSoltar: true })),
+        { id: 'radar:otros', nombre: 'Radar · Otros motivos', color: 'azul', fija: true, noSoltar: true },
       ],
-      posDe: a => { const m = motivoDe(a); return m === null ? 'radar' : m ? `m:${m}` : 'sin' },
+      posDe: a => { const m = motivoDe(a); return m === null ? `radar:${motivoRadar(a)}` : m ? `m:${m}` : 'sin' },
     }
   }, [cat, usos, lista])
   const t = useSecciones(tab, 'descartadas', lista, porPlazo, { fija: true, disponer: extra })
   const mover = (id, dest, idx, desde) => {
     const a = lista.find(x => x.id === id)
-    if (a && dest !== desde && dest !== 'radar') reclasificar(a, dest === 'sin' ? [] : [dest.slice(2)])
+    if (a && dest !== desde && !dest.startsWith('radar')) reclasificar(a, dest === 'sin' ? [] : [dest.slice(2)])
     t.onReordenar(id, dest, idx)
   }
   return (
-    <Tablero {...t} onMover={mover} tope={9} vacio="Arrastrad una tarjeta aquí para darle este motivo"
+    <Tablero {...t} onMover={mover} tope={9} ocultarVacias vacio="Arrastrad una tarjeta aquí para darle este motivo"
       onNueva={async nombre => { try { await api('/motivos', { metodo: 'POST', datos: { texto: nombre } }); cargar() } catch { /* se reintenta al volver */ } }}
       izq={<span className="i-hint">Nada desaparece sin explicar por qué. Arrastrad una tarjeta a otro motivo para reclasificarla.</span>}
       card={(a, sec) => {
-        const motivos = sec.id === 'radar' ? [] : (a.sol?.motivos || []).filter(m => `m:${m}` !== sec.id)
+        const radar = sec.id.startsWith('radar')
+        const motivos = radar ? [] : (a.sol?.motivos || []).filter(m => `m:${m}` !== sec.id)
         return (
           <article className="tc">
-            <div className="tc-tags">{a.demo && <span className="i-ej">Ejemplo real</span>}{sec.id === 'radar' ? <span className="i-tag">El radar</span> : motivos.map(m => <span key={m} className="i-tag">{m}</span>)}{sec.id !== 'radar' && !motivos.length && sec.id === 'sin' && <span className="i-tag">Sin motivo</span>}</div>
+            <div className="tc-tags">{a.demo && <span className="i-ej">Ejemplo real</span>}{radar ? null : motivos.map(m => <span key={m} className="i-tag">{m}</span>)}{!radar && !motivos.length && sec.id === 'sin' && <span className="i-tag">Sin motivo</span>}</div>
             <h4 title={a.titulo}>{tituloCorto(a)}</h4>
             <div className="tc-org">{a.organo}{a.plazo ? ` · plazo ${fechaCorta(a.plazo)}` : ''}</div>
-            {sec.id === 'radar' && a.motivo && <p className="i-mot tc-mot">{a.motivo}</p>}
-            {sec.id !== 'radar' && a.sol?.nota && <p className="i-mot tc-mot">{a.sol.nota}</p>}
+            {radar && a.motivo && <p className="i-mot tc-mot"><b>Por qué la descarta el radar:</b> {a.motivo}</p>}
+            {!radar && a.sol?.nota && <p className="i-mot tc-mot">{a.sol.nota}</p>}
             <div className="tc-acc"><button className="i-link" onClick={() => recuperar(a)}><Icon n="undo" s={15} w={2.4} />Recuperar</button></div>
             {a.cita && <Mas texto="Ver la frase oficial"><div className="i-cita" style={{ fontSize: 14, padding: '10px 14px' }}>«{a.cita}»<small><Icon n="verified" s={13} />Frase del texto oficial</small></div></Mas>}
           </article>
