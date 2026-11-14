@@ -768,3 +768,4 @@ button.et-chip{padding:0 18px!important;border-radius:999px!important}
 .i-impacto .i-globo{touch-action:pan-y}
 .i-impacto .pista{position:absolute;top:14px;right:14px;font-size:12.5px;font-weight:600;color:var(--mut);background:rgba(255,255,255,.85);padding:4px 10px;border-radius:999px}
 .i-impacto .otra{position:absolute;right:14px;bottom:12px;height:40px!important;font-size:14px!important}
+.em-secs{display:flex;flex-direction:column;gap:20px}

@@ -23,9 +23,11 @@ const hoyISO = () => { const d = new Date(); return `${d.getFullYear()}-${String
 const diasDesde = f => Math.round((new Date(new Date().toDateString()) - new Date(`${f}T00:00:00`)) / 864e5)
 const fechaLarga = f => new Date(`${String(f).slice(0, 10)}T00:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 const norm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-// Una etiqueta recoge las empresas cuya ubicación, proyecto o promotor contiene alguna de sus palabras (por defecto, su nombre).
+// Una etiqueta recoge las empresas que contienen alguna de sus palabras clave (por defecto, su nombre) en la ubicación, el proyecto,
+// el promotor, el resumen, el sector o las medidas. Vale para lugares («Madrid») y para temas («eólico», «humedales»).
 const palabrasDe = t => (t.palabras || '').split(/[,\n]/).map(x => norm(x.trim())).filter(Boolean).concat(t.palabras?.trim() ? [] : [norm(t.nombre)])
-const coincide = (e, t) => { const txt = norm(`${e.ubicacion} ${e.proyecto} ${e.promotor}`); return palabrasDe(t).some(w => txt.includes(w)) }
+const textoDe = e => norm([e.ubicacion, e.proyecto, e.promotor, e.titulo, e.resumen, SECTOR[e.tipo], ...(e.medidas || []).map(m => m.texto)].join(' '))
+const coincide = (e, t) => { const txt = textoDe(e); return palabrasDe(t).some(w => txt.includes(w)) }
 const COMUNIDADES = ['Andalucía', 'Aragón', 'Asturias', 'Baleares', 'Canarias', 'Cantabria', 'Castilla y León', 'Castilla-La Mancha', 'Cataluña', 'Extremadura', 'Galicia', 'Madrid', 'Murcia', 'Navarra', 'La Rioja', 'País Vasco', 'Valencia']
 const porEncaje = (a, b) => (b.encaje ?? 0) - (a.encaje ?? 0) || (b.fecha || '').localeCompare(a.fecha || '')
 
@@ -122,20 +124,44 @@ export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
         {radar.emp != null && seg === 'nueva' && (
           nuevas.length === 0
             ? <div className="i-card i-empty">{activa ? `Ninguna empresa nueva con la etiqueta «${activa.nombre}».` : 'Nada nuevo por ahora. El radar vuelve a mirar el BOE mañana.'}</div>
-            : <div className="em-grid em-g4">{nuevas.map(e => <Ficha key={e.id} e={e} nueva={vistas[e.id] === hoy} etiquetas={etiquetas.filter(t => coincide(e, t))} pie={acciones(e)} />)}</div>
+            : <Rejilla lista={nuevas} {...{ etiquetas, etiq }} g4 render={e => <Ficha key={e.id} e={e} nueva={vistas[e.id] === hoy} etiquetas={etiquetas.filter(t => coincide(e, t))} pie={acciones(e)} />} />
         )}
 
         {radar.emp != null && seg === 'contactada' && <Contacto lista={otras} {...{ tab, cambiarEstado, setBorrador }} />}
 
         {radar.emp != null && (seg === 'cerrada' || seg === 'descartada') && (
-          <div className="em-grid">
-            {otras.length === 0 && <div className="i-card i-empty" style={{ gridColumn: '1/-1' }}>Nada en esta pestaña.</div>}
-            {otras.map(e => <Ficha key={e.id} e={e} etiquetas={etiquetas.filter(t => coincide(e, t))} pie={<div className="em-acc"><button className="i-btn sm" onClick={() => cambiarEstado(e, 'nueva', 'Vuelve a nuevas')}><Icon n="undo" s={17} />Reabrir</button></div>} />)}
-          </div>
+          otras.length === 0
+            ? <div className="i-card i-empty">Nada en esta pestaña.</div>
+            : <Rejilla lista={otras} {...{ etiquetas, etiq }} g4 render={e => <Ficha key={e.id} e={e} etiquetas={etiquetas.filter(t => coincide(e, t))} pie={<div className="em-acc"><button className="i-btn sm" onClick={() => cambiarEstado(e, 'nueva', 'Vuelve a nuevas')}><Icon n="undo" s={17} />Reabrir</button></div>} />} />
         )}
       </div>
       {borrador && <Borrador {...borrador} cerrar={() => setBorrador(null)} tab={tab} />}
     </>
+  )
+}
+
+// Rejilla de fichas. Con etiquetas y «Todas» elegido, cada etiqueta es una sección (plegable): la empresa va a la primera
+// que encaja y las que no encajan con ninguna van a «Sin etiqueta». Con una etiqueta elegida, solo esa sección.
+function Rejilla({ lista, etiquetas, etiq, render, g4 }) {
+  const [plegadas, setPlegadas] = useState({})
+  const grid = items => <div className={`em-grid ${g4 ? 'em-g4' : ''}`}>{items.map(render)}</div>
+  if (!etiquetas.length || etiq) return grid(lista)
+  const usadas = new Set()
+  const secs = etiquetas.map(t => ({ ...t, items: lista.filter(e => !usadas.has(e.id) && coincide(e, t) && usadas.add(e.id)) }))
+  const resto = lista.filter(e => !usadas.has(e.id))
+  const todas = [...secs, ...(resto.length ? [{ id: 'sin', nombre: 'Sin etiqueta', color: 'gris', items: resto }] : [])].filter(s => s.items.length)
+  return (
+    <div className="em-secs">
+      {todas.map(sec => (
+        <section key={sec.id} className={`i-sec c-${sec.color || 'gris'}`} aria-label={sec.nombre}>
+          <header className="i-sec-h">
+            <button className="i-sec-ch" aria-expanded={!plegadas[sec.id]} aria-label={`${plegadas[sec.id] ? 'Desplegar' : 'Plegar'} ${sec.nombre}`} onClick={() => setPlegadas({ ...plegadas, [sec.id]: !plegadas[sec.id] })}><Icon n="keyD" s={16} w={2.6} /></button>
+            <i className="dot" aria-hidden="true" /><h3 className="nm">{sec.nombre}</h3><span className="n">{sec.items.length}</span>
+          </header>
+          {!plegadas[sec.id] && <div style={{ paddingTop: 14 }}>{grid(sec.items)}</div>}
+        </section>
+      ))}
+    </div>
   )
 }
 
@@ -174,8 +200,8 @@ function Etiquetas({ etiquetas, etiq, setEtiq, tab, todas, seg }) {
       </div>
       {editor && (
         <form className="et-form" onSubmit={enviar}>
-          <label>Nombre<input className="i-in" autoFocus maxLength={30} placeholder="Madrid" value={editor.nombre} onChange={e => setEditor({ ...editor, nombre: e.target.value })} /></label>
-          <label>Palabras que la ubicación o el proyecto deben contener<input className="i-in" maxLength={120} placeholder={editor.nombre || 'Madrid, Alcalá, Getafe'} value={editor.palabras} onChange={e => setEditor({ ...editor, palabras: e.target.value })} /><small>Separadas por comas. Si lo dejáis vacío se usa el nombre.</small></label>
+          <label>Nombre<input className="i-in" autoFocus maxLength={30} placeholder="Madrid, Eólico, Humedales…" value={editor.nombre} onChange={e => setEditor({ ...editor, nombre: e.target.value })} /></label>
+          <label>Palabras clave<input className="i-in" maxLength={160} placeholder={editor.nombre || 'eólico, aerogenerador, parque'} value={editor.palabras} onChange={e => setEditor({ ...editor, palabras: e.target.value })} /><small>Separadas por comas: lugares o temas. Se buscan en la ubicación, el proyecto, el promotor, el resumen y las medidas. Si lo dejáis vacío se usa el nombre.</small></label>
           <div className="cols" role="group" aria-label="Color">{COLORES.map(c => <button type="button" key={c} className={`sw et-${c} ${editor.color === c ? 'on' : ''}`} aria-label={COLOR_NOMBRE[c]} aria-pressed={editor.color === c} onClick={() => setEditor({ ...editor, color: c })} />)}</div>
           <div className="acc">
             <button className="i-btn p sm" type="submit" disabled={!editor.nombre.trim()}>{editor.id ? 'Guardar' : 'Crear etiqueta'}</button>
