@@ -5,9 +5,9 @@ import { etapaEmpresa, hectareas } from '../datos.js'
 
 // Pantalla «Empresas»: datos de empresas.json (declaraciones de impacto ambiental del BOE) y su estado
 // de contacto con PUT /api/solicitudes/empresa/:id (nueva, contactada, reunion, acuerdo, cerrada, descartada).
-//  · Nuevas: rejilla de fichas; cada una se añade a «En contacto» o se descarta.
-//  · En contacto (segunda fase): tabla con una fila por empresa y sus fases, con fechas y plantillas de mensaje.
-const SEGS = [['nueva', 'Nuevas'], ['contactada', 'En contacto'], ['cerrada', 'Cerradas'], ['descartada', 'Descartadas']]
+//  · Descubrir: rejilla de fichas; cada una se añade a «En proceso» o se descarta.
+//  · En proceso (segunda fase): tabla con una fila por empresa y sus fases, con fechas y plantillas de mensaje.
+const SEGS = [['nueva', 'Descubrir'], ['contactada', 'En proceso'], ['cerrada', 'Cerradas'], ['descartada', 'Descartadas']]
 const ACCION = { contactar: 'Contactar', mira: 'Valorar', descarta: 'Descartar' }
 const SECTOR = { hibrido: 'Eólico + solar', infraestructura: 'Infraestructura', eolico: 'Eólico', solar: 'Solar', linea_electrica: 'Línea eléctrica', otro: 'Otro sector' }
 const TONOS = ['t0', 't1', 't2', 't3', 't4']
@@ -91,11 +91,11 @@ export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
   // «Añadir a En contacto» las pasa a la segunda fase (y se puede escribir el primer mensaje desde el aviso).
   const anadir = e => {
     tab.cambiarRaiz(d => ({ ...d, contactos: { ...d.contactos, [e.id]: { col: 'contactada', fechas: { contactada: hoyISO() }, envios: [] } } }))
-    cambiarEstado(e, 'contactada', 'Añadida a «En contacto»', ['Escribir mensaje', () => { setSeg('contactada'); setBorrador({ e, plantilla: 'm1', destino: 'contactada' }) }])
+    cambiarEstado(e, 'contactada', 'Añadida a «En proceso»', ['Escribir mensaje', () => { setSeg('contactada'); setBorrador({ e, plantilla: 'm1', destino: 'contactada' }) }])
   }
   const acciones = e => (
     <div className="em-acc">
-      <button className="i-btn p sm" onClick={() => anadir(e)}><Icon n="plus" s={17} w={2.6} />Añadir a En contacto</button>
+      <button className="i-btn p sm" onClick={() => anadir(e)}><Icon n="plus" s={17} w={2.6} />Añadir a En proceso</button>
       <button className="i-link" onClick={() => cambiarEstado(e, 'descartada', 'Empresa descartada')}>Descartar</button>
     </div>
   )
@@ -182,9 +182,9 @@ function Contacto({ lista, tab, cambiarEstado, setBorrador }) {
     if (f.estado) cambiarEstado(e, f.estado, `Actualizada: ${f.nombre.toLowerCase()}`)
   }
   return (
-    <div className="ec" role="table" aria-label="Empresas en contacto, por fase">
+    <div className="ec" role="table" aria-label="Empresas en proceso, por fase">
       <div className="ec-cab" role="row"><span role="columnheader">Empresas</span>{FASES.map(f => <span key={f.id} role="columnheader">{f.nombre}</span>)}</div>
-      {lista.length === 0 && <div className="i-card i-empty">Ninguna en contacto. Añadid empresas desde «Nuevas».</div>}
+      {lista.length === 0 && <div className="i-card i-empty">Ninguna en proceso. Añadid empresas desde «Descubrir».</div>}
       {lista.map(e => {
         const c = contactos[e.id] || {}, fs = c.fechas || {}, k = FASES.findIndex(f => f.id === faseDe(e))
         const toca = fs.volver && fs.volver <= hoy && k < 2
