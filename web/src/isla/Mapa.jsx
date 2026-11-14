@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ErrorSesion, api } from '../api.js'
+import Icon from './Icon.jsx'
 import { madridMap, spainMini, ZONAS, P, inPoly, COL, TIPO } from './mapa.js'
 
 const Svg = ({ html, ...p }) => <span {...p} dangerouslySetInnerHTML={{ __html: html }} />
@@ -27,65 +28,81 @@ export default function Mapa({ top, salir }) {
   }, [salir])
   const todos = useMemo(() => datos?.plantaciones || [], [datos])
   const anios = useMemo(() => [...new Set(todos.map(a => a.anio))].sort(), [todos])
-  const delAnio = useMemo(() => todos.filter(a => anio === 'Todo' || a.anio === Number(anio)), [todos, anio])
+  // Años acumulados: «Hasta 2024» enseña todo lo plantado hasta ese año (se entiende mejor que un año suelto).
+  const delAnio = useMemo(() => todos.filter(a => anio === 'Todo' || a.anio <= Number(anio)), [todos, anio])
   const sitios = useMemo(() => delAnio.filter(enMadrid), [delAnio])
   const fuera = delAnio.filter(a => !enMadrid(a))
-  const sel = sitios.find(a => a.id === selId) || sitios[0]
+  const sel = sitios.find(a => a.id === selId) || null
   const svg = useMemo(() => madridMap(sitios, sel?.id), [sitios, sel?.id])
   const ha = sitios.reduce((s, a) => s + (a.ha || 0), 0)
   const estimados = sitios.some(a => a.arboles == null)
   const arboles = sitios.reduce((s, a) => s + (a.arboles ?? Math.round((a.ha || 0) * ARBOLES_HA)), 0)
-  const porZona = ZONAS.map(z => { const l = sitios.filter(a => zonaDe(a) === z[0]); return [z[0], z[1], l.length, l.reduce((s, a) => s + (a.ha || 0), 0)] }).sort((a, b) => b[3] - a[3])
+  const porZona = ZONAS.map(z => { const l = sitios.filter(a => zonaDe(a) === z[0]); return [z[0], z[1], l.length, l.reduce((s, a) => s + (a.ha || 0), 0)] }).filter(z => z[2] > 0).sort((a, b) => b[3] - a[3]).slice(0, 4)
+  const haHasta = y => todos.filter(a => enMadrid(a) && (y === 'Todo' || a.anio <= Number(y))).reduce((s, a) => s + (a.ha || 0), 0)
+  const porTipo = Object.keys(TIPO).map(t => [t, sitios.filter(a => a.tipo === t).length])
   const arbolesDe = a => (a.arboles != null ? `${fmt(a.arboles)} árboles` : `≈ ${fmt(Math.round((a.ha || 0) * ARBOLES_HA))} árboles`)
   if (error) return <>{top('Mapa')}<div className="i-card i-empty" role="alert">No se pudo cargar el mapa: {error}</div></>
   if (!datos) return <>{top('Mapa')}<div className="i-card i-empty">Cargando plantaciones…</div></>
+  const sp = sel ? P(sel.ll) : null
+  const controles = (
+    <div className="mp-ctl">
+      <div className="i-seg">{['Madrid', 'España'].map(k => <button key={k} className={ambito === k ? 'on' : ''} onClick={() => setAmbito(k)}>{k}</button>)}</div>
+      <label className="mp-anio">
+        <Icon n="cal" s={16} />
+        <select value={anio} onChange={e => { setAnio(e.target.value); setSelId(null) }} aria-label="Ver lo plantado hasta el año">
+          <option value="Todo">Todo · {fmt(haHasta('Todo'))} ha</option>
+          {[...anios].reverse().map(y => <option key={y} value={String(y)}>{y === anios[0] ? `Solo ${y}` : `Hasta ${y}`} · {fmt(haHasta(y))} ha</option>)}
+        </select>
+      </label>
+    </div>
+  )
   return (
     <>
-      {top('Mapa')}
-      <div className="i-head" style={{ justifyContent: 'flex-end', marginBottom: 14 }}>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <div className="i-seg">{['Madrid', 'España'].map(k => <button key={k} className={ambito === k ? 'on' : ''} onClick={() => setAmbito(k)}>{k}</button>)}</div>
-          <div className="i-seg">{[...anios.map(String), 'Todo'].map(k => <button key={k} className={anio === k ? 'on' : ''} onClick={() => setAnio(k)}>{k}</button>)}</div>
-        </div>
-      </div>
+      {top('Mapa', false, controles)}
       {todos.length === 0 ? (
-        <div className="i-card i-empty" style={{ marginTop: 16 }}>Todavía no hay plantaciones en el mapa. Cuando el equipo las dé de alta, aparecerán aquí con sus hectáreas y sus árboles.</div>
+        <div className="i-card i-empty">Todavía no hay plantaciones en el mapa. Cuando el equipo las dé de alta, aparecerán aquí con sus hectáreas y sus árboles.</div>
+      ) : ambito === 'España' ? (
+        <div className="i-card mp-lienzo" style={{ display: 'grid', placeItems: 'center', textAlign: 'center', padding: 20 }}>
+          <div>
+            <Svg html={spainMini().replace('width="240" height="160"', 'width="480" height="320"')} />
+            {fuera.length === 0
+              ? <p className="i-sub" style={{ maxWidth: 380, margin: '10px auto 0' }}>Por ahora todas vuestras plantaciones están en la Comunidad de Madrid.</p>
+              : <div style={{ maxWidth: 420, margin: '10px auto 0', textAlign: 'left' }}>{fuera.map(a => <div key={a.id} className="i-row"><b>{a.nombre}</b><span className="d">{fmt(a.ha || 0)} ha · {a.anio}</span></div>)}</div>}
+          </div>
+        </div>
       ) : (
-        <div className="i-two" style={{ gridTemplateColumns: 'minmax(0,1fr) 320px', marginTop: 16 }}>
-          <div className="i-mapc">
-            {ambito === 'Madrid'
-              ? <Svg html={svg} onClick={e => { const g = e.target.closest('[data-id]'); if (g) setSelId(Number(g.dataset.id)) }} />
-              : (
-                <div style={{ display: 'grid', placeItems: 'center', minHeight: 520, textAlign: 'center', padding: 20 }}>
-                  <div>
-                    <Svg html={spainMini().replace('width="240" height="160"', 'width="480" height="320"')} />
-                    {fuera.length === 0
-                      ? <p className="i-sub" style={{ maxWidth: 380, margin: '10px auto 0' }}>Por ahora todas vuestras plantaciones están en la Comunidad de Madrid.</p>
-                      : <div style={{ maxWidth: 420, margin: '10px auto 0', textAlign: 'left' }}>{fuera.map(a => <div key={a.id} className="i-row"><b>{a.nombre}</b><span className="d">{fmt(a.ha || 0)} ha · {a.anio}</span></div>)}</div>}
-                  </div>
-                </div>
-              )}
-            <div className="leg">{Object.keys(TIPO).map(t => <span key={t}><i style={{ background: COL[t] }} />{TIPO[t]}</span>)}<span style={{ color: 'var(--mut)' }}>· tamaño = hectáreas</span></div>
-          </div>
-          <div className="i-side" style={{ gap: 10 }}>
-            <div className="i-tot3"><div><b>{sitios.length}</b><span>sitios</span></div><div><b>{fmt(ha)} ha</b><span>plantadas</span></div><div><b>{estimados ? '≈\u00A0' : ''}{fmt(arboles)}</b><span>árboles</span></div></div>
-            {estimados && <p style={{ fontSize: 12.5, color: 'var(--mut)' }}>Donde no consta el número de árboles se estiman {ARBOLES_HA} por hectárea.</p>}
-            {sel ? (
-              <div className="i-selc">
-                <div className="i-head" style={{ alignItems: 'center' }}><span className="i-tag" style={{ background: COL[sel.tipo] + '22', color: COL[sel.tipo] }}>{TIPO[sel.tipo]} · {sel.anio}</span><span style={{ fontSize: 12.5, color: 'var(--mut)', fontWeight: 600 }}>Seleccionado</span></div>
-                <b className="t">{sel.nombre}</b>
-                <div className="r"><span>Zona</span><b>{zonaDe(sel)}</b></div>
-                <div className="r"><span>Superficie</span><b>{fmt(sel.ha || 0)} ha · {arbolesDe(sel)}</b></div>
-                {sel.especies && <div className="r"><span>Especies</span><b>{sel.especies}</b></div>}
-                {sel.con && <div className="r"><span>Con</span><b>{sel.con}</b></div>}
-                {sel.notas && <div className="r"><span>Notas</span><b>{sel.notas}</b></div>}
-                <p style={{ fontSize: 12.5, color: 'var(--mut)', marginTop: 6 }}>Pulsad un globito del mapa para ver otro sitio.</p>
+        <div className="i-card mp-lienzo">
+          {/* El mapa ocupa todo; lo demás flota encima. Pulsar un círculo abre su bocadillo. */}
+          <div className="mp-mapa" onClick={e => { const g = e.target.closest('[data-id]'); setSelId(g ? Number(g.dataset.id) : null) }}>
+            <Svg html={svg} />
+            {sel && (
+              <div className="mp-pop" style={{ left: `${(sp[0] / 720) * 100}%`, top: `${(sp[1] / 630) * 100}%` }} onClick={e => e.stopPropagation()}>
+                <button className="x" aria-label="Cerrar" onClick={() => setSelId(null)}><Icon n="x" s={14} w={2.6} /></button>
+                <span className="pill" style={{ background: COL[sel.tipo] + '22', color: COL[sel.tipo] }}><i style={{ background: COL[sel.tipo] }} />{TIPO[sel.tipo]} · {sel.anio}</span>
+                <b>{sel.nombre}</b>
+                <span className="d">{fmt(sel.ha || 0)} ha · {arbolesDe(sel)}{sel.especies ? ` · ${sel.especies}` : ''}</span>
+                {sel.con && <span className="d">Con {sel.con}</span>}
+                <span className="d">{zonaDe(sel)}</span>
               </div>
-            ) : <div className="i-selc">No hay actuaciones en {ambito === 'Madrid' ? 'Madrid' : 'el mapa'}{anio === 'Todo' ? '' : ` en ${anio}`}.</div>}
-            <div className="i-mini" style={{ padding: '12px 16px' }}><h4>POR ZONAS</h4>
-              {porZona.map(([n, c, k, h]) => <div key={n} className="i-row" style={{ padding: '6px 0' }}><span style={{ display: 'flex', gap: 8, alignItems: 'center' }}><i style={{ width: 14, height: 14, borderRadius: 4, background: c, border: '1px solid #D5DBD2' }} /><b style={{ fontSize: 13.5 }}>{n}</b></span><span style={{ fontSize: 12.5, color: 'var(--mut)', whiteSpace: 'nowrap' }}>{k} · {fmt(h)} ha</span></div>)}
-            </div>
+            )}
           </div>
+          <div className="mp-fl mp-kpi">
+            <div className="big">{fmt(ha)} ha</div>
+            <p>restauradas en Madrid{anio === 'Todo' ? '' : <> <b>{anio === String(anios[0]) ? `en ${anio}` : `hasta ${anio}`}</b></>}</p>
+            <div className="row"><div><b>{sitios.length}</b><span>sitios</span></div><div><b>{estimados ? '≈ ' : ''}{fmt(arboles)}</b><span>árboles</span></div></div>
+          </div>
+          <div className="mp-fl mp-ley">
+            <h4>Qué es cada círculo</h4>
+            {porTipo.map(([t, n]) => <div key={t} className="it"><i style={{ background: COL[t] }} /><b>{t === 'e' ? 'Empresa (RSC)' : t === 'c' ? 'Convocatoria pública' : TIPO[t]}</b><span>{n}</span></div>)}
+            <div className="tam"><span><i style={{ width: 10, height: 10 }} />1 ha</span><span><i style={{ width: 20, height: 20 }} />5 ha</span><small>tamaño = hectáreas</small></div>
+          </div>
+          {porZona.length > 0 && (
+            <div className="mp-fl mp-zonas">
+              <h4>Dónde más</h4>
+              {porZona.map(([n, , , h]) => <div key={n} className="z">{n}<span>{fmt(h)} ha</span><i><u style={{ width: `${(h / porZona[0][3]) * 100}%` }} /></i></div>)}
+            </div>
+          )}
+          {!sel && <p className="mp-pista">Pulsad un círculo para ver el sitio</p>}
         </div>
       )}
     </>
