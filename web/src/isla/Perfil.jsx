@@ -4,6 +4,7 @@ import Menu from './Menu.jsx'
 import { island } from './lp.js'
 import { validarCif } from './cif.js'
 import { api, apiTexto } from '../api.js'
+import { useRecordado } from '../recordado.js'
 
 // Perfil editable: GET/PUT /api/perfil. El radar lo lee cada mañana y lo usa para puntuar y filtrar por zona.
 // Además: las reglas que el radar ha aprendido (/api/reglas) y la vista previa del correo de avisos (/api/avisos/correo).
@@ -228,7 +229,7 @@ export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, pre
   const Sw = ({ on, onClick, label }) => <button type="button" className={`i-sw ${on ? '' : 'off'}`} aria-pressed={on} aria-label={label} onClick={onClick} />
   const comunidades = perfil.opciones?.comunidades || []
   const objetivo = d.objetivo_anual
-  const [tab, setTab] = useState('entidad')
+  const [tab, setTab] = useRecordado('perfil-tab', 'entidad', ['entidad', 'elegibilidad', 'busqueda', 'docs'])
   const PESTANAS = [
     ['entidad', 'building', 'La entidad', `${d.nombre || 'Sin nombre'} · ${d.equipo || '?'} personas`, ['nombre', 'cif', 'tipo_entidad', 'equipo', 'descripcion', 'lineas', 'no_sirve', 'objetivo_anual']],
     ['elegibilidad', 'verified', 'Elegibilidad', `${CAMPOS_FICHA.filter(k => { const v = f[k]; return !(v === null || v === '' || (Array.isArray(v) && !v.length)) }).length} de ${CAMPOS_FICHA.length} datos rellenados`, []],

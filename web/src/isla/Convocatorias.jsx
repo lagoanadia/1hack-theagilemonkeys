@@ -6,6 +6,7 @@ import { LINEAS, descartadaPor, etapaDe, fechaCorta } from '../datos.js'
 import { useSecciones } from '../tablero.js'
 import Tablero from './Tablero.jsx'
 import Menu from './Menu.jsx'
+import { useRecordado } from '../recordado.js'
 import { useProgresoDocs } from './papeles.js'
 
 // Pantalla «Convocatorias»: Radar → En proceso → Presentado, y Descartadas (icono aparte).
@@ -290,7 +291,7 @@ const MENSAJE = {
   denegada: 'No ha sido concedida.', terminada: 'Terminada. ¡Un árbol más en la isla!',
 }
 function Presentado({ lista, cambiarEstado, cambiarPaso, seg, perfil, ir }) {
-  const [vista, setVista] = useState('marcha')
+  const [vista, setVista] = useRecordado('presentado-vista', 'marcha', ['marcha', 'term'])
   const fin = a => a.estado === 'terminada' || a.estado === 'denegada'
   const enMarcha = useMemo(() => lista.filter(a => !fin(a)), [lista])
   const term = useMemo(() => lista.filter(fin), [lista])

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import Icon from './Icon.jsx'
 import Menu from './Menu.jsx'
 import { nombreGuardado } from '../api.js'
+import { useRecordado } from '../recordado.js'
 import { diasHasta, etapaEmpresa, hectareas } from '../datos.js'
 
 // Pantalla «Empresas»: datos de empresas.json (declaraciones de impacto ambiental del BOE) y su estado
@@ -62,7 +63,7 @@ const rellenar = (t, e) => t
   .replaceAll('{boe}', e.url || '').replaceAll('{nombre}', nombreGuardado() || 'El equipo de')
 
 export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
-  const [seg, setSeg] = useState('nueva')
+  const [seg, setSeg] = useRecordado('empresas-seg', 'nueva', ['nueva', 'contactada', 'cerrada', 'descartada'])
   const [borrador, setBorrador] = useState(null)   // {e, plantilla}
   const todas = radar.empresas
   const hoy = hoyISO()

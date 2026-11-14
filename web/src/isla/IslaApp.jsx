@@ -11,6 +11,7 @@ import { ErrorSesion, api, nombreGuardado } from '../api.js'
 import { etapaDe, etapaEmpresa, ordenarRuta } from '../datos.js'
 import { useRadar } from '../radar.js'
 import { useTablero } from '../tablero.js'
+import { useRecordado } from '../recordado.js'
 
 // App del equipo de Reforesta (solo se muestra con la contraseña del equipo, ver App.jsx).
 // Convocatorias y Empresas leen los JSON del radar (/data/*.json) y sus estados de /api/solicitudes.
@@ -23,9 +24,10 @@ export default function IslaApp({ salir }) {
   const tab = useTablero(salir)                // secciones y orden de los tableros (GET/PUT /api/tablero)
   const [seg, setSeg] = useState(null)             // GET /api/seguimiento: {en_marcha, avisos, resumen}
   const [perfil, setPerfil] = useState(null)
-  const [vista, setVista] = useState('conv')
-  const [etapa, setEtapa] = useState('revisar')
-  const [selId, setSelId] = useState(null)
+  // La pantalla en la que estáis se recuerda al recargar la página.
+  const [vista, setVista] = useRecordado('vista', 'conv', ['conv', 'presentar', 'empresas', 'propuestas', 'mapa', 'perfil'])
+  const [etapa, setEtapa] = useRecordado('etapa', 'revisar', ETAPAS)
+  const [selId, setSelId] = useRecordado('sel', null)
   const [curId, setCurId] = useState(null)
   const [tocadas, setTocadas] = useState([])      // convocatorias clasificadas en esta sesión (siguen en la ruta)
   const [descartando, setDescartando] = useState(null)
