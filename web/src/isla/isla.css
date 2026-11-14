@@ -898,3 +898,19 @@ html,body{margin:0}
 .tb-pop .mal{color:var(--co-d)}
 .tb-pop .tb-dato{font-size:12.5px;color:var(--mut);padding:6px 10px;border-top:1px solid var(--ln);border-bottom:1px solid var(--ln);margin:4px 0}
 .tb-btn svg{flex-shrink:0}
+
+/* ---- En contacto estilo Trello: tarjetas ---- */
+.i-bd.col .i-sec{flex:1 1 0;min-width:300px}
+.k3{gap:10px!important}
+.k3-id{display:flex;gap:11px;align-items:center;padding-right:30px;min-width:0}
+.k3-id .em-nom h3{font-size:17px}
+.k3-tags{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.k3-con{display:flex;flex-direction:column;align-items:flex-start;gap:6px;border-top:1.5px solid #EEF0EC;padding-top:10px;min-width:0}
+.k3-con small{display:block;font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mut)}
+.k3-f{display:flex;gap:6px;align-items:center;font-size:13px;font-weight:600;color:var(--mut);margin:0}
+.k3-f.ok{color:var(--gr-d)}
+.k3-paso{border-top:1.5px solid #EEF0EC;padding-top:10px;display:flex;flex-direction:column;gap:4px}
+.k3-paso b{font-size:17px;letter-spacing:-.01em}.k3-paso b.hot{color:var(--co-d)}
+.k3-paso>span{font-size:13.5px;color:var(--mut)}
+.k3-acc{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.k3 .n2-bot{margin-top:2px}

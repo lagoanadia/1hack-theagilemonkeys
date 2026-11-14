@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import Icon from './Icon.jsx'
 import Menu from './Menu.jsx'
+import Tablero from './Tablero.jsx'
+import { useSecciones } from '../tablero.js'
 import { nombreGuardado } from '../api.js'
 import { useRecordado } from '../recordado.js'
 import { diasHasta, etapaEmpresa, hectareas } from '../datos.js'
@@ -85,8 +87,8 @@ export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
 
   // «Añadir a En contacto» las pasa a la segunda fase (y se puede escribir el primer mensaje desde el aviso).
   const anadir = e => {
-    tab.cambiarRaiz(d => ({ ...d, contactos: { ...d.contactos, [e.id]: { col: 'contactada', fechas: { contactada: hoyISO() }, envios: [] } } }))
-    cambiarEstado(e, 'contactada', 'Añadida a «En contacto»', ['Escribir mensaje', () => { setSeg('contactada'); setBorrador({ e, plantilla: 'm1', destino: 'contactada' }) }])
+    tab.cambiarRaiz(d => ({ ...d, contactos: { ...d.contactos, [e.id]: { col: 'pendiente', fechas: { contactada: hoyISO() }, envios: [] } } }))
+    cambiarEstado(e, 'contactada', 'Añadida a «En contacto»', ['Escribir mensaje', () => { setSeg('contactada'); setBorrador({ e, plantilla: 'm1' }) }])
   }
   const acciones = e => (
     <div className="em-acc">
@@ -156,7 +158,6 @@ function Ficha({ e, puesto, grande, nueva, pie }) {
 // Segunda fase, agrupada por lo que toca hacer: Toca escribir → Esperando respuesta → Reunión.
 // Cada empresa muestra su contacto (correo, teléfono, web; el BOE no lo trae, se añade a mano o se busca con un clic)
 // y el siguiente paso con su botón. Los recordatorios y reuniones se pueden bajar al calendario (.ics).
-const hoyYMD = () => hoyISO()
 const diaSemana = f => new Date(`${f}T00:00:00`).toLocaleDateString('es-ES', { weekday: 'long', day: 'numeric', month: 'short' })
 function descargarIcs({ titulo, fecha, descripcion }) {
   const ymd = fecha.replace(/-/g, '')
@@ -215,73 +216,84 @@ function Contactos({ e, tab }) {
   )
 }
 
+// Columnas de «En contacto», estilo Trello. Se pasa de una a otra arrastrando la tarjeta o con el botón de cada paso.
+const COLS = [
+  { id: 'pendiente', nombre: 'Pendiente de contactar', color: 'ambar', nota: 'Aún sin mensaje', fija: true },
+  { id: 'contacto', nombre: 'En contacto', color: 'azul', nota: 'Esperando respuesta', fija: true },
+  { id: 'reunion', nombre: 'Reunión', color: 'verde', nota: 'Acordada', fija: true },
+]
 function Contacto({ lista, tab, cambiarEstado, setBorrador }) {
   const contactos = tab.datos.contactos
-  const hoy = hoyYMD()
   const datosDe = e => contactos[e.id] || {}
-  const grupoDe = e => (e.estado === 'reunion' ? 'reunion' : datosDe(e).envios?.length ? 'espera' : 'escribir')
-  const fecha = (e, k, v) => tab.cambiarRaiz(d => { const c = d.contactos[e.id] || {}; return { ...d, contactos: { ...d.contactos, [e.id]: { ...c, fechas: { ...(c.fechas || {}), [k]: v } } } } })
-  const descartar = e => cambiarEstado(e, 'descartada', 'Empresa descartada')
-  const grupos = ['escribir', 'espera', 'reunion'].map(g => ({ g, items: lista.filter(e => grupoDe(e) === g) }))
-  const nEscribir = grupos[0].items.length
-  const nToca = grupos[1].items.filter(e => datosDe(e).fechas?.volver && datosDe(e).fechas.volver <= hoy).length
-  const resumen = [nEscribir && `escribir a ${nEscribir} ${nEscribir === 1 ? 'empresa' : 'empresas'}`, nToca && `volver a escribir a ${nToca}`].filter(Boolean).join(' y ')
-  const META = {
-    escribir: ['ambar', 'Toca escribir', 'Primer mensaje'], espera: ['azul', 'Esperando respuesta', 'Seguimiento'], reunion: ['verde', 'Reunión', 'Acordada'],
+  const colDe = e => (e.estado === 'reunion' ? 'reunion' : datosDe(e).col === 'pendiente' ? 'pendiente' : datosDe(e).col === 'contacto' || datosDe(e).envios?.length ? 'contacto' : 'pendiente')
+  const extra = useMemo(() => ({ fija: true, disponer: { secs: COLS, posDe: colDe } }), [contactos]) // eslint-disable-line react-hooks/exhaustive-deps
+  const t = useSecciones(tab, 'contacto', lista, porEncaje, extra)
+  const poner = (e, mas) => tab.cambiarRaiz(d => { const c = d.contactos[e.id] || {}; return { ...d, contactos: { ...d.contactos, [e.id]: { ...c, ...mas } } } })
+  const fecha = (e, k, v) => poner(e, { fechas: { ...(datosDe(e).fechas || {}), [k]: v } })
+  const ir = (e, dest) => {
+    if (dest === colDe(e)) return
+    if (dest === 'contacto') {
+      if (e.estado === 'reunion') cambiarEstado(e, 'contactada', 'Vuelve a «En contacto»')
+      if (datosDe(e).envios?.length) return poner(e, { col: 'contacto' })
+      return setBorrador({ e, plantilla: 'm1' })        // se coloca al marcar el mensaje como enviado
+    }
+    if (dest === 'reunion') { poner(e, { col: 'contacto' }); return cambiarEstado(e, 'reunion', 'Pasa a «Reunión»') }
+    if (e.estado === 'reunion') cambiarEstado(e, 'contactada', 'Vuelve a «Pendiente de contactar»')
+    poner(e, { col: 'pendiente' })
+  }
+  const mover = (id, dest, idx, desde) => {
+    const e = lista.find(x => x.id === id)
+    if (!e) return
+    if (dest === desde) t.onReordenar(id, dest, idx)
+    else ir(e, dest)
   }
   const Cal = ({ e, f, titulo, texto }) => (
-    <button className="i-btn sm" onClick={() => descargarIcs({ titulo: `${titulo} ${nombreCorto(e)}`, fecha: f, descripcion: `${e.proyecto}. ${e.url || ''}` })}><Icon n="cal" s={17} />{texto}</button>
+    <button className="i-btn sm" onClick={() => descargarIcs({ titulo: `${titulo} ${nombreCorto(e)}`, fecha: f, descripcion: `${e.proyecto}. ${e.url || ''}` })}><Icon n="cal" s={16} />{texto}</button>
   )
   return (
-    <div className="n2">
-      <div className="n2-hoy"><span className="n2-ic"><Icon n="bell" s={22} /></span>
-        <div><b>{lista.length === 0 ? 'Todavía no hay empresas en contacto.' : resumen ? `Hoy toca: ${resumen}.` : 'No hay nada urgente hoy. Todo está en marcha.'}</b>
-          <p>{lista.length === 0 ? 'Añadid empresas desde «Nuevas» y aparecerán aquí.' : 'Cada empresa dice cuál es su siguiente paso. El correo y el teléfono los añadís vosotros: el BOE no los publica.'}</p></div></div>
-      {grupos.filter(x => x.items.length).map(({ g, items }) => (
-        <section key={g} className={`i-sec c-${META[g][0]}`} aria-label={META[g][1]}>
-          <header className="i-sec-h"><i className="dot" aria-hidden="true" /><h3 className="nm">{META[g][1]}</h3><span className="n">{items.length}</span><span className="nota">{META[g][2]}</span></header>
-          <div className="n2-lista">
-            {items.map(e => {
-              const c = datosDe(e), fs = c.fechas || {}, tiene = c.contacto?.email || c.contacto?.telefono || c.contacto?.web
-              const dias = fs.volver ? diasHasta(fs.volver) : null
-              return (
-                <article key={e.id} className="n2-fila">
-                  <div className="n2-emp"><span className={`em-ini peq ${TONOS[hash(e.id) % TONOS.length]}`} aria-hidden="true">{iniciales(e)}</span>
-                    <div className="em-nom"><h3 title={e.promotor}>{nombreCorto(e)}</h3><p title={e.proyecto}>{e.proyecto}</p>
-                      <div className="ec-pie"><span className={`i-tag em-enc-t ${nivel(e.encaje ?? 0)}`}>Afinidad {e.encaje ?? 0}</span><button className="i-link" onClick={() => descartar(e)}>Descartar</button></div></div></div>
-                  <div className="n2-con"><small>Contacto</small><Contactos e={e} tab={tab} /></div>
-                  <div className="n2-paso"><small>Siguiente paso</small>
-                    {g === 'escribir' && <>
-                      <b>{tiene ? 'Escribirles el primer mensaje' : 'Conseguir un contacto'}</b>
-                      <p>{tiene ? 'El mensaje ya viene rellenado con los datos del proyecto.' : 'Sin correo no se puede enviar, pero podéis preparar el mensaje.'}</p>
-                      <div className="n2-bot"><button className={`i-btn sm ${tiene ? 'p' : ''}`} onClick={() => setBorrador({ e, plantilla: 'm1', destino: 'contactada' })}><Icon n="send" s={17} />Escribir mensaje</button>
-                        <Cal e={e} f={mas(7)} titulo="Volver a escribir a" texto="Recordarme en 7 días" /></div></>}
-                    {g === 'espera' && <>
-                      <b>{fs.volver ? `Volver a escribirles el ${fechaLarga(fs.volver)}` : 'Poned una fecha para volver a escribirles'}</b>
-                      <p>{dias === null ? 'Así no se os olvida el seguimiento.' : dias <= 0 ? 'Ya toca: escribid el recordatorio.' : `Faltan ${dias} ${dias === 1 ? 'día' : 'días'}. Si contestan, pasadla a «Reunión».`}</p>
-                      <label className="i-fecha">Volver a contactar<input type="date" className="i-in" value={fs.volver || ''} onChange={ev => fecha(e, 'volver', ev.target.value)} /></label>
-                      <div className="n2-bot"><button className={`i-btn sm ${dias !== null && dias <= 0 ? 'p' : ''}`} onClick={() => setBorrador({ e, plantilla: 'rec', destino: 'recordatorio' })}><Icon n="send" s={17} />Escribir recordatorio</button>
-                        {fs.volver && <Cal e={e} f={fs.volver} titulo="Volver a escribir a" texto="Añadir al calendario" />}
-                        <button className="i-btn sm" onClick={() => { fecha(e, 'reunion', fs.reunion || ''); cambiarEstado(e, 'reunion', 'Pasa a «Reunión»') }}>Han contestado</button></div></>}
-                    {g === 'reunion' && <>
-                      <b>{fs.reunion ? `Reunión el ${diaSemana(fs.reunion)}` : 'Poned la fecha de la reunión'}</b>
-                      <p>Preparad: superficie, especies y calendario de plantación.</p>
-                      <label className="i-fecha">Fecha de la reunión<input type="date" className="i-in" value={fs.reunion || ''} onChange={ev => fecha(e, 'reunion', ev.target.value)} /></label>
-                      <div className="n2-bot">{fs.reunion && <Cal e={e} f={fs.reunion} titulo="Reunión con" texto="Añadir al calendario" />}
-                        <button className="i-btn sm" onClick={() => cambiarEstado(e, 'cerrada', 'Movida a cerradas')}>Hay acuerdo</button></div></>}
-                  </div>
-                </article>
-              )
-            })}
-          </div>
-        </section>
-      ))}
-    </div>
+    <Tablero {...t} layout="columnas" onMover={mover} onColor={undefined} nombreItem={e => nombreCorto(e)} vacio="Arrastrad una empresa aquí"
+      izq={<span className="i-hint">Arrastrad cada empresa a la columna siguiente.</span>}
+      card={(e, col) => {
+        const c = datosDe(e), fs = c.fechas || {}, ult = c.envios?.at(-1)
+        const tiene = c.contacto?.email || c.contacto?.telefono || c.contacto?.web
+        const dias = fs.volver ? diasHasta(fs.volver) : null, toca = dias !== null && dias <= 0
+        return (
+          <article className="tc k3">
+            <div className="k3-id"><span className={`em-ini peq ${TONOS[hash(e.id) % TONOS.length]}`} aria-hidden="true">{iniciales(e)}</span>
+              <div className="em-nom"><h3 title={e.promotor}>{nombreCorto(e)}</h3><p title={e.proyecto}>{e.proyecto}</p></div></div>
+            <div className="k3-tags"><span className={`i-tag em-enc-t ${nivel(e.encaje ?? 0)}`}>Afinidad {e.encaje ?? 0}</span><button className="i-link" onClick={() => cambiarEstado(e, 'descartada', 'Empresa descartada')}>Descartar</button></div>
+            <div className="k3-con"><small>Contacto</small><Contactos e={e} tab={tab} /></div>
+            {col.id === 'pendiente' && (
+              <div className="k3-acc"><button className={`i-btn sm ${tiene ? 'p' : ''}`} onClick={() => setBorrador({ e, plantilla: 'm1' })}><Icon n="send" s={16} />Escribir mensaje</button></div>
+            )}
+            {col.id === 'contacto' && (
+              <div className="k3-paso">
+                {ult && <p className="k3-f ok"><Icon n="check" s={13} w={3} />{ult.plantilla === 'rec' ? 'Recordatorio enviado' : 'Mensaje enviado'} el {fechaLarga(ult.fecha)}</p>}
+                <b className={toca ? 'hot' : ''}>{fs.volver ? (toca ? 'Toca volver a escribir' : `Volver a escribir el ${fechaLarga(fs.volver)}`) : 'Poned una fecha para volver a escribir'}</b>
+                {dias !== null && !toca && <span>Faltan {dias} {dias === 1 ? 'día' : 'días'}</span>}
+                <label className="i-fecha">Volver a contactar<input type="date" className="i-in" value={fs.volver || ''} onChange={ev => fecha(e, 'volver', ev.target.value)} /></label>
+                <div className="k3-acc"><button className={`i-btn sm ${toca ? 'p' : ''}`} onClick={() => setBorrador({ e, plantilla: 'rec' })}><Icon n="send" s={16} />Escribir recordatorio</button>
+                  {fs.volver && <Cal e={e} f={fs.volver} titulo="Volver a escribir a" texto="Añadir al calendario" />}
+                  <button className="i-btn sm" onClick={() => ir(e, 'reunion')}>Han contestado</button></div>
+              </div>
+            )}
+            {col.id === 'reunion' && (
+              <div className="k3-paso">
+                <b>{fs.reunion ? diaSemana(fs.reunion) : 'Poned la fecha de la reunión'}</b>
+                <span>Preparad: superficie, especies y calendario de plantación.</span>
+                <label className="i-fecha">Fecha de la reunión<input type="date" className="i-in" value={fs.reunion || ''} onChange={ev => fecha(e, 'reunion', ev.target.value)} /></label>
+                <div className="k3-acc">{fs.reunion && <Cal e={e} f={fs.reunion} titulo="Reunión con" texto="Añadir al calendario" />}
+                  <button className="i-btn sm" onClick={() => cambiarEstado(e, 'cerrada', 'Movida a cerradas')}>Hay acuerdo</button></div>
+              </div>
+            )}
+          </article>
+        )
+      }} />
   )
 }
 
 // Borrador del mensaje: la plantilla ya viene rellena con los datos de la empresa; se puede editar.
-function Borrador({ e, plantilla, destino, cerrar, tab }) {
+function Borrador({ e, plantilla, cerrar, tab }) {
   const pl = PLANTILLAS[plantilla]
   const [asunto, setAsunto] = useState(() => rellenar(pl.asunto, e))
   const [cuerpo, setCuerpo] = useState(() => rellenar(pl.cuerpo, e))
@@ -290,10 +302,10 @@ function Borrador({ e, plantilla, destino, cerrar, tab }) {
   useEffect(() => { const k = ev => { if (ev.key === 'Escape') cerrar() }; addEventListener('keydown', k); return () => removeEventListener('keydown', k) }, [cerrar])
   const copiar = async () => { try { await navigator.clipboard.writeText(`${asunto}\n\n${cuerpo}`); setCopiado(true); setTimeout(() => setCopiado(false), 2500) } catch { /* sin portapapeles */ } }
   const enviado = () => {
-    const fase = destino || (plantilla === 'rec' ? 'recordatorio' : 'contactada')
+    const fase = plantilla === 'rec' ? 'recordatorio' : 'contactada'
     tab.cambiarRaiz(d => {
       const c = d.contactos[e.id] || {}
-      return { ...d, contactos: { ...d.contactos, [e.id]: { ...c, col: fase, envios: [...(c.envios || []), { plantilla, fecha: hoyISO() }],
+      return { ...d, contactos: { ...d.contactos, [e.id]: { ...c, col: 'contacto', envios: [...(c.envios || []), { plantilla, fecha: hoyISO() }],
         fechas: { ...(c.fechas || {}), [fase]: hoyISO(), ...(recordar ? { volver: mas(pl.espera) } : {}) } } } }
     })
     cerrar()
