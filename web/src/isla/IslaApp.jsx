@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
-import { tree } from './lp.js'
+import { semilla } from './lp.js'
 import Convocatorias, { Descarte } from './Convocatorias.jsx'
 import Presentar from './Presentar.jsx'
 import Empresas from './Empresas.jsx'
@@ -147,7 +147,7 @@ export default function IslaApp({ salir }) {
   return (
     <div className="isla">
       <aside className="i-rail">
-        <Svg className="mk" html={tree(40, 40, 30)} />
+        <Svg className="mk" html={semilla(50, 50)} />
         {nav.map(([k, i, t, c]) => (
           <button key={k} className={`it ${vista === k || (k === 'conv' && vista === 'presentar') ? 'on' : ''}`} onClick={() => ir(k === 'conv' ? 'revisar' : k)}>
             <Icon n={i} s={22} />{t}{c ? <span className="cnt">{c}</span> : null}
@@ -168,7 +168,11 @@ const NIVEL_TXT = { vencido: 'Vencido', urgente: 'Urgente', pronto: 'Pronto' }
 function Campana({ seg, ir }) {
   const [abierta, setAbierta] = useState(false)
   const caja = useRef(null)
-  const avisos = seg?.avisos || []
+  // Avisos quitados a mano (solo en este navegador). La clave lleva la fecha: si el paso cambia de fecha, vuelve a salir.
+  const claveAviso = x => `${x.tipo}:${x.id}:${seg?.en_marcha?.find(m => m.tipo === x.tipo && m.id === x.id)?.fecha_paso || ''}`
+  const [quitados, setQuitados] = useState(() => { try { return JSON.parse(localStorage.getItem('radar-avisos-quitados') || '[]') } catch { return [] } })
+  const guardarQuitados = l => { setQuitados(l); try { localStorage.setItem('radar-avisos-quitados', JSON.stringify(l.slice(-200))) } catch { /* sin almacenamiento */ } }
+  const avisos = (seg?.avisos || []).filter(x => !quitados.includes(claveAviso(x)))
   useEffect(() => {
     if (!abierta) return
     const fuera = e => { if (!caja.current?.contains(e.target)) setAbierta(false) }
@@ -186,13 +190,14 @@ function Campana({ seg, ir }) {
       </button>
       {abierta && (
         <div className="i-pop" role="dialog" aria-label="Avisos">
-          <div className="cab"><b>Avisos</b>{avisos.length > 0 && <span>{avisos.length}</span>}</div>
+          <div className="cab"><b>Avisos</b>{avisos.length > 0 && <span>{avisos.length}</span>}
+            {avisos.length > 1 && <button className="todo" onClick={() => guardarQuitados([...quitados, ...avisos.map(claveAviso)])}>Quitar todos</button>}</div>
           {avisos.length === 0 && <p className="vacio">Todo al día. No hay pasos que venzan pronto.</p>}
           <ul>
             {avisos.map(x => {
               const m = detalle(x)
               return (
-                <li key={`${x.tipo}${x.id}`}>
+                <li key={`${x.tipo}${x.id}`} className="av">
                   <button onClick={() => { setAbierta(false); ir(x.tipo === 'empresa' ? 'empresas' : 'presentadas') }}>
                     <i className={`pt ${x.nivel}`} aria-hidden="true" />
                     <span className="tx">
@@ -201,6 +206,7 @@ function Campana({ seg, ir }) {
                     </span>
                     <span className={`cu ${x.nivel}`}>{NIVEL_TXT[x.nivel] ? `${cuando(x.dias)}` : ''}</span>
                   </button>
+                  <button className="quitar" aria-label="Quitar este aviso" title="Quitar este aviso" onClick={() => guardarQuitados([...quitados, claveAviso(x)])}>×</button>
                 </li>
               )
             })}

@@ -116,3 +116,9 @@ export function plant(stage) {
   return `<svg viewBox="0 0 80 80" width="80" height="80">${s}</svg>`
 }
 export const tree = (w, h, size, col = '#79C08A') => `<svg viewBox="0 0 ${w} ${h}" width="${w}" height="${h}">${LP.conifer(w / 2, h, size, col)}</svg>`
+// Logo de Reforesta: un brote (la «semilla») con hojas facetadas, como el icono de la web.
+export const semilla = (w, h) => `<svg viewBox="0 0 512 512" width="${w}" height="${h}" aria-hidden="true">
+<path d="M256 372V226" stroke="#F1F6F2" stroke-width="26" stroke-linecap="round"/>
+<path d="M256 244c-62 0-100-38-100-96 62 0 100 38 100 96z" fill="#9BD3A8"/><path d="M256 244c-62 0-100-38-100-96 42 30 72 62 100 96z" fill="#79C08A"/>
+<path d="M256 288c0-52 38-90 100-90 0 58-38 90-100 90z" fill="#9BD3A8"/><path d="M256 288c0-52 38-90 100-90-34 24-66 54-100 90z" fill="#B7E2C1"/>
+<path d="M166 376h180c0 42-40 66-90 66s-90-24-90-66z" fill="#E5D8C5"/><path d="M256 376h90c0 42-40 66-90 66z" fill="#CDBEA8"/></svg>`

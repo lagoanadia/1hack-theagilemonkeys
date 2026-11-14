@@ -243,6 +243,9 @@ const COLS = [
   { id: 'reunion', nombre: 'Reunión', color: 'verde', nota: 'Acordada', fija: true },
 ]
 function Contacto({ lista, tab, cambiarEstado, setBorrador }) {
+  // Tarjetas plegadas: solo la cabecera; al pulsarla se despliega el resto.
+  const [abiertas, setAbiertas] = useState(() => new Set())
+  const alternar = id => setAbiertas(x => { const n = new Set(x); if (n.has(id)) n.delete(id); else n.add(id); return n })
   const contactos = tab.datos.contactos
   const datosDe = e => contactos[e.id] || {}
   const colDe = e => (e.estado === 'reunion' ? 'reunion' : datosDe(e).col === 'pendiente' ? 'pendiente' : datosDe(e).col === 'contacto' || datosDe(e).envios?.length ? 'contacto' : 'pendiente')
@@ -278,10 +281,20 @@ function Contacto({ lista, tab, cambiarEstado, setBorrador }) {
         const cc = contactoDe(tab, e), tiene = cc.email || cc.telefono || cc.web
         const dias = fs.volver ? diasHasta(fs.volver) : null, toca = dias !== null && dias <= 0
         return (
-          <article className="tc k3">
-            <div className="k3-id"><span className={`em-ini peq ${TONOS[hash(e.id) % TONOS.length]}`} aria-hidden="true">{iniciales(e)}</span>
-              <div className="em-nom"><h3 title={e.promotor}>{nombreCorto(e)}</h3><p title={e.proyecto}>{e.proyecto}</p></div></div>
-            <div className="k3-tags"><span className={`i-tag em-enc-t ${nivel(e.encaje ?? 0)}`}>Afinidad {e.encaje ?? 0}</span><button className="i-link" onClick={() => cambiarEstado(e, 'descartada', 'Empresa descartada')}>Descartar</button></div>
+          <article className={`tc k3 ${abiertas.has(e.id) ? 'abierta' : 'plegada'}`}>
+            <button type="button" className="k3-cab" aria-expanded={abiertas.has(e.id)} onClick={() => alternar(e.id)}>
+              <span className={`em-ini peq ${TONOS[hash(e.id) % TONOS.length]}`} aria-hidden="true">{iniciales(e)}</span>
+              <span className="em-nom"><b title={e.promotor}>{nombreCorto(e)}</b><small title={e.proyecto}>{e.proyecto}</small>
+                <span className={`k3-res ${toca ? 'hot' : ''}`}>
+                  {col.id === 'pendiente' && (tiene ? <><Icon n="check" s={12} w={3} />Contacto listo · falta escribir</> : 'Sin contacto todavía')}
+                  {col.id === 'contacto' && (fs.volver ? (toca ? 'Toca volver a escribir' : `Volver a escribir el ${fechaLarga(fs.volver)}`) : 'Esperando respuesta')}
+                  {col.id === 'reunion' && (fs.reunion ? `Reunión el ${fechaLarga(fs.reunion)}` : 'Falta fecha de reunión')}
+                </span></span>
+              <span className={`i-tag em-enc-t ${nivel(e.encaje ?? 0)}`}>{e.encaje ?? 0}</span>
+              <svg className="k3-fl" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>
+            </button>
+            {abiertas.has(e.id) && <>
+            <div className="k3-tags"><span className="tb-mut">Afinidad {e.encaje ?? 0} / 100</span><button className="i-link" onClick={() => cambiarEstado(e, 'descartada', 'Empresa descartada')}>Descartar</button></div>
             <div className="k3-con"><small>Contacto</small><Contactos e={e} tab={tab} /></div>
             {col.id === 'pendiente' && (
               <div className="k3-acc"><button className={`i-btn sm ${tiene ? 'p' : ''}`} onClick={() => setBorrador({ e, plantilla: 'm1' })}><Icon n="send" s={16} />Escribir mensaje</button></div>
@@ -306,6 +319,7 @@ function Contacto({ lista, tab, cambiarEstado, setBorrador }) {
                   <button className="i-btn sm" onClick={() => cambiarEstado(e, 'cerrada', 'Movida a cerradas')}>Hay acuerdo</button></div>
               </div>
             )}
+            </>}
           </article>
         )
       }} />

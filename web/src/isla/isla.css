@@ -1040,3 +1040,24 @@ html,body{margin:0}
 .dsp-btn{white-space:nowrap}
 .i-perfil .dsp .dsp-campo{min-width:170px}
 .i-perfil textarea.auto-txt{padding-bottom:10px}
+/* En contacto: tarjetas plegadas (cabecera) que se despliegan al pulsar */
+.k3-cab{width:100%;display:flex;align-items:center;gap:10px;text-align:left;padding:2px 22px 2px 0;border-radius:14px;cursor:pointer}
+.k3-cab .em-nom{flex:1;min-width:0;display:flex;flex-direction:column}
+.k3-cab .em-nom b{font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.k3-cab .em-nom small{font-size:13px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.k3-res{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;color:var(--nvs);margin-top:3px}
+.k3-res.hot{color:var(--co-d)}
+.k3-cab .i-tag{flex-shrink:0}
+.k3-fl{flex-shrink:0;color:var(--mut);transition:transform .15s}
+.k3.abierta .k3-fl{transform:rotate(180deg)}
+.k3.plegada{gap:0}
+.k3.abierta .k3-cab{margin-bottom:6px}
+/* Campana: quitar avisos uno a uno */
+.i-pop .cab .todo{margin-left:auto;font-size:12.5px;font-weight:700;color:var(--nvs);padding:4px 8px;border-radius:8px}.i-pop .cab .todo:hover{background:var(--soft)}
+.i-pop li.av{position:relative}
+.i-pop li.av>button:first-child{padding-right:40px}
+.i-pop li.av .quitar{position:absolute;right:6px;top:8px;width:28px;height:28px;border-radius:9px;font-size:18px;line-height:1;color:var(--mut);opacity:0;transition:opacity .12s}
+.i-pop li.av:hover .quitar,.i-pop li.av .quitar:focus-visible{opacity:1}
+.i-pop li.av .quitar:hover{background:#fff;color:var(--co-d);box-shadow:0 1px 0 var(--ln)}
+@media (hover:none){.i-pop li.av .quitar{opacity:1}}
+.i-pop li.av .cu{margin-right:4px}

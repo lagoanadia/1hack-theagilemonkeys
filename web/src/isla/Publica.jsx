@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
-import { island, tree } from './lp.js'
+import { island, semilla } from './lp.js'
 import { mapaLugar } from './mapa.js'
 import { GloboInfo } from './Globo.jsx'
 import { api } from '../api.js'
@@ -43,7 +43,7 @@ export default function Publica({ equipo, onEntrar }) {
   return (
     <div className="isla i-pub">
       <div className="phead">
-        <span className="brand"><Svg className="mk" html={tree(34, 34, 28, '#79C08A')} />Reforesta</span>
+        <span className="brand"><Svg className="mk" html={semilla(40, 40)} />Reforesta</span>
         <span className="sub" style={{ color: 'var(--mut)', fontWeight: 600 }}>Proyectos de reforestación · Madrid</span>
         {equipo
           ? <a className="i-btn n sm" href="#/">Volver al panel</a>
