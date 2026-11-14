@@ -1,8 +1,11 @@
-import { Fragment, useEffect, useState } from 'react'
+import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
 import { plant } from './lp.js'
 import { api } from '../api.js'
 import { LINEAS, descartadaPor, etapaDe, fechaCorta } from '../datos.js'
+import { useSecciones } from '../tablero.js'
+import Tablero from './Tablero.jsx'
+import { useProgresoDocs } from './papeles.js'
 
 // Pantalla «Convocatorias»: Radar → En proceso → Presentado, y Descartadas (icono aparte).
 // Datos: convocatorias.json (radar) + estados del equipo (API /solicitudes, ver radar.js)
@@ -35,27 +38,29 @@ export default function Convocatorias(props) {
   const { radar, visibles, etapa, ir, top, seg, perfil } = props
   const n = { revisar: 0, preparando: 0, presentadas: 0, descartadas: 0 }
   visibles.forEach(a => { n[etapaDe(a)]++ })
-  const etapas = [['revisar', 'Radar', 'radar'], ['preparando', 'En proceso', 'doc'], ['presentadas', 'Presentado', 'send']]
-  // Las etapas son iconos junto al título: el activo muestra su nombre y todos llevan su contador.
-  const iconos = (
-    <div className="i-etapas" role="group" aria-label="Estado de las convocatorias">
-      {etapas.map(([k, t, ic], i) => (
-        <Fragment key={k}>
-          <button className={`e ${etapa === k ? 'on' : ''} ${k === 'revisar' && n.revisar ? 'hot' : ''}`} aria-pressed={etapa === k} aria-label={`${t}: ${n[k]}`} title={`${t}: ${n[k]}`} onClick={() => ir(k)}>
-            <Icon n={ic} s={20} /><span className="t">{t}</span><b>{n[k]}</b>
-          </button>
-          {i < 2 && <span className="arr"><Icon n="keyR" s={13} w={2.4} /></span>}
-        </Fragment>
-      ))}
-      <span className="sep" />
-      <button className={`e ${etapa === 'descartadas' ? 'on' : ''}`} aria-pressed={etapa === 'descartadas'} aria-label={`Descartadas: ${n.descartadas}`} title={`Descartadas: ${n.descartadas}`} onClick={() => ir('descartadas')}>
-        <Icon n="archive" s={20} /><span className="t">Descartadas</span><b>{n.descartadas}</b>
+  const etapas = [['revisar', 'Radar', 'radar', 'Por revisar'], ['preparando', 'En proceso', 'doc', 'Preparando papeles'], ['presentadas', 'Presentado', 'send', 'Enviadas']]
+  // El ciclo de vida ocupa el sitio del título: Radar → En proceso → Presentado, y aparte Descartadas.
+  const ciclo = (
+    <nav className="i-ciclo" aria-label="Fase de las convocatorias">
+      <ol>
+        {etapas.map(([k, t, ic, sub], i) => (
+          <Fragment key={k}>
+            <li><button className={`e ${etapa === k ? 'on' : ''} ${k === 'revisar' && n.revisar ? 'hot' : ''}`} aria-current={etapa === k ? 'page' : undefined} aria-label={`${t}: ${n[k]}`} onClick={() => ir(k)}>
+              <span className="ic"><Icon n={ic} s={25} /></span><span className="tx"><b>{t}</b><small>{sub}</small></span><span className="ct">{n[k]}</span>
+            </button></li>
+            {i < 2 && <li className="arr" aria-hidden="true"><Icon n="keyR" s={18} w={2.6} /></li>}
+          </Fragment>
+        ))}
+      </ol>
+      <span className="sep" aria-hidden="true" />
+      <button className={`e ap ${etapa === 'descartadas' ? 'on' : ''}`} aria-current={etapa === 'descartadas' ? 'page' : undefined} aria-label={`Descartadas: ${n.descartadas}`} onClick={() => ir('descartadas')}>
+        <span className="ic"><Icon n="archive" s={22} /></span><span className="tx"><b>Descartadas</b></span><span className="ct">{n.descartadas}</span>
       </button>
-    </div>
+    </nav>
   )
   return (
     <>
-      {top('Convocatorias', false, iconos)}
+      {top(null, false, ciclo)}
       {etapa === 'revisar' && <Revisar {...props} generado={radar.conv?.generado} />}
       {etapa === 'preparando' && <Preparando {...props} lista={visibles.filter(a => etapaDe(a) === 'preparando')} />}
       {etapa === 'presentadas' && <Presentado {...props} seg={seg} perfil={perfil} lista={visibles.filter(a => etapaDe(a) === 'presentadas')} />}
@@ -189,37 +194,79 @@ export function Descarte({ a, cerrar, guardar }) {
   )
 }
 
-// En proceso: las que habéis elegido presentar. Se quedan aquí hasta que las presentéis
-// («Ya la he presentado» las pasa a Presentado) o las descartéis.
-function Preparando({ lista, ir, seg, setDescartando, cambiarEstado }) {
+
+// ---------------------------------------------------------------------------------------------
+// En proceso, Presentado y Descartadas comparten formato: secciones tipo Notion (<Tablero>) con
+// tarjetas compactas que se arrastran de una sección a otra. Las secciones y el orden se guardan
+// en GET/PUT /api/tablero (ver tablero.js).
+const porPlazo = (a, b) => (a.plazo || '9999').localeCompare(b.plazo || '9999')
+const urgente = a => a.dias != null && a.dias >= 0 && a.dias <= 15
+
+// Barra de documentos: subidos / los que pide la convocatoria. Ámbar mientras faltan, verde al completar.
+function Prog({ p }) {
+  if (!p) return <div className="tc-prog cargando"><div className="t">Contando los papeles…</div><div className="bar"><i style={{ width: '0%' }} /></div></div>
+  if (!p.total) return null
+  const ok = p.hechos >= p.total
   return (
-    <div className="i-lista">
-      <div className="i-head" style={{ alignItems: 'flex-end' }}>
-        <div><h2>En proceso</h2><p className="i-sub" style={{ margin: '4px 0 0' }}>Las que habéis elegido presentar. Cuando las presentéis, pasan a Presentado.</p></div>
-        <span className="i-tag">Por plazo</span>
-      </div>
-      {lista.length === 0 && <div className="i-card i-empty">Nada en proceso. Las que marquéis «Presentar» aparecerán aquí.</div>}
-      {[...lista].sort((a, b) => (a.plazo || '9999').localeCompare(b.plazo || '9999')).map(a => {
-        const s = segDe(seg, a.id)
+    <div className={`tc-prog ${ok ? 'ok' : p.hechos ? 'am' : 'cero'}`} role="progressbar" aria-valuemin={0} aria-valuemax={p.total} aria-valuenow={p.hechos} aria-label={`${p.hechos} de ${p.total} documentos subidos`}>
+      <div className="t"><Icon n={ok ? 'check' : 'doc'} s={14} w={ok ? 3 : 2} /><b>{p.hechos} de {p.total}</b> documentos{ok ? ' · ¡listos!' : ''}</div>
+      <div className="bar"><i style={{ width: `${Math.max(p.hechos ? 8 : 0, (p.hechos / p.total) * 100)}%` }} /></div>
+    </div>
+  )
+}
+
+// Ruta corta de una solicitud presentada: en qué fase está y cuántas le quedan.
+function Ruta({ p, estado }) {
+  const mal = estado === 'subsanar' || estado === 'denegada'
+  return (
+    <ol className="tc-ruta" aria-label={`Fase ${Math.min(p + 1, 4)} de 4: ${estado === 'terminada' ? 'Terminada' : PASOS_TXT[p] || ''}`}>
+      {PASOS_TXT.map((t, i) => <li key={t} className={i < p ? 'd' : i === p ? `now ${mal ? 'mal' : ''}` : ''}><i>{i < p && <Icon n="check" s={11} w={3.6} />}</i><span>{t}</span></li>)}
+    </ol>
+  )
+}
+
+function Mas({ children, texto = 'Más detalles' }) {
+  const [abierto, setAbierto] = useState(false)
+  return (
+    <>
+      <button className="tc-mas" aria-expanded={abierto} onClick={() => setAbierto(!abierto)}>{abierto ? 'Menos detalles' : texto}<Icon n="keyD" s={14} w={2.8} /></button>
+      {abierto && <div className="tc-det">{children}</div>}
+    </>
+  )
+}
+
+// En proceso: las que habéis elegido presentar. «Presentar» las pasa a Presentado.
+function Preparando({ lista, ir, seg, setDescartando, cambiarEstado, tab }) {
+  const prog = useProgresoDocs(lista)
+  const t = useSecciones(tab, 'preparando', lista, porPlazo)
+  return (
+    <Tablero {...t} vacio="Nada en proceso. Las que marquéis «Presentar» en el Radar aparecerán aquí."
+      izq={<span className="i-hint">{lista.length ? 'Arrastrad las tarjetas para ordenarlas o clasificarlas' : 'Aquí van las convocatorias que decidís presentar'}</span>}
+      card={a => {
+        const s = segDe(seg, a.id), p = prog[a.id], listo = p && p.total > 0 && p.hechos >= p.total
         return (
-          <div key={a.id} className="i-card i-proc">
-            <div className="tags"><span className="i-tag">{a.organo}</span><span className="i-tag">BDNS {a.codigo}</span><span className="i-tag">Pendiente</span></div>
-            <h3>{a.titulo}</h3>
-            <div className="facts">
+          <article className="tc">
+            <div className="tc-tags"><span className="i-tag" title={a.organo}>{a.organo}</span></div>
+            <h4 title={a.titulo}>{tituloCorto(a)}</h4>
+            <div className="tc-cifras">
               <div><span>Importe</span><b className={a.importe ? '' : 'i-ni'}>{a.importe || 'No indicado'}</b></div>
-              <div className="hot"><span>Plazo</span><b>{plazoTxt(a)}</b>{a.plazo && <small>{fechaCorta(a.plazo)}</small>}</div>
-              <div><span>Siguiente paso</span><b className="paso">{s?.siguiente_paso || 'Presentar la solicitud'}</b>{a.sol?.actualizado_por && <small>Elegida por {a.sol.actualizado_por}</small>}</div>
+              <div className={urgente(a) ? 'hot' : ''}><span>Plazo</span><b>{plazoTxt(a)}</b>{a.plazo && <small>{fechaCorta(a.plazo)}</small>}</div>
             </div>
-            <div className="acc">
+            <Prog p={p} />
+            <div className="tc-acc">
               <button className="i-link" onClick={() => ir('presentar', a.id)}><Icon n="doc" s={16} />Ver papeles</button>
               <span style={{ flex: 1 }} />
-              <button className="i-btn sm" onClick={() => setDescartando(a)}>Descartar</button>
-              <button className="i-btn p sm" onClick={() => cambiarEstado(a, 'presentada')}>Ya la he presentado</button>
+              <button className={`i-btn sm ${listo ? 'p' : ''}`} title={listo ? 'Tenéis todos los documentos' : 'Aún faltan documentos, pero podéis presentarla'} onClick={() => cambiarEstado(a, 'presentada')}>Presentar</button>
             </div>
-          </div>
+            <Mas>
+              <p><b>Siguiente paso:</b> {s?.siguiente_paso || 'Presentar la solicitud'}</p>
+              {a.sol?.actualizado_por && <p>Elegida por {a.sol.actualizado_por}</p>}
+              <p><span className="i-tag">BDNS {a.codigo}</span></p>
+              <div className="tc-acc"><button className="i-link" onClick={() => setDescartando(a)}><Icon n="x" s={15} w={2.4} />Descartar</button>{a.url && <a className="i-link" href={a.url} target="_blank" rel="noopener noreferrer">Ver convocatoria ↗</a>}</div>
+            </Mas>
+          </article>
         )
-      })}
-    </div>
+      }} />
   )
 }
 
@@ -242,85 +289,95 @@ const MENSAJE = {
   concedida: '¡Os la han concedido! Toca plantar.', plantar: 'Ahora toca plantar.', justificar: 'Último paso: justificar el gasto.',
   denegada: 'No ha sido concedida.', terminada: 'Terminada. ¡Un árbol más en la isla!',
 }
-function Presentado({ lista, cambiarEstado, cambiarPaso, seg, perfil, ir }) {
+function Presentado({ lista, cambiarEstado, cambiarPaso, seg, perfil, ir, tab }) {
   const [vista, setVista] = useState('marcha')
   const fin = a => a.estado === 'terminada' || a.estado === 'denegada'
-  const enMarcha = lista.filter(a => !fin(a)).sort((a, b) => (segDe(seg, a.id)?.dias ?? 9999) - (segDe(seg, b.id)?.dias ?? 9999)), term = lista.filter(fin)
+  const enMarcha = useMemo(() => lista.filter(a => !fin(a)), [lista])
+  const term = useMemo(() => lista.filter(fin), [lista])
   const ver = vista === 'marcha' ? enMarcha : term
+  const cmp = useCallback((a, b) => (segDe(seg, a.id)?.dias ?? 9999) - (segDe(seg, b.id)?.dias ?? 9999), [seg])
+  const prog = useProgresoDocs(lista)
+  const t = useSecciones(tab, 'presentadas', ver, cmp)
   const avisos = (seg?.avisos || []).filter(x => x.tipo === 'convocatoria')
   return (
-    <div className="i-lista">
-      <div className="i-head" style={{ alignItems: 'flex-end' }}>
-        <div><h2>Presentado</h2><p className="i-sub" style={{ margin: '4px 0 0' }}>Ya enviadas. Os avisamos cuando se acerque cada paso.</p></div>
-        <div className="i-seg"><button className={vista === 'marcha' ? 'on' : ''} onClick={() => setVista('marcha')}>En marcha · {enMarcha.length}</button><button className={vista === 'term' ? 'on' : ''} onClick={() => setVista('term')}>Terminadas · {term.length}</button></div>
-      </div>
+    <>
       {avisos.length > 0 && vista === 'marcha' && (
-        <div className="i-avisos" role="status">{avisos.map(x => <div key={`${x.tipo}${x.id}`} className={x.nivel}><Icon n="bell" s={16} />{x.texto}</div>)}</div>
+        <div className="i-avisos" role="status" style={{ marginBottom: 10 }}>{avisos.map(x => <div key={`${x.tipo}${x.id}`} className={x.nivel}><Icon n="bell" s={16} />{x.texto}</div>)}</div>
       )}
-      {ver.length === 0 && <div className="i-card i-empty">{vista === 'marcha' ? 'No hay solicitudes en marcha.' : 'Aún no hay solicitudes terminadas.'}</div>}
-      {ver.map(a => {
-        const p = PASO_DE[a.estado], s = segDe(seg, a.id), sig = SIGUIENTE[a.estado] || []
-        const alerta = a.estado === 'subsanar' || a.estado === 'denegada'
-        return (
-          <div key={a.id} className="i-card i-proc">
-            <div className="tags"><span className="i-tag">{a.organo}</span><span className="i-tag">BDNS {a.codigo}</span><span className="i-tag">{a.estado === 'subsanar' ? 'Por subsanar' : a.estado === 'denegada' ? 'Denegada' : a.estado === 'terminada' ? 'Terminada' : PASOS_TXT[p]}</span></div>
-            <h3>{a.titulo}</h3>
-            <div className="facts">
-              <div><span>Importe</span><b className={a.importe ? '' : 'i-ni'}>{a.importe || 'No indicado'}</b></div>
-              <div className={`cuenta ${s?.nivel || 'sin_fecha'}`}>
-                <span>{s?.siguiente_paso || (fin(a) ? 'Cerrada' : 'Siguiente paso')}</span>
-                <b>{fin(a) ? '—' : cuenta(s?.dias)}</b>
-                <small>{s?.fecha_paso ? `Previsto el ${fechaCorta(s.fecha_paso)}` : fin(a) ? '' : 'Sin fecha: poned una'}</small>
+      <Tablero {...t} vacio={vista === 'marcha' ? 'No hay solicitudes en marcha. Las que presentéis aparecerán aquí.' : 'Aún no hay solicitudes finalizadas.'}
+        izq={<div className="i-seg" role="group" aria-label="Filtro"><button aria-pressed={vista === 'marcha'} className={vista === 'marcha' ? 'on' : ''} onClick={() => setVista('marcha')}>En marcha · {enMarcha.length}</button><button aria-pressed={vista === 'term'} className={vista === 'term' ? 'on' : ''} onClick={() => setVista('term')}>Finalizado · {term.length}</button></div>}
+        card={a => {
+          const p = PASO_DE[a.estado], s = segDe(seg, a.id), sig = SIGUIENTE[a.estado] || []
+          const alerta = a.estado === 'subsanar' || a.estado === 'denegada', cierre = fin(a)
+          return (
+            <article className="tc">
+              <div className="tc-tags"><span className="i-tag" title={a.organo}>{a.organo}</span>{alerta && <span className="i-tag mal">{a.estado === 'subsanar' ? 'Por subsanar' : 'Denegada'}</span>}</div>
+              <h4 title={a.titulo}>{tituloCorto(a)}</h4>
+              <Ruta p={p} estado={a.estado} />
+              <div className="tc-cifras">
+                <div><span>Importe</span><b className={a.importe ? '' : 'i-ni'}>{a.importe || 'No indicado'}</b></div>
+                {cierre ? <div><span>Estado</span><b>{a.estado === 'terminada' ? 'Terminada' : 'Denegada'}</b></div>
+                  : <div className={`cuenta ${s?.nivel || 'sin_fecha'}`}><span title={s?.siguiente_paso}>{s?.siguiente_paso || 'Siguiente paso'}</span><b>{cuenta(s?.dias)}</b>{s?.fecha_paso ? <small>{fechaCorta(s.fecha_paso)}</small> : <small>Sin fecha</small>}</div>}
               </div>
-              <div><span>Última actualización</span><b className="paso">{a.sol?.actualizado ? fechaCorta(a.sol.actualizado) : '—'}</b>{a.sol?.actualizado_por && <small>por {a.sol.actualizado_por}</small>}</div>
-            </div>
-            <div className="i-stp">{PASOS_TXT.map((t, i) => <span key={t} className={i < p ? 'd' : i === p ? 'now' : ''}>{i < p && <Icon n="check" s={13} w={3} />}{t}</span>)}</div>
-            <div className="i-msg" style={{ marginTop: 12, maxWidth: 'none', background: alerta ? 'var(--co-l)' : 'var(--soft)', color: alerta ? 'var(--co-d)' : 'var(--nv)' }}>{MENSAJE[a.estado]}</div>
-            <div className="acc">
-              {!fin(a) && (
-                <label className="i-fecha">Cambiar la fecha
-                  <input type="date" className="i-in" value={s?.fecha_paso?.slice(0, 10) || ''} onChange={e => e.target.value && cambiarPaso(a, { fecha_paso: e.target.value })} />
-                </label>
-              )}
-              <span style={{ flex: 1 }} />
-              {sig.map(([e, t], i) => <button key={e} className={i === 0 ? 'i-btn p sm' : 'i-link'} style={i ? { color: 'var(--mut)' } : null} onClick={() => cambiarEstado(a, e)}>{i === 0 ? `${t} →` : t}</button>)}
-            </div>
-          </div>
-        )
-      })}
-      <p className="i-sub" style={{ margin: '4px 0 0' }}><Icon n="bell" s={15} /> {AVISOS_TXT[perfil?.avisos] || AVISOS_TXT.cada_manana}. <button className="i-link" onClick={() => ir('perfil')}>Cambiar en Perfil</button></p>
-    </div>
+              <Prog p={prog[a.id]} />
+              <div className="i-msg tc-msg" style={{ background: alerta ? 'var(--co-l)' : 'var(--soft)', color: alerta ? 'var(--co-d)' : 'var(--nv)' }}>{MENSAJE[a.estado]}</div>
+              {sig.length > 0 && <div className="tc-acc"><button className={`i-btn sm ${alerta || ['urgente', 'vencido', 'pronto'].includes(s?.nivel) ? 'p' : ''}`} style={{ flex: 1 }} onClick={() => cambiarEstado(a, sig[0][0])}>{sig[0][1]} →</button></div>}
+              <Mas>
+                {!cierre && <label className="i-fecha">Cambiar la fecha<input type="date" className="i-in" value={s?.fecha_paso?.slice(0, 10) || ''} onChange={e => e.target.value && cambiarPaso(a, { fecha_paso: e.target.value })} /></label>}
+                <p><b>Última actualización:</b> {a.sol?.actualizado ? fechaCorta(a.sol.actualizado) : '—'}{a.sol?.actualizado_por ? ` · ${a.sol.actualizado_por}` : ''}</p>
+                <div className="tc-acc">{sig.slice(1).map(([e, tx]) => <button key={e} className="i-link" style={{ color: 'var(--mut)' }} onClick={() => cambiarEstado(a, e)}>{tx}</button>)}{a.url && <a className="i-link" href={a.url} target="_blank" rel="noopener noreferrer">Ver convocatoria ↗</a>}</div>
+              </Mas>
+            </article>
+          )
+        }} />
+      <p className="i-sub" style={{ margin: '14px 0 0' }}><Icon n="bell" s={15} /> {AVISOS_TXT[perfil?.avisos] || AVISOS_TXT.cada_manana}. <button className="i-link" onClick={() => ir('perfil')}>Cambiar en Perfil</button></p>
+    </>
   )
 }
 
-function Descartadas({ lista, recuperar }) {
-  const [seg, setSeg] = useState('radar')
-  const [tope, setTope] = useState(30)
-  const por = { radar: lista.filter(a => descartadaPor(a) === 'radar'), equipo: lista.filter(a => descartadaPor(a) === 'equipo') }
-  const ver = por[seg]
+// Descartadas: una sección por motivo. «Descartadas por el radar» recoge lo que el radar descartó (solo se
+// puede sacar de ahí); el resto son los motivos del equipo (GET /api/motivos). Arrastrar una tarjeta a otro
+// motivo la reclasifica (PUT con motivos); «Nueva sección» crea un motivo (POST /api/motivos).
+function Descartadas({ lista, recuperar, reclasificar, tab }) {
+  const [cat, setCat] = useState([])
+  const cargar = useCallback(() => api('/motivos').then(l => setCat(l.map(m => m.texto))).catch(() => {}), [])
+  useEffect(() => { cargar() }, [cargar])
+  const motivoDe = a => (descartadaPor(a) === 'radar' ? null : a.sol?.motivos?.[0] || '')
+  const usos = useMemo(() => lista.reduce((o, a) => { const m = motivoDe(a); if (m) o[m] = (o[m] || 0) + 1; return o }, {}), [lista])
+  const extra = useMemo(() => {
+    const nombres = [...new Set([...cat, ...Object.keys(usos)])].sort((x, y) => (usos[y] || 0) - (usos[x] || 0))
+    return {
+      secs: [
+        ...nombres.map(m => ({ id: `m:${m}`, nombre: m, plegadaInicial: !usos[m] })),
+        { id: 'sin', nombre: 'Sin motivo', fija: true, plegadaInicial: !lista.some(a => motivoDe(a) === '') },
+        { id: 'radar', nombre: 'Descartadas por el radar', color: 'azul', fija: true, noSoltar: true },
+      ],
+      posDe: a => { const m = motivoDe(a); return m === null ? 'radar' : m ? `m:${m}` : 'sin' },
+    }
+  }, [cat, usos, lista])
+  const t = useSecciones(tab, 'descartadas', lista, porPlazo, { fija: true, disponer: extra })
+  const mover = (id, dest, idx, desde) => {
+    const a = lista.find(x => x.id === id)
+    if (a && dest !== desde && dest !== 'radar') reclasificar(a, dest === 'sin' ? [] : [dest.slice(2)])
+    t.onReordenar(id, dest, idx)
+  }
   return (
-    <>
-      <div className="i-head"><h2 style={{ fontSize: 26 }}>Lo que no os encaja, con su motivo</h2><div className="i-seg"><button className={seg === 'radar' ? 'on' : ''} onClick={() => { setSeg('radar'); setTope(30) }}>Por el radar · {por.radar.length}</button><button className={seg === 'equipo' ? 'on' : ''} onClick={() => { setSeg('equipo'); setTope(30) }}>Por vosotros · {por.equipo.length}</button></div></div>
-      <p className="i-sub">Nada desaparece sin explicar por qué. Si el radar se equivoca, recuperadla.</p>
-      <div className="i-grid2">
-        {ver.length === 0 && <div className="i-card i-empty" style={{ gridColumn: '1/3' }}>Nada por aquí.</div>}
-        {ver.slice(0, tope).map(a => (
-          <div key={a.id} className="i-card" style={{ padding: '18px 22px' }}>
-            <div className="i-head" style={{ alignItems: 'center' }}>
-              <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                {seg === 'equipo' ? (a.sol?.motivos?.length ? a.sol.motivos.map(m => <span key={m} className="i-tag">{m}</span>) : <span className="i-tag">Sin motivo</span>) : <span className="i-tag">El radar</span>}
-              </span>
-              <button className="i-link" onClick={() => recuperar(a)}><Icon n="undo" s={15} w={2.4} />Recuperar</button>
-            </div>
-            <b className="i-dt">{a.titulo}</b>
-            <div style={{ color: 'var(--mut)', fontSize: 14.5 }}>{a.organo}{a.plazo ? ` · plazo ${fechaCorta(a.plazo)}` : ''}</div>
-            {seg === 'radar' && a.motivo && <p className="i-mot">{a.motivo}</p>}
-            {seg === 'equipo' && a.sol?.nota && <p className="i-mot">{a.sol.nota}</p>}
-            {a.cita && <div className="i-cita" style={{ marginTop: 10, fontSize: 15, padding: '10px 14px' }}>«{a.cita}»<small style={{ color: 'var(--mut)' }}><Icon n="verified" s={13} />Frase del texto oficial</small></div>}
-          </div>
-        ))}
-      </div>
-      {ver.length > tope && <button className="i-btn sm" style={{ margin: '16px auto 0' }} onClick={() => setTope(tope + 30)}>Ver más ({ver.length - tope})</button>}
-    </>
+    <Tablero {...t} onMover={mover} tope={9} vacio="Arrastrad una tarjeta aquí para darle este motivo"
+      onNueva={async nombre => { try { await api('/motivos', { metodo: 'POST', datos: { texto: nombre } }); cargar() } catch { /* se reintenta al volver */ } }}
+      izq={<span className="i-hint">Nada desaparece sin explicar por qué. Arrastrad una tarjeta a otro motivo para reclasificarla.</span>}
+      card={(a, sec) => {
+        const motivos = sec.id === 'radar' ? [] : (a.sol?.motivos || []).filter(m => `m:${m}` !== sec.id)
+        return (
+          <article className="tc">
+            <div className="tc-tags">{sec.id === 'radar' ? <span className="i-tag">El radar</span> : motivos.map(m => <span key={m} className="i-tag">{m}</span>)}{sec.id !== 'radar' && !motivos.length && sec.id === 'sin' && <span className="i-tag">Sin motivo</span>}</div>
+            <h4 title={a.titulo}>{tituloCorto(a)}</h4>
+            <div className="tc-org">{a.organo}{a.plazo ? ` · plazo ${fechaCorta(a.plazo)}` : ''}</div>
+            {sec.id === 'radar' && a.motivo && <p className="i-mot tc-mot">{a.motivo}</p>}
+            {sec.id !== 'radar' && a.sol?.nota && <p className="i-mot tc-mot">{a.sol.nota}</p>}
+            <div className="tc-acc"><button className="i-link" onClick={() => recuperar(a)}><Icon n="undo" s={15} w={2.4} />Recuperar</button></div>
+            {a.cita && <Mas texto="Ver la frase oficial"><div className="i-cita" style={{ fontSize: 14, padding: '10px 14px' }}>«{a.cita}»<small><Icon n="verified" s={13} />Frase del texto oficial</small></div></Mas>}
+          </article>
+        )
+      }} />
   )
 }

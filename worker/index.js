@@ -31,6 +31,8 @@
 //   POST   /api/reglas                      {motivo, accion: aceptar|ignorar} o {texto} (equipo)
 //   PUT    /api/reglas/:id                  {texto}                                   (equipo)
 //   DELETE /api/reglas/:id                  quitar (y deshacer su criterio)           (equipo)
+//   GET    /api/tablero                     secciones, orden y colores de los tableros (equipo)
+//   PUT    /api/tablero                     {datos} guarda todo el tablero (JSON, máx. 60 KB)   (equipo)
 //   GET    /api/perfil                      lo que el radar sabe de Reforesta        (equipo)
 //   PUT    /api/perfil                      {nombre, zonas, ampliar_espana, ...}     (equipo)
 //   GET    /api/proyectos                   propuestas publicadas, con plazas libres  (público)
@@ -1027,6 +1029,28 @@ async function api(request, env, ruta) {
     if (metodo === "PUT") {
       const nuevo = await guardarPerfil(db, limpiarPerfil(await leerJSON(request)), autor);
       return json({ ok: true, perfil: { ...PERFIL_BASE, ...nuevo, guardado: true } });
+    }
+  }
+
+  // --- tableros (secciones de En proceso / Presentado / Descartadas, y la fase de contacto de Empresas):
+  // un único JSON en ajustes. Lo interpreta la web; aquí solo se limita su tamaño.
+  if (ruta === "/api/tablero") {
+    if (!equipo) return soloEquipo();
+    if (metodo === "GET") {
+      const fila = await db.prepare("SELECT valor, actualizado, actualizado_por FROM ajustes WHERE clave = 'tablero'").first();
+      return json({ datos: fila ? JSON.parse(fila.valor) : null, actualizado: fila?.actualizado || null, actualizado_por: fila?.actualizado_por || "" });
+    }
+    if (metodo === "PUT") {
+      const { datos } = await leerJSON(request);
+      const valor = JSON.stringify(datos ?? null);
+      if (!datos || typeof datos !== "object" || Array.isArray(datos)) return error("datos: un objeto JSON");
+      if (valor.length > 60000) return error("El tablero es demasiado grande");
+      await db.prepare(
+        `INSERT INTO ajustes (clave, valor, actualizado, actualizado_por) VALUES ('tablero', ?, ?, ?)
+         ON CONFLICT (clave) DO UPDATE SET valor = excluded.valor, actualizado = excluded.actualizado,
+         actualizado_por = excluded.actualizado_por`,
+      ).bind(valor, ahora(), autor).run();
+      return json({ ok: true });
     }
   }
 

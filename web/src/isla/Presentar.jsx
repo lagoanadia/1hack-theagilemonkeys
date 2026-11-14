@@ -3,6 +3,7 @@ import Icon, { Svg } from './Icon.jsx'
 import { island } from './lp.js'
 import { ErrorSesion, api, sesionGuardada, subirDocumento } from '../api.js'
 import { fechaCorta } from '../datos.js'
+import { LISTA_GENERAL, clave } from './papeles.js'
 
 // Pantalla «Preparar papeles», con vista dividida:
 //  · Izquierda: lo que pide ESTA convocatoria (el radar lo saca del PDF oficial: a.documentos_requeridos),
@@ -13,15 +14,6 @@ import { fechaCorta } from '../datos.js'
 //    del ordenador en un hueco, o usar el selector «Asignar» (accesible con teclado).
 // Si el radar no encontró la lista en el PDF, se usa una lista general y se avisa.
 
-const LISTA_GENERAL = [
-  { nombre: 'Estatutos inscritos', tipo: 'estatutos', obligatorio: true },
-  { nombre: 'CIF de la entidad', tipo: 'cif', obligatorio: true },
-  { nombre: 'Acreditación del representante legal', tipo: 'representante_legal', obligatorio: true },
-  { nombre: 'Certificado de estar al corriente con Hacienda', tipo: 'cert_hacienda', obligatorio: true },
-  { nombre: 'Certificado de estar al corriente con la Seguridad Social', tipo: 'cert_seg_social', obligatorio: true },
-  { nombre: 'Memoria del proyecto', tipo: 'memoria_proyecto', obligatorio: true },
-  { nombre: 'Presupuesto del proyecto', tipo: 'presupuesto', obligatorio: true },
-]
 const TIPO_NOMBRE = {
   estatutos: 'Estatutos', registro_entidad: 'Inscripción en registro', cif: 'CIF', representante_legal: 'Representante legal',
   cert_hacienda: 'Certificado de Hacienda', cert_seg_social: 'Certificado de la Seg. Social', declaracion_responsable: 'Declaración responsable',
@@ -31,8 +23,6 @@ const TIPO_NOMBRE = {
 }
 // Documentos propios de cada solicitud: no tienen sentido en la biblioteca general.
 const PROPIOS = ['memoria_proyecto', 'presupuesto', 'permiso_propietario', 'solicitud', 'anexo']
-const quitarTildes = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-const clave = r => `${r.tipo}-${quitarTildes(r.nombre).replace(/[^a-z0-9]+/g, '-')}`.slice(0, 80).replace(/-+$/, '')
 const MESL = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
 
 // ¿Sirve este documento para esta convocatoria? Caducidad y antigüedad máxima.
@@ -192,7 +182,7 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
             {plazo && <p>{a.plazoEstimado ? 'plazo estimado, ' : ''}hasta el {plazo.getDate()} de {MESL[plazo.getMonth()]}</p>}
             <Svg html={island(300, 200, Math.min(presentadas + 1, objetivo), objetivo)} style={{ display: 'block', margin: '6px 0 0' }} />
             <p className="tree">Al presentarla plantáis el árbol n.º {presentadas + 1}</p>
-            <button className="i-btn p" style={{ width: '100%' }} onClick={() => presentar(a)}><Icon n="check" s={19} w={2.6} />Ya la hemos presentado</button>
+            <button className="i-btn p" style={{ width: '100%' }} onClick={() => presentar(a)}><Icon n="check" s={19} w={2.6} />Presentar</button>
             {a.url && <a className="i-link" style={{ marginTop: 10 }} href={a.url} target="_blank" rel="noopener noreferrer">Ver convocatoria en la BDNS ↗</a>}
             {faltan > 0 && <small className="warn">Aún os {faltan === 1 ? 'falta 1 documento' : `faltan ${faltan} documentos`}</small>}
           </div>

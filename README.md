@@ -167,6 +167,16 @@ justificar: 90; preparando: el fin de plazo de la convocatoria). El equipo puede
 ordenado por urgencia (`vencido`, `urgente` ≤3 días, `pronto` ≤14, `ok`, `sin_fecha`) y los `avisos`
 en texto (los mismos que irán por correo).
 
+### Tableros (secciones tipo Notion)
+
+En proceso, Presentado y Descartadas de Convocatorias, y la fase de contacto de Empresas, se organizan en
+secciones con tarjetas que se arrastran (HTML5 nativo, también con teclado). Las secciones, su color, el orden
+y lo plegado se guardan como un único JSON compartido: `GET/PUT /api/tablero` (tabla `ajustes`, clave
+`tablero`, máx. 60 KB), con copia en `localStorage`. También guarda las empresas «vistas» (para «Nuevas de
+hoy») y los mensajes de contacto enviados. En Descartadas las secciones son los motivos (`/api/motivos`):
+arrastrar una tarjeta a otro motivo hace un `PUT /api/solicitudes/convocatoria/:codigo` con ese motivo.
+Código: `web/src/tablero.js` (estado) y `web/src/isla/Tablero.jsx` (componente).
+
 ### Reglas aprendidas
 
 Cuando un motivo de descarte se repite 3 veces, `GET /api/reglas` lo devuelve como **sugerencia**
