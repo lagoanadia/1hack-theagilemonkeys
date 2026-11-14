@@ -114,9 +114,9 @@ export default function IslaApp({ salir }) {
   const nAvisos = seg?.avisos?.length || 0
   const nEmpresas = radar.empresas.filter(e => etapaEmpresa(e) === 'nueva').length
   const nav = [['conv', 'inbox', 'Convocatorias', nPorRevisar], ['empresas', 'building', 'Empresas', nEmpresas], ['propuestas', 'leaf', 'Propuestas', 0], ['mapa', 'map', 'Mapa', 0]]
-  const top = (k, ejemplo = false) => (
+  const top = (k, ejemplo = false, extra = null) => (
     <div className="i-top">
-      <div className="i-k">{k}{ejemplo && <> · <span className="i-ej">Ejemplo</span></>}</div>
+      <div className="i-izq"><div className="i-k">{k}{ejemplo && <> · <span className="i-ej">Ejemplo</span></>}</div>{extra}</div>
       <div style={{ display: 'flex', gap: 10 }}>
         <label className="i-srch"><Icon n="search" s={18} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar…" aria-label="Buscar" /></label>
         {/* Avisos: los pasos que vencen (GET /api/seguimiento). Se pueden recibir también por correo (Perfil). */}
@@ -134,7 +134,7 @@ export default function IslaApp({ salir }) {
   else if (vista === 'presentar') page = <Presentar a={items.find(a => a.id === selId)} {...{ top, ir, presentar, perfil, objetivo }} presentadas={radar.etapas.presentadas} />
   else if (vista === 'empresas') page = <Empresas {...{ top, radar, q }} cambiarEstado={cambiarEstadoEmpresa} />
   else if (vista === 'mapa') page = <Mapa {...{ top, salir }} />
-  else if (vista === 'perfil') page = perfil ? <Perfil {...{ perfil, guardarPerfil, top, setToast, salir }} presentadas={radar.etapas.presentadas} /> : <div className="i-card i-empty">Cargando perfil…</div>
+  else if (vista === 'perfil') page = perfil ? <Perfil {...{ perfil, guardarPerfil, recargarPerfil: cargarPerfil, top, setToast, salir }} presentadas={radar.etapas.presentadas} /> : <div className="i-card i-empty">Cargando perfil…</div>
   // Propuestas no depende del radar: se muestra aunque los datos del radar fallen.
   if (vista === 'propuestas') page = <Propuestas {...{ top, setToast, salir }} />
 
@@ -149,7 +149,7 @@ export default function IslaApp({ salir }) {
         ))}
         <button className={`me ${vista === 'perfil' ? 'on' : ''}`} onClick={() => ir('perfil')} title="Perfil">{inicial}</button>
       </aside>
-      <div className="i-page">{page}</div>
+      <div className={`i-page ${vista === 'conv' && etapa === 'revisar' && radar.cargado && !radar.error ? 'fit' : ''}`}>{page}</div>
       {descartando && <Descarte a={descartando} cerrar={() => setDescartando(null)} guardar={guardarDescarte} />}
       {toast && <div className="i-toast" role="status"><Icon n="check" s={18} w={2.6} />{toast.texto}{toast.go && <button className="go" onClick={() => { toast.go[1](); setToast(null) }}>{toast.go[0]} →</button>}{toast.undo && <button onClick={() => { toast.undo(); setToast(null) }}><Icon n="undo" s={16} w={2.4} />Deshacer</button>}</div>}
     </div>

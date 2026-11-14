@@ -48,6 +48,7 @@ const P = {
  "bell": "<path d=\"M6 16V11a6 6 0 0 1 12 0v5l2 2H4z\"/><path d=\"M10 20a2 2 0 0 0 4 0\"/>",
  "building": "<rect x=\"4\" y=\"3\" width=\"12\" height=\"18\" rx=\"2\"/><path d=\"M16 9h3a1 1 0 0 1 1 1v11M8 7h4M8 11h4M8 15h4\"/>",
  "inbox": "<path d=\"M3 13h5l1.5 3h5L16 13h5\"/><path d=\"M5 5h14l2 8v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-5z\"/>",
+ "radar": "<circle cx=\"12\" cy=\"12\" r=\"9\"/><circle cx=\"12\" cy=\"12\" r=\"4.5\"/><path d=\"M12 12l6.5-6.5\"/>",
  "archive": "<rect x=\"3\" y=\"4\" width=\"18\" height=\"5\" rx=\"2\"/><path d=\"M5 9v9a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9M10 13h4\"/>",
  "flag":"<path d=\"M5 21V4M5 4h11l-2 4 2 4H5\"/>",
  "eye": "<path d=\"M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z\"/><circle cx=\"12\" cy=\"12\" r=\"3\"/>",

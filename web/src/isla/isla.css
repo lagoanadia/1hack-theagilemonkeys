@@ -275,29 +275,18 @@ html,body{margin:0}
 @media (max-width:1100px){.i-split{grid-template-columns:1fr}}
 
 /* ---- Rediseño de Convocatorias: línea de estado discreta, barra de posición y dos decisiones ---- */
-.i-estado{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 18px}
-.i-linea{display:flex;align-items:center;gap:2px;background:#fff;border-radius:999px;padding:5px;box-shadow:0 1px 0 var(--ln)}
-.i-linea .seg{display:flex!important;align-items:baseline;gap:8px;padding:7px 18px!important;border-radius:999px!important;font-size:15px;color:var(--mut);font-weight:500}
-.i-linea .seg b{font-size:22px;font-weight:700;letter-spacing:-.02em;color:var(--nv)}
-.i-linea .seg.hot b{color:var(--co)}
-.i-linea .seg.on{background:#EEF2EC!important;color:var(--nv)}
-.i-linea .arr{color:#B6C0B8;display:grid;place-items:center}
-.i-arch{position:relative;width:48px;height:48px;border-radius:50%!important;background:#fff;display:grid!important;place-items:center;color:var(--nv);flex-shrink:0;box-shadow:0 1px 0 var(--ln)}
-.i-arch.on{background:var(--nvs)!important;color:#fff}
-.i-arch .n{position:absolute;top:-5px;right:-8px;background:var(--nvs);color:#fff;border-radius:999px;font-size:11.5px;font-weight:700;padding:1px 8px;line-height:18px}
-.i-arch.on .n{background:var(--co)}
 .i-campana{position:relative}
 .i-campana .cnt{position:absolute;top:-3px;right:-4px;background:var(--co);color:#fff;border-radius:999px;font-size:11px;font-weight:700;padding:0 6px;line-height:17px}
 .i-oferta{max-width:920px;width:100%;margin:0 auto;display:flex;flex-direction:column;gap:14px}
-.i-pasos{display:flex;align-items:center;padding:10px 8px 6px}
-.i-pasos .p{flex:none;width:24px;height:24px;border-radius:50%!important;background:#fff!important;border:3px solid #CBD3CE!important;display:grid;place-items:center;color:#fff;font-weight:700;font-size:13px;transition:transform .12s}
+.i-pasos{display:flex;align-items:center;padding:6px 8px 2px}
+.i-pasos .p{flex:none;width:18px;height:18px;border-radius:50%!important;background:#fff!important;border:3px solid #CBD3CE!important;display:grid;place-items:center;color:#fff;font-weight:700;font-size:12px;transition:transform .12s}
 .i-pasos .p:hover{transform:scale(1.12)}
 .i-pasos .p.ok{background:var(--nvs)!important;border-color:var(--nvs)!important}
-.i-pasos .p.cur{width:46px;height:46px;background:var(--nv)!important;border-color:var(--nv)!important;font-size:18px;box-shadow:0 0 0 8px rgba(63,88,115,.16)}
+.i-pasos .p.cur{width:34px;height:34px;background:var(--nv)!important;border-color:var(--nv)!important;font-size:15px;box-shadow:0 0 0 6px rgba(63,88,115,.16)}
 .i-pasos .l{flex:1;height:4px;border-radius:4px;background:#D5DCD8;margin:0 -2px}
 .i-pasos .l.ok{background:var(--nvs)}
-.i-pasos.many .p{width:13px;height:13px;border-width:2.5px!important}
-.i-pasos.many .p.cur{width:40px;height:40px;font-size:16px}
+.i-pasos.many .p{width:12px;height:12px;border-width:2.5px!important}
+.i-pasos.many .p.cur{width:30px;height:30px;font-size:14px}
 .i-dos{display:grid;grid-template-columns:1fr 1.5fr;gap:14px}
 .i-dos .i-btn{height:66px;font-size:19px!important;font-weight:700}
 .i-dos kbd{font:600 12px "Instrument Sans",system-ui,sans-serif;border:1px solid rgba(0,0,0,.18);border-radius:7px;padding:1px 7px;opacity:.7}
@@ -341,3 +330,58 @@ html,body{margin:0}
 .i-correo .prev{margin-top:10px;background:#fff;border-radius:16px;padding:12px 14px;font-size:14px}
 .i-correo .prev iframe{width:100%;height:320px;border:1.5px solid var(--ln);border-radius:12px;background:#fff;margin-top:8px}
 @media (max-width:1100px){.i-proc .facts{grid-template-columns:1fr}.i-proc .facts>div{padding:8px 0;border-left:0}}
+
+/* ---- Etapas como iconos junto al título; la oferta ocupa la pantalla sin scroll ---- */
+.i-izq{display:flex;align-items:center;gap:18px;min-width:0}
+.i-etapas{display:flex;align-items:center;gap:4px;background:#fff;border-radius:999px;padding:4px;box-shadow:0 1px 0 var(--ln)}
+.i-etapas .e{display:flex!important;align-items:center;gap:7px;height:40px;padding:0 13px!important;border-radius:999px!important;color:var(--mut);font-weight:600;font-size:14.5px}
+.i-etapas .e b{font-size:15px;font-weight:700;color:var(--nv)}
+.i-etapas .e.hot b{color:var(--co)}
+.i-etapas .e .t{display:none;color:var(--nv)}
+.i-etapas .e.on{background:var(--nvs)!important;color:#fff}
+.i-etapas .e.on .t,.i-etapas .e.on b{color:#fff}
+.i-etapas .e.on .t{display:inline}
+.i-etapas .e:hover{background:#F1F4F0!important}.i-etapas .e.on:hover{background:var(--nvs)!important}
+.i-etapas .arr{color:#B6C0B8;display:grid;place-items:center}
+.i-etapas .sep{width:2px;height:22px;background:var(--ln);margin:0 4px;border-radius:2px}
+.i-page.fit{height:100vh;overflow:hidden;padding-bottom:18px}
+.i-page.fit .i-top{margin-bottom:8px;flex:none}
+.i-page.fit .i-oferta{flex:1;min-height:0;max-width:1240px;gap:10px}
+.i-page.fit .i-oferta .i-hero{flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:clamp(4px,1vh,10px);padding:clamp(14px,2.6vh,26px) clamp(18px,2.4vw,34px)}
+.i-page.fit .i-hero h3{font-size:clamp(20px,3.8vh,34px);margin:clamp(2px,.8vh,10px) 0 0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;flex:none}
+.i-page.fit .i-hero h3.long{font-size:clamp(18px,3.1vh,26px)}
+.i-page.fit .i-hero .k4{flex:1;min-height:0;margin:clamp(6px,1.4vh,16px) 0}
+.i-page.fit .i-hero .k4>div{display:flex;flex-direction:column;gap:2px;overflow:hidden;min-height:0;padding:clamp(8px,1.6vh,16px) clamp(12px,1.2vw,18px)}
+.i-page.fit .i-hero .k4 span{font-size:clamp(12.5px,1.7vh,15px)}
+.i-page.fit .i-hero .k4>div{container-type:inline-size}
+.i-page.fit .i-hero .k4 b{font-size:clamp(22px,min(6.6vh,13cqw),58px);white-space:nowrap}
+.i-page.fit .i-hero .k4 b.enc{white-space:normal}
+.i-page.fit .i-hero .k4>div:not(:last-child){justify-content:center}
+.i-page.fit .i-hero .k4 small{font-size:clamp(12.5px,1.8vh,15px)}
+.i-page.fit .i-hero .k4 b.i-ni{font-size:clamp(17px,2.8vh,22px)}
+.i-page.fit .i-hero .k4 b.enc{font-size:clamp(14px,2.4vh,19px);display:-webkit-box;-webkit-line-clamp:7;-webkit-box-orient:vertical;overflow:hidden}
+.i-page.fit .i-req{flex:none;max-height:70px;overflow:hidden;margin:0}
+.i-page.fit .i-cita{flex:none;max-height:clamp(52px,13vh,110px);overflow:hidden;font-size:clamp(14px,2vh,16.5px);padding:clamp(8px,1.4vh,14px) 18px}
+.i-page.fit .i-ya{flex:none;margin-bottom:0}
+.i-page.fit .i-dos{flex:none}
+.i-page.fit .i-dos .i-btn{height:clamp(50px,8vh,66px)}
+.i-page.fit .i-vacio{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:20px}
+@media (max-width:1100px){.i-etapas .e .t{display:none!important}}
+
+/* En pantallas bajas se recorta por líneas completas, nunca a medias */
+@media (max-height:840px){
+  .i-page.fit .i-req{max-height:36px}
+  .i-page.fit .i-hero .k4 b.enc{-webkit-line-clamp:4}
+  .i-page.fit .i-cita{max-height:62px;overflow:hidden}
+  .i-page.fit .i-cita small{display:none}
+  .i-page.fit .i-hero h3{-webkit-line-clamp:2}
+}
+@media (max-height:690px){
+  .i-page.fit .i-req{display:none}
+  .i-page.fit .i-hero .k4 b.enc{-webkit-line-clamp:3}
+}
+
+/* El título se corta exactamente en N líneas (sin asomar la siguiente) */
+.i-page.fit .i-hero h3{line-height:1.14;max-height:calc(3 * 1.14em)}
+.i-page.fit .i-hero h3.long{max-height:calc(3 * 1.14em)}
+@media (max-height:840px){.i-page.fit .i-hero h3,.i-page.fit .i-hero h3.long{max-height:calc(2 * 1.14em)}}

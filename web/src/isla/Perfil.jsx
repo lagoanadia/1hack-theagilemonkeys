@@ -51,17 +51,71 @@ function Lista({ items, onChange, placeholder, etiqueta, max = 10 }) {
   )
 }
 
+// Criterios de búsqueda (criterios.* del perfil, sin IA) y requisitos de la entidad (texto libre para la IA).
+// Nunca ocultan nada: cambian el veredicto y el radar explica por qué. null = sin límite.
+// Se guarda con PUT /api/perfil enviando solo lo que cambia (el Worker mezcla los criterios campo a campo).
+const CRITERIOS = [
+  ['importe_minimo', 'Importe mínimo (€)', 'Por debajo de esta cifra, el radar la descarta.', 0, 100000000, 'Sin mínimo'],
+  ['cofinanciacion_maxima', 'Lo máximo que podéis poner (%)', 'Si piden poner más, el radar la marca «Mirad antes».', 0, 100, 'Sin límite'],
+  ['dias_minimos', 'Días mínimos para preparar una solicitud', 'Si quedan menos días, el radar la marca «Mirad antes».', 0, 365, 'Sin mínimo'],
+]
+const criteriosDe = p => ({ importe_minimo: null, cofinanciacion_maxima: null, dias_minimos: null, ...(p.criterios || {}) })
+function Criterios({ perfil, guardarPerfil, setToast }) {
+  const guardado = criteriosDe(perfil)
+  const [c, setC] = useState(guardado)
+  const [req, setReq] = useState((perfil.requisitos_entidad || []).join('\n'))
+  const [guardando, setGuardando] = useState(false)
+  const cambiosC = CRITERIOS.map(x => x[0]).filter(k => c[k] !== guardado[k])
+  const reqNuevos = aLineas(req)
+  const cambiaReq = JSON.stringify(reqNuevos) !== JSON.stringify(perfil.requisitos_entidad || [])
+  const n = cambiosC.length + (cambiaReq ? 1 : 0)
+  const guardar = async () => {
+    setGuardando(true)
+    try {
+      await guardarPerfil({
+        ...(cambiosC.length ? { criterios: Object.fromEntries(cambiosC.map(k => [k, c[k]])) } : {}),
+        ...(cambiaReq ? { requisitos_entidad: reqNuevos } : {}),
+      })
+      setToast({ texto: 'Criterios guardados. El radar los aplicará en su próxima ejecución' })
+    } catch (e) { setToast({ texto: `No se pudieron guardar los criterios: ${e.message}` }) }
+    setGuardando(false)
+  }
+  return (
+    <div className="i-card i-perfil">
+      <div className="i-field wide" style={{ background: 'none', padding: 0 }}>
+        <b>Criterios de búsqueda</b>
+        <span style={{ fontWeight: 400 }}>Reglas con números que el radar aplica sin IA. Nunca ocultan una convocatoria: solo cambian su veredicto y explican por qué.</span>
+      </div>
+      {CRITERIOS.map(([k, t, ayuda, min, max, vacio]) => (
+        <label key={k} className="i-field"><span>{t}</span>
+          <input className="i-in" type="number" min={min} max={max} placeholder={vacio} value={c[k] ?? ''} onChange={e => setC(x => ({ ...x, [k]: aNumero(e.target.value) }))} />
+          <small className="mut">{ayuda}</small></label>
+      ))}
+      <label className="i-field wide"><span>Otros datos de la entidad que debe tener en cuenta la IA (uno por línea)</span>
+        <textarea className="i-in" rows={3} value={req} onChange={e => setReq(e.target.value)} />
+        <small className="mut">Por ejemplo: «No podemos adelantar el dinero de la actuación».</small></label>
+      <div className="i-field wide" style={{ background: 'none', padding: 0, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+        <button className="i-btn p" disabled={!n || guardando} onClick={guardar}><Icon n="check" s={19} w={2.6} />{guardando ? 'Guardando…' : 'Guardar criterios'}</button>
+        {n > 0 && <button className="i-btn" onClick={() => { setC(guardado); setReq((perfil.requisitos_entidad || []).join('\n')) }}>Descartar cambios</button>}
+        {n > 0 && <small className="mut">{n} {n === 1 ? 'campo cambiado' : 'campos cambiados'}</small>}
+      </div>
+    </div>
+  )
+}
+
 // Lo que el radar ha aprendido: GET /api/reglas → {sugerencias, reglas}. Cuando un motivo de descarte se
 // repite 3 veces el servidor lo propone: aceptarlo (POST {motivo, accion:"aceptar"}) lo convierte en un criterio
 // que el radar aplica sin IA; «No» (accion:"ignorar") lo descarta para siempre. Reglas propias: POST {texto}.
-function Reglas({ setToast }) {
+function Reglas({ setToast, recargarPerfil }) {
   const [datos, setDatos] = useState(null)
   const [texto, setTexto] = useState('')
   const [edit, setEdit] = useState(null)   // {id, texto}
   const cargar = useCallback(() => api('/reglas').then(setDatos).catch(e => setToast({ texto: `No se pudieron cargar las reglas: ${e.message}` })), [setToast])
   useEffect(() => { cargar() }, [cargar])
-  const hacer = async (accion, aviso) => {
-    try { await accion(); await cargar(); if (aviso) setToast({ texto: aviso }) } catch (e) { setToast({ texto: `No se pudo guardar: ${e.message}` }) }
+  // recargar: aceptar o quitar una regla cambia los criterios del perfil en el servidor; se vuelve a pedir
+  // GET /api/perfil para que la pantalla los muestre al día antes de que nadie pulse Guardar.
+  const hacer = async (accion, aviso, recargar = false) => {
+    try { await accion(); await cargar(); if (recargar) await recargarPerfil?.(); if (aviso) setToast({ texto: aviso }) } catch (e) { setToast({ texto: `No se pudo guardar: ${e.message}` }) }
   }
   const fecha = f => (f ? new Date(f).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' }) : '')
   return (
@@ -69,15 +123,15 @@ function Reglas({ setToast }) {
       <div className="h"><Icon n="info" s={20} />Lo que el radar ha aprendido</div>
       <p>Cuando descartáis varias por el mismo motivo, el radar os propone una regla. Vosotros decidís si se aplica.</p>
       {!datos && <p>Cargando reglas…</p>}
-      {datos?.sugerencias.map(s => (
+      {(datos?.sugerencias || []).map(s => (
         <div key={s.motivo} className="rule">
           <span className="who">Detectado</span>
           <b>{s.texto}</b><small>{s.veces} veces</small>
-          <div className="act"><button className="p" onClick={() => hacer(() => api('/reglas', { metodo: 'POST', datos: { motivo: s.motivo, accion: 'aceptar' } }), 'Regla aplicada. El radar la usará desde su próxima ejecución')}>{s.accion}</button>
+          <div className="act"><button className="p" onClick={() => hacer(() => api('/reglas', { metodo: 'POST', datos: { motivo: s.motivo, accion: 'aceptar' } }), 'Regla aplicada. El radar la usará desde su próxima ejecución', true)}>{s.accion}</button>
             <button onClick={() => hacer(() => api('/reglas', { metodo: 'POST', datos: { motivo: s.motivo, accion: 'ignorar' } }), 'Entendido: no volveremos a proponerla')}>No</button></div>
         </div>
       ))}
-      {datos?.reglas.map(r => (
+      {(datos?.reglas || []).map(r => (
         <div key={r.id} className={`rule ${r.origen === 'equipo' ? 'mine' : ''}`}>
           <span className={`who ${r.origen === 'equipo' ? 'me' : ''}`}>{r.origen === 'equipo' ? 'Añadida por vosotros' : 'Aplicada'}</span>
           {edit?.id === r.id ? (
@@ -88,11 +142,11 @@ function Reglas({ setToast }) {
           ) : <><b>{r.texto}</b><small>{[r.autor, fecha(r.creado)].filter(Boolean).join(' · ')}</small></>}
           <div className="act">
             {!r.criterio && edit?.id !== r.id && <button onClick={() => setEdit({ id: r.id, texto: r.texto })}>Editar</button>}
-            <button onClick={() => hacer(() => api(`/reglas/${r.id}`, { metodo: 'DELETE' }), 'Regla quitada')}>Quitar</button>
+            <button onClick={() => hacer(() => api(`/reglas/${r.id}`, { metodo: 'DELETE' }), 'Regla quitada', true)}>Quitar</button>
           </div>
         </div>
       ))}
-      {datos && !datos.sugerencias.length && !datos.reglas.length && <p>Todavía no hay reglas. Aparecerán aquí cuando un motivo de descarte se repita 3 veces.</p>}
+      {datos && !datos.sugerencias?.length && !datos.reglas?.length && <p>Todavía no hay reglas. Aparecerán aquí cuando un motivo de descarte se repita 3 veces.</p>}
       <form className="nueva" onSubmit={e => { e.preventDefault(); const t = texto.trim(); if (t) hacer(() => api('/reglas', { metodo: 'POST', datos: { texto: t } }), 'Regla añadida').then(() => setTexto('')) }}>
         <input className="i-in" maxLength={200} placeholder="+ Escribid una regla, por ejemplo: no queremos las que exigen aval" value={texto} onChange={e => setTexto(e.target.value)} aria-label="Nueva regla" />
       </form>
@@ -134,7 +188,7 @@ function CorreoAvisos({ setToast, cambiado }) {
   )
 }
 
-export default function Perfil({ perfil, guardarPerfil, top, presentadas, salir, setToast }) {
+export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, presentadas, salir, setToast }) {
   const [d, setD] = useState(perfil)
   const [zona, setZona] = useState('')
   const [doc, setDoc] = useState('')
@@ -231,9 +285,9 @@ export default function Perfil({ perfil, guardarPerfil, top, presentadas, salir,
               <select className="i-in" value={f.ambito_actuacion ?? ''} onChange={e => setFi('ambito_actuacion', e.target.value || null)}>
                 <option value="">No consta</option>{Object.entries(AMBITOS).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></label>
             <label className="i-field"><span>Presupuesto anual (€)</span>
-              <input className="i-in" type="number" min="1" step="any" placeholder="No consta" value={f.presupuesto_anual ?? ''} onChange={e => setFi('presupuesto_anual', aNumero(e.target.value))} /></label>
+              <input className="i-in" type="number" min="0" step="any" placeholder="No consta" value={f.presupuesto_anual ?? ''} onChange={e => setFi('presupuesto_anual', aNumero(e.target.value))} /></label>
             <label className="i-field"><span>Voluntarios</span>
-              <input className="i-in" type="number" min="1" max="100000" placeholder="No consta" value={f.voluntarios ?? ''} onChange={e => setFi('voluntarios', aNumero(e.target.value))} /></label>
+              <input className="i-in" type="number" min="0" max="100000" placeholder="No consta" value={f.voluntarios ?? ''} onChange={e => setFi('voluntarios', aNumero(e.target.value))} /></label>
             {[['utilidad_publica', 'Declarada de utilidad pública'], ['al_corriente_pagos', 'Al corriente con Hacienda y la Seguridad Social'],
               ['aval_bancario', 'Puede presentar un aval bancario'], ['ongd', 'Inscrita como ONGD (cooperación al desarrollo)']].map(([k, t]) => (
               <div key={k} className="i-field wide sw"><div><span>{t}</span><b>{TRI(f[k])}</b></div><Tri valor={f[k]} label={t} onChange={v => setFi(k, v)} /></div>
@@ -248,6 +302,7 @@ export default function Perfil({ perfil, guardarPerfil, top, presentadas, salir,
               {cambiosFicha.length > 0 && <small className="mut">{cambiosFicha.length} {cambiosFicha.length === 1 ? 'campo cambiado' : 'campos cambiados'}</small>}
             </div>
           </div>
+          <Criterios key={JSON.stringify([perfil.criterios, perfil.requisitos_entidad])} {...{ perfil, guardarPerfil, setToast }} />
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             <button className="i-btn p" disabled={!cambios.length || guardando || !cifOk} onClick={guardar}><Icon n="check" s={19} w={2.6} />{guardando ? 'Guardando…' : 'Guardar cambios'}</button>
             {cambios.length > 0 && <button className="i-btn" onClick={() => { setD(perfil); setLin({ lineas: perfil.lineas.join('\n'), no_sirve: perfil.no_sirve.join('\n') }) }}>Descartar cambios</button>}
@@ -268,7 +323,7 @@ export default function Perfil({ perfil, guardarPerfil, top, presentadas, salir,
             <button className="i-link" onClick={salir}>Cerrar sesión</button>
           </div>
         </div>
-        <Reglas setToast={setToast} />
+        <Reglas setToast={setToast} recargarPerfil={recargarPerfil} />
         </div>
       </div>
     </>

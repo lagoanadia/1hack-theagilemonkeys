@@ -26,21 +26,27 @@ export default function Convocatorias(props) {
   const { radar, visibles, etapa, ir, top, seg, perfil } = props
   const n = { revisar: 0, preparando: 0, presentadas: 0, descartadas: 0 }
   visibles.forEach(a => { n[etapaDe(a)]++ })
-  const etapas = [['revisar', 'Radar'], ['preparando', 'En proceso'], ['presentadas', 'Presentado']]
+  const etapas = [['revisar', 'Radar', 'radar'], ['preparando', 'En proceso', 'doc'], ['presentadas', 'Presentado', 'send']]
+  // Las etapas son iconos junto al título: el activo muestra su nombre y todos llevan su contador.
+  const iconos = (
+    <div className="i-etapas" role="group" aria-label="Estado de las convocatorias">
+      {etapas.map(([k, t, ic], i) => (
+        <Fragment key={k}>
+          <button className={`e ${etapa === k ? 'on' : ''} ${k === 'revisar' && n.revisar ? 'hot' : ''}`} aria-pressed={etapa === k} aria-label={`${t}: ${n[k]}`} title={`${t}: ${n[k]}`} onClick={() => ir(k)}>
+            <Icon n={ic} s={20} /><span className="t">{t}</span><b>{n[k]}</b>
+          </button>
+          {i < 2 && <span className="arr"><Icon n="keyR" s={13} w={2.4} /></span>}
+        </Fragment>
+      ))}
+      <span className="sep" />
+      <button className={`e ${etapa === 'descartadas' ? 'on' : ''}`} aria-pressed={etapa === 'descartadas'} aria-label={`Descartadas: ${n.descartadas}`} title={`Descartadas: ${n.descartadas}`} onClick={() => ir('descartadas')}>
+        <Icon n="archive" s={20} /><span className="t">Descartadas</span><b>{n.descartadas}</b>
+      </button>
+    </div>
+  )
   return (
     <>
-      {top('Convocatorias')}
-      <div className="i-estado">
-        <div className="i-linea" role="group" aria-label="Estado de las convocatorias">
-          {etapas.map(([k, t], i) => (
-            <Fragment key={k}>
-              <button className={`seg ${etapa === k ? 'on' : ''} ${k === 'revisar' && n.revisar ? 'hot' : ''}`} aria-pressed={etapa === k} onClick={() => ir(k)}><b>{n[k]}</b>{t}</button>
-              {i < 2 && <span className="arr"><Icon n="keyR" s={14} w={2.4} /></span>}
-            </Fragment>
-          ))}
-        </div>
-        <button className={`i-arch ${etapa === 'descartadas' ? 'on' : ''}`} onClick={() => ir('descartadas')} title="Descartadas" aria-label={`Descartadas: ${n.descartadas}`}><Icon n="archive" s={22} /><span className="n">{n.descartadas}</span></button>
-      </div>
+      {top('Convocatorias', false, iconos)}
       {etapa === 'revisar' && <Revisar {...props} generado={radar.conv?.generado} />}
       {etapa === 'preparando' && <Preparando {...props} lista={visibles.filter(a => etapaDe(a) === 'preparando')} />}
       {etapa === 'presentadas' && <Presentado {...props} seg={seg} perfil={perfil} lista={visibles.filter(a => etapaDe(a) === 'presentadas')} />}
@@ -87,7 +93,7 @@ function Revisar({ ruta, curId, setCurId, decidir, setDescartando, ir, generado 
   const [vt, vi, vc] = a ? VEREDICTO[a.veredicto] : []
   return (
     <div className="i-oferta">
-      {ruta.length > 0 && <Pasos {...{ ruta, a, setCurId }} />}
+      {ruta.length > 1 && <Pasos {...{ ruta, a, setCurId }} />}
       {a ? (
         <>
           <div className="i-card i-hero">
