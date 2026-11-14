@@ -426,3 +426,8 @@ html,body{margin:0}
 .i-page.fit .i-hero h3{line-height:1.25;max-height:calc(3 * 1.25em)}
 .i-page.fit .i-hero h3.long{max-height:calc(3 * 1.25em)}
 @media (max-height:840px){.i-page.fit .i-hero h3,.i-page.fit .i-hero h3.long{max-height:calc(2 * 1.25em)}}
+
+.i-hero .pie{grid-template-columns:1fr}
+.i-hero .pie .cita .lab .i-link{margin-left:auto;font-size:12.5px;text-transform:none;letter-spacing:0}
+.i-hero h3[title]{cursor:help}
+@media (max-height:690px){.i-page.fit .i-hero .pie .cita p{-webkit-line-clamp:2}}

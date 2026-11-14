@@ -22,6 +22,15 @@ const AVISOS_TXT = { nunca: 'Sin avisos por correo', cada_manana: 'Avisos por co
 const cuenta = dias => (dias === null || dias === undefined ? 'Sin fecha' : dias < 0 ? `Hace ${-dias} ${dias === -1 ? 'día' : 'días'}` : dias === 0 ? 'Hoy' : `${dias} ${dias === 1 ? 'día' : 'días'}`)
 const segDe = (seg, id) => (seg?.en_marcha || []).find(x => x.tipo === 'convocatoria' && x.id === id)
 
+// Título breve: la frase-resumen del radar si es más corta que el nombre oficial (el nombre completo sale al pasar el ratón).
+const tituloCorto = a => { const r = (a.resumen || '').trim(); return r && r !== a.titulo && r.length < a.titulo.length ? r : a.titulo }
+// Enlace a la ficha oficial que resalta la frase en el navegador (fragmento de texto: #:~:text=inicio,fin).
+const enlaceFrase = a => {
+  const w = (a.cita || '').split(/\s+/).filter(Boolean), cod = t => encodeURIComponent(t).replace(/-/g, '%2D')
+  if (w.length < 4) return a.url
+  return `${a.url}#:~:text=${cod(w.slice(0, 4).join(' '))}${w.length > 8 ? ',' + cod(w.slice(-4).join(' ')) : ''}`
+}
+
 export default function Convocatorias(props) {
   const { radar, visibles, etapa, ir, top, seg, perfil } = props
   const n = { revisar: 0, preparando: 0, presentadas: 0, descartadas: 0 }
@@ -91,8 +100,6 @@ function Revisar({ ruta, curId, setCurId, decidir, setDescartando, ir, generado 
   })
   const decidida = a && !pend(a)
   const [vt, vi, vc] = a ? VEREDICTO[a.veredicto] : []
-  const reqs = a ? [...(a.requisitos || [])].sort((x, y) => ({ no: 0, cumple: 2 }[x.estado] ?? 1) - ({ no: 0, cumple: 2 }[y.estado] ?? 1)) : []
-  const reqVis = reqs.length > 4 ? reqs.slice(0, 3) : reqs
   return (
     <div className="i-oferta">
       {ruta.length > 1 && <Pasos {...{ ruta, a, setCurId }} />}
@@ -104,7 +111,7 @@ function Revisar({ ruta, curId, setCurId, decidir, setDescartando, ir, generado 
               <span className={`i-v ${vc}`}><i><Icon n={vi} s={14} w={3} /></i>{vt}</span>
               <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span className="i-tag">BDNS {a.codigo}</span>{a.url && <a className="i-link" href={a.url} target="_blank" rel="noopener noreferrer">Ver convocatoria ↗</a>}</span>
             </div>
-            <h3 className={a.titulo.length > 110 ? 'long' : ''}>{a.titulo}</h3>
+            <h3 className={tituloCorto(a).length > 110 ? 'long' : ''} title={a.titulo}>{tituloCorto(a)}</h3>
             <div style={{ color: 'var(--mut)' }}>{a.organo}</div>
             <div className="k4">
               <div><span>¿Cuánto dan?</span><b className={a.importe ? '' : 'i-ni'}>{a.importe || 'No indicado'}</b>{a.importeEsPresupuesto && <small>presupuesto total</small>}</div>
@@ -113,23 +120,12 @@ function Revisar({ ruta, curId, setCurId, decidir, setDescartando, ir, generado 
               <div className="why"><span>¿Por qué encaja?</span><b className={`enc ${(a.motivo || '').length > 240 ? 'largo' : ''}`}>{LINEAS[a.linea] && <em className="lin">{LINEAS[a.linea]}</em>}{a.motivo || 'Sin análisis todavía'}</b></div>
             </div>
             {a.avisos.length > 0 && <div className="i-cita aviso">{a.avisos.map(t => <div key={t}><Icon n="info" s={14} /> {t}</div>)}<small>Según vuestros criterios del Perfil</small></div>}
-            {(reqs.length > 0 || a.cita) && (
+            {a.cita && (
               <div className="pie">
-                {reqs.length > 0 && (
-                  <div className="reqs">
-                    <div className="lab">Lo que piden <small>✓ lo cumplís · ? comprobadlo · ✗ no lo cumplís</small></div>
-                    <ul className="i-req">
-                      {reqVis.map(r => <li key={r.texto} className={r.estado} title={r.texto}><i>{r.estado === 'cumple' ? '✓' : r.estado === 'no' ? '✗' : '?'}</i><span>{r.texto}</span></li>)}
-                      {reqs.length > reqVis.length && <li className="mas">+{reqs.length - reqVis.length} más</li>}
-                    </ul>
-                  </div>
-                )}
-                {a.cita && (
-                  <div className={`cita ${reqs.length ? '' : 'solo'}`}>
-                    <div className="lab">Frase del texto oficial <small><Icon n="verified" s={13} />comprobada</small></div>
-                    <p>«…<mark>{a.cita}</mark>…»</p>
-                  </div>
-                )}
+                <div className="cita solo">
+                  <div className="lab">Frase del texto oficial <small><Icon n="verified" s={13} />comprobada</small>{a.url && <a className="i-link" href={enlaceFrase(a)} target="_blank" rel="noopener noreferrer">Verla en el documento ↗</a>}</div>
+                  <p>«…<mark>{a.cita}</mark>…»</p>
+                </div>
               </div>
             )}
           </div>
