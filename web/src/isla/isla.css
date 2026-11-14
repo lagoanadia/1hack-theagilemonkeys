@@ -738,3 +738,15 @@ html,body{margin:0}
 .i-impacto .i-globo{touch-action:pan-y}
 .i-impacto .pista{position:absolute;top:14px;right:14px;font-size:12.5px;font-weight:600;color:var(--mut);background:rgba(255,255,255,.85);padding:4px 10px;border-radius:999px}
 .i-impacto .otra{position:absolute;right:14px;bottom:12px;height:40px!important;font-size:14px!important}
+
+/* Cabecera pública: globo con avión y bocadillo informativo (GloboInfo) */
+.i-globo-info{position:relative;max-width:520px;width:100%;justify-self:center}
+.i-globo-info .mundo{border-radius:50%;overflow:hidden}
+.i-globo-info .i-globo{aspect-ratio:1/1}
+.i-globo-info.fin .i-globo{cursor:grab}
+.i-globo-info .burbuja{position:absolute;left:-6%;bottom:6%;max-width:300px;background:#fff;color:var(--nv);font-size:15.5px;line-height:1.4;
+  padding:14px 18px;border-radius:20px 20px 20px 6px;box-shadow:0 18px 36px -18px rgba(36,54,77,.55);animation:i-pop .45s cubic-bezier(.2,1.4,.4,1) both}
+.i-globo-info .burbuja .i-link{display:block;margin-top:6px;font-size:13px}
+@keyframes i-pop{from{opacity:0;transform:translateY(10px) scale(.85)}to{opacity:1;transform:none}}
+@media (max-width:820px){.i-globo-info .burbuja{position:static;margin:10px auto 0;max-width:none}}
+@media (prefers-reduced-motion:reduce){.i-globo-info .burbuja{animation:none}}

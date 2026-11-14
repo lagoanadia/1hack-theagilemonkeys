@@ -254,3 +254,33 @@ export default function Globo({ impacto: inicial, ha = 8, titulo = 'Vuestro impa
     </div>
   )
 }
+
+// Versión informativa para la cabecera de la página pública: solo el globo y, al aterrizar el avión,
+// un bocadillo «1 ha de bosque compensa cada año un viaje de ida y vuelta de Madrid a …». El destino es
+// el más lejano cuyo vuelo de ida y vuelta (1 pasajero) absorbe 1 ha en un año.
+export function GloboInfo() {
+  const [imp, setImp] = useState(null)
+  const [prog, setProg] = useState({ f: 0, fin: false })
+  const [ronda, setRonda] = useState(0)
+  const progreso = useRef((f, fin) => setProg(p => (p.fin === fin && Math.abs(p.f - f) < 0.01 ? p : { f, fin }))).current
+  const quieto = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+  useEffect(() => { api('/impacto?ha=1').then(setImp).catch(() => {}) }, [])
+  useEffect(() => setProg({ f: 0, fin: false }), [ronda])
+  if (!imp?.vuelos?.length) return null
+  const caben = imp.vuelos.filter(v => v.co2_vuelo <= imp.co2_anual)
+  const viaje = (caben.length ? caben : imp.vuelos).reduce((a, b) => (b.km > a.km ? b : a))
+  const listo = prog.fin || quieto
+  return (
+    <div className={`i-globo-info${prog.fin ? ' fin' : ''}`}>
+      <div className="mundo">
+        <Lienzo key={ronda} origen={imp.origen} viaje={viaje} quieto={quieto} ronda={ronda} onProgreso={progreso} />
+      </div>
+      {listo && (
+        <div className="burbuja" role="status">
+          🌳 <b>1 ha</b> de bosque compensa cada año un viaje de ida y vuelta de <b>{imp.origen.nombre}</b> a <b>{viaje.destino}</b>
+          {prog.fin && !quieto && <button className="i-link" onClick={() => setRonda(r => r + 1)}>↻ Volver a volar</button>}
+        </div>
+      )}
+    </div>
+  )
+}

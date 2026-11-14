@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
 import { island, tree } from './lp.js'
-import Globo from './Globo.jsx'
+import Globo, { GloboInfo } from './Globo.jsx'
 import { api } from '../api.js'
 import { euros, hectareas } from '../datos.js'
 
@@ -61,7 +61,7 @@ export default function Publica({ equipo, onEntrar }) {
               </div>
             )}
           </div>
-          <Svg html={island(480, 320, 7, 7, 31)} />
+          <GloboInfo />
         </section>
         <section className="i-grid3 cards">
           {error && <p className="i-err" role="alert">No se pudieron cargar los proyectos: {error}</p>}
