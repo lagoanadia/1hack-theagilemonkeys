@@ -555,7 +555,8 @@ async function convocatoriasConDemo(env, request) {
   const casos = [...await leer("validacion"), ...await leer("demo")];  // demo.json: radar.demo
   const ya = new Set(d.convocatorias.map((c) => c.codigo));
   const hoy = Date.now();
-  const demo = casos.filter((c) => !ya.has(c.codigo) && c.veredicto !== "descarta").map((c, i) => ({
+  // Solo las que el radar recomendaría (las "pendiente" de análisis no lucen en una demo).
+  const demo = casos.filter((c) => !ya.has(c.codigo) && ["presenta", "mira"].includes(c.veredicto)).map((c, i) => ({
     ...c, filtros: undefined, encontrada: undefined, descripcion_reto: undefined,
     demo: true, abierta: true, plazo_estimado: null,
     publicada: new Date(hoy - (3 + i) * 86400000).toISOString().slice(0, 10),
