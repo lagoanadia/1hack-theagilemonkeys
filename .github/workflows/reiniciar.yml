@@ -1,0 +1,22 @@
+name: Empezar de cero
+
+# Se lanza a mano (Actions → Empezar de cero → Run workflow). Llama a POST /api/reiniciar de la web:
+# todas las convocatorias vuelven a «por revisar» y las empresas a «Nuevas», como el primer día.
+# Se conservan el perfil, la biblioteca de documentos, las propuestas y el mapa.
+on:
+  workflow_dispatch:
+
+jobs:
+  reiniciar:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reiniciar los datos de la web
+        env:
+          RADAR_API_URL: ${{ vars.RADAR_API_URL }}
+          CLAVE_EQUIPO: ${{ secrets.CLAVE_EQUIPO }}
+        run: |
+          set -e
+          url="${RADAR_API_URL%/}/api/reiniciar"
+          code=$(curl -s -o respuesta.json -w "%{http_code}" -X POST -H "X-Clave-Equipo: ${CLAVE_EQUIPO}" -H "X-Autor: GitHub Actions" "$url")
+          cat respuesta.json; echo
+          test "$code" = "200"
