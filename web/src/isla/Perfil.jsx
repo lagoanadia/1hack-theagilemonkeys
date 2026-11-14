@@ -227,53 +227,71 @@ export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, pre
   const Sw = ({ on, onClick, label }) => <button type="button" className={`i-sw ${on ? '' : 'off'}`} aria-pressed={on} aria-label={label} onClick={onClick} />
   const comunidades = perfil.opciones?.comunidades || []
   const objetivo = d.objetivo_anual
+  const [tab, setTab] = useState('entidad')
+  const PESTANAS = [
+    ['entidad', 'building', 'La entidad', `${d.nombre || 'Sin nombre'} · ${d.equipo || '?'} personas`, ['nombre', 'cif', 'tipo_entidad', 'equipo', 'descripcion', 'lineas', 'no_sirve', 'objetivo_anual']],
+    ['elegibilidad', 'verified', 'Elegibilidad', `${CAMPOS_FICHA.filter(k => { const v = f[k]; return !(v === null || v === '' || (Array.isArray(v) && !v.length)) }).length} de ${CAMPOS_FICHA.length} datos rellenados`, []],
+    ['busqueda', 'filter', 'Qué busca el radar', `${d.zonas.length} ${d.zonas.length === 1 ? 'zona' : 'zonas'} · ${Object.values(criteriosDe(perfil)).filter(v => v !== null).length} criterios`, ['zonas', 'ampliar_espana', 'comunidades_extra']],
+    ['docs', 'doc', 'Documentos y avisos', `${d.documentos.filter(x => x.tengo).length} de ${d.documentos.length} documentos · avisos ${AVISOS[d.avisos]?.toLowerCase() || ''}`, ['documentos', 'avisos', 'email_avisos']],
+  ]
+  const sucia = ([k, , , , campos]) => campos.some(c => cambios.includes(c)) || (k === 'elegibilidad' && cambiosFicha.length > 0)
   return (
     <>
       {top('Perfil')}
-      <h2>Lo que el radar sabe de Reforesta</h2>
-      <p className="i-sub">Si algo cambia, editadlo aquí y el radar lo tendrá en cuenta.{perfil.actualizado && <> Última vez: {new Date(perfil.actualizado).toLocaleDateString('es-ES')}{perfil.actualizado_por ? ` · ${perfil.actualizado_por}` : ''}.</>}{!perfil.guardado && ' Todavía es el perfil de partida: guardadlo para que quede como vuestro.'}</p>
-      <div className="i-two">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div className="i-card i-perfil">
+      <div className="pf-cab">
+        <h2>Lo que el radar sabe de Reforesta</h2>
+        <p className="i-sub" style={{ margin: '4px 0 0' }}>Si algo cambia, editadlo aquí y el radar lo tendrá en cuenta.{perfil.actualizado && <> Última vez: {new Date(perfil.actualizado).toLocaleDateString('es-ES')}{perfil.actualizado_por ? ` · ${perfil.actualizado_por}` : ''}.</>}{!perfil.guardado && ' Todavía es el perfil de partida: guardadlo para que quede como vuestro.'}</p>
+      </div>
+      <div className="pf-tabs" role="tablist" aria-label="Apartados del perfil">
+        {PESTANAS.map(x => (
+          <button key={x[0]} role="tab" aria-selected={tab === x[0]} className={`pf-tab ${tab === x[0] ? 'on' : ''}`} onClick={() => setTab(x[0])}>
+            <span className="ic"><Icon n={x[1]} s={24} /></span>
+            <span className="tx"><b>{x[2]}</b><small>{x[3]}</small></span>
+            {sucia(x) && <i className="pt" title="Cambios sin guardar" aria-label="Cambios sin guardar" />}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'entidad' && (
+        <div className="pf-dos">
+          <div className="pf-col">
+            <div className="i-card i-perfil">
             <label className="i-field"><span>Nombre</span><input className="i-in" maxLength={120} value={d.nombre} onChange={e => set('nombre', e.target.value)} /></label>
             <label className="i-field"><span>CIF</span><input className={`i-in ${d.cif ? (cifOk ? 'ok' : 'no') : ''}`} maxLength={20} placeholder="G12345674" value={d.cif} onChange={e => set('cif', e.target.value)} />{d.cif && <small className={cifOk ? 'okm' : 'nom'}>{cifOk ? '✓ ' : '✕ '}{cifMsg}</small>}</label>
             <label className="i-field"><span>Tipo de entidad</span><input className="i-in" maxLength={120} value={d.tipo_entidad} onChange={e => set('tipo_entidad', e.target.value)} /></label>
             <label className="i-field"><span>Personas en el equipo</span><input className="i-in" type="number" min="1" max="500" value={d.equipo} onChange={e => set('equipo', e.target.value === '' ? '' : Number(e.target.value))} /></label>
-            <div className="i-field wide"><span>¿Dónde trabajáis?</span>
-              <div className="tags">{d.zonas.map(z => <span key={z} className="i-tag" style={{ background: 'var(--nv)', color: '#fff' }}>{z}<button type="button" aria-label={`Quitar ${z}`} onClick={() => set('zonas', d.zonas.filter(x => x !== z))}>×</button></span>)}
-                <form className="add" onSubmit={e => { e.preventDefault(); const z = zona.trim(); if (z && !d.zonas.includes(z)) set('zonas', [...d.zonas, z]); setZona('') }}><input className="i-in" maxLength={60} placeholder="+ Añadir zona" value={zona} onChange={e => setZona(e.target.value)} /></form></div></div>
-            <div className="i-field wide sw"><div><span>Ampliar a toda España</span><b>{d.ampliar_espana ? 'Activado' : 'Solo vuestras zonas'}</b></div><Sw on={d.ampliar_espana} label="Ampliar a toda España" onClick={() => set('ampliar_espana', !d.ampliar_espana)} /></div>
-            {!d.ampliar_espana && comunidades.length > 0 && (
-              <div className="i-field wide"><span>Buscar también ayudas de otras comunidades</span>
-                <div className="tags">{comunidades.map(c => { const on = d.comunidades_extra.includes(c.codigo); return <button type="button" key={c.codigo} className="i-tag" style={on ? { background: 'var(--gr-l)', color: 'var(--gr-d)' } : { background: '#fff', border: '1.5px dashed #BFC6BC' }} onClick={() => set('comunidades_extra', on ? d.comunidades_extra.filter(x => x !== c.codigo) : [...d.comunidades_extra, c.codigo])}>{on ? '✓ ' : '+ '}{c.nombre}</button> })}</div></div>
-            )}
-            <div className="i-field wide"><span>Documentos de la entidad</span>
-              {d.documentos.map((x, i) => (
-                <div key={x.nombre} className="i-docrow">
-                  <Sw on={x.tengo} label={`Tenemos ${x.nombre}`} onClick={() => set('documentos', d.documentos.map((y, j) => (j === i ? { ...y, tengo: !y.tengo } : y)))} />
-                  <b>{x.nombre}</b>
-                  <input className="i-in" type="date" aria-label={`Caduca ${x.nombre}`} value={x.caduca} onChange={e => set('documentos', d.documentos.map((y, j) => (j === i ? { ...y, caduca: e.target.value } : y)))} />
-                  <button type="button" className="i-link" onClick={() => set('documentos', d.documentos.filter((_, j) => j !== i))}>Quitar</button>
-                </div>
-              ))}
-              <form className="add" onSubmit={e => { e.preventDefault(); const n = doc.trim(); if (n && !d.documentos.some(x => x.nombre === n)) set('documentos', [...d.documentos, { nombre: n, tengo: false, caduca: '' }]); setDoc('') }}><input className="i-in" maxLength={80} placeholder="+ Añadir documento" value={doc} onChange={e => setDoc(e.target.value)} /></form></div>
-            <div className="i-field wide"><span>Avisos por correo</span>
-              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <select className="i-in" style={{ width: 180 }} value={d.avisos} onChange={e => set('avisos', e.target.value)}>{Object.entries(AVISOS).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select>
-                <input className="i-in" type="email" maxLength={120} placeholder="correo@reforesta.org" value={d.email_avisos} onChange={e => set('email_avisos', e.target.value)} />
-              </div>
-              <CorreoAvisos setToast={setToast} cambiado={d.email_avisos !== perfil.email_avisos} /></div>
-          </div>
-          <div className="i-card i-perfil">
-            <label className="i-field wide"><span>Descripción: qué hace Reforesta</span><textarea className="i-in" maxLength={1500} value={d.descripcion} onChange={e => set('descripcion', e.target.value)} /></label>
-            <label className="i-field wide"><span>Líneas de trabajo (una por línea)</span><textarea className="i-in" rows={4} value={lin.lineas} onChange={e => setLin({ ...lin, lineas: e.target.value })} /></label>
-            <label className="i-field wide"><span>Lo que no os sirve (una por línea)</span><textarea className="i-in" rows={4} value={lin.no_sirve} onChange={e => setLin({ ...lin, no_sirve: e.target.value })} /></label>
-          </div>
-          <div className="i-card i-perfil">
-            <div className="i-field wide" style={{ background: 'none', padding: 0 }}>
-              <b>Ficha de elegibilidad</b>
-              <span style={{ fontWeight: 400 }}>Lo que piden las convocatorias para poder presentarse. Lo que no sepáis, dejadlo en «No consta»: el radar lo tratará como una duda, no como un no.</span>
             </div>
+            <div className="i-card i-perfil">
+            <label className="i-field wide"><span>Descripción: qué hace Reforesta</span><textarea className="i-in" maxLength={1500} value={d.descripcion} onChange={e => set('descripcion', e.target.value)} /></label>
+            <label className="i-field"><span>Líneas de trabajo (una por línea)</span><textarea className="i-in" rows={4} value={lin.lineas} onChange={e => setLin({ ...lin, lineas: e.target.value })} /></label>
+            <label className="i-field"><span>Lo que no os sirve (una por línea)</span><textarea className="i-in" rows={4} value={lin.no_sirve} onChange={e => setLin({ ...lin, no_sirve: e.target.value })} /></label>
+            </div>
+          </div>
+          <div className="pf-col">
+            <div className="i-isle">
+              <span className="i-k">Objetivo del año</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '8px 0' }}>
+                <button type="button" className="i-round" style={{ fontSize: 22 }} aria-label="Menos" onClick={() => set('objetivo_anual', Math.max(1, objetivo - 1))}>−</button>
+                <span className="n">{objetivo}</span>
+                <button type="button" className="i-round" style={{ fontSize: 22 }} aria-label="Más" onClick={() => set('objetivo_anual', Math.min(200, objetivo + 1))}>+</button>
+              </div>
+              <p>solicitudes. Un árbol por cada una. Lleváis {presentadas}.</p>
+              <Svg html={island(310, 250, Math.min(presentadas, objetivo), objetivo)} />
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
+              <a href="#/propuestas" className="i-link">Ver la página pública de propuestas para empresas →</a>
+              <button className="i-link" onClick={salir}>Cerrar sesión</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {tab === 'elegibilidad' && (
+        <div className="i-card i-perfil seis">
+          <div className="i-field wide" style={{ background: 'none', padding: 0 }}>
+            <b>Ficha de elegibilidad</b>
+            <span style={{ fontWeight: 400 }}>Lo que piden las convocatorias para poder presentarse. Lo que no sepáis, dejadlo en «No consta»: el radar lo tratará como una duda, no como un no.</span>
+          </div>
             <label className="i-field"><span>Forma jurídica</span>
               <select className="i-in" value={f.forma_juridica} onChange={e => setFi('forma_juridica', e.target.value)}>{Object.entries(FORMAS).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></label>
             <label className="i-field"><span>Año de constitución</span>
@@ -290,7 +308,7 @@ export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, pre
               <input className="i-in" type="number" min="0" max="100000" placeholder="No consta" value={f.voluntarios ?? ''} onChange={e => setFi('voluntarios', aNumero(e.target.value))} /></label>
             {[['utilidad_publica', 'Declarada de utilidad pública'], ['al_corriente_pagos', 'Al corriente con Hacienda y la Seguridad Social'],
               ['aval_bancario', 'Puede presentar un aval bancario'], ['ongd', 'Inscrita como ONGD (cooperación al desarrollo)']].map(([k, t]) => (
-              <div key={k} className="i-field wide sw"><div><span>{t}</span><b>{TRI(f[k])}</b></div><Tri valor={f[k]} label={t} onChange={v => setFi(k, v)} /></div>
+              <div key={k} className="i-field m3 sw"><div><span>{t}</span><b>{TRI(f[k])}</b></div><Tri valor={f[k]} label={t} onChange={v => setFi(k, v)} /></div>
             ))}
             <div className="i-field wide"><span>Registros en los que está inscrita</span>
               <Lista items={f.registros} onChange={v => setFi('registros', v)} placeholder="+ Registro" etiqueta="Añadir registro" /></div>
@@ -301,31 +319,63 @@ export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, pre
               {cambiosFicha.length > 0 && <button className="i-btn" onClick={() => setF(fichaGuardada)}>Descartar cambios</button>}
               {cambiosFicha.length > 0 && <small className="mut">{cambiosFicha.length} {cambiosFicha.length === 1 ? 'campo cambiado' : 'campos cambiados'}</small>}
             </div>
+        </div>
+      )}
+
+      {tab === 'busqueda' && (
+        <div className="pf-dos">
+          <div className="pf-col">
+            <div className="i-card i-perfil">
+            <div className="i-field wide"><span>¿Dónde trabajáis?</span>
+              <div className="tags">{d.zonas.map(z => <span key={z} className="i-tag" style={{ background: 'var(--nv)', color: '#fff' }}>{z}<button type="button" aria-label={`Quitar ${z}`} onClick={() => set('zonas', d.zonas.filter(x => x !== z))}>×</button></span>)}
+                <form className="add" onSubmit={e => { e.preventDefault(); const z = zona.trim(); if (z && !d.zonas.includes(z)) set('zonas', [...d.zonas, z]); setZona('') }}><input className="i-in" maxLength={60} placeholder="+ Añadir zona" value={zona} onChange={e => setZona(e.target.value)} /></form></div></div>
+            <div className="i-field wide sw"><div><span>Ampliar a toda España</span><b>{d.ampliar_espana ? 'Activado' : 'Solo vuestras zonas'}</b></div><Sw on={d.ampliar_espana} label="Ampliar a toda España" onClick={() => set('ampliar_espana', !d.ampliar_espana)} /></div>
+            {!d.ampliar_espana && comunidades.length > 0 && (
+              <div className="i-field wide"><span>Buscar también ayudas de otras comunidades</span>
+                <div className="tags">{comunidades.map(c => { const on = d.comunidades_extra.includes(c.codigo); return <button type="button" key={c.codigo} className="i-tag" style={on ? { background: 'var(--gr-l)', color: 'var(--gr-d)' } : { background: '#fff', border: '1.5px dashed #BFC6BC' }} onClick={() => set('comunidades_extra', on ? d.comunidades_extra.filter(x => x !== c.codigo) : [...d.comunidades_extra, c.codigo])}>{on ? '✓ ' : '+ '}{c.nombre}</button> })}</div></div>
+            )}
+            </div>
+            <Reglas setToast={setToast} recargarPerfil={recargarPerfil} />
           </div>
-          <Criterios key={JSON.stringify([perfil.criterios, perfil.requisitos_entidad])} {...{ perfil, guardarPerfil, setToast }} />
-          <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <button className="i-btn p" disabled={!cambios.length || guardando || !cifOk} onClick={guardar}><Icon n="check" s={19} w={2.6} />{guardando ? 'Guardando…' : 'Guardar cambios'}</button>
-            {cambios.length > 0 && <button className="i-btn" onClick={() => { setD(perfil); setLin({ lineas: perfil.lineas.join('\n'), no_sirve: perfil.no_sirve.join('\n') }) }}>Descartar cambios</button>}
-            <a href="#/propuestas" className="i-link">Ver la página pública de propuestas para empresas →</a>
+          <div className="pf-col">
+            <Criterios key={JSON.stringify([perfil.criterios, perfil.requisitos_entidad])} {...{ perfil, guardarPerfil, setToast }} />
           </div>
         </div>
-        <div className="i-side">
-        <div className="i-isle">
-          <span className="i-k">Objetivo del año</span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '8px 0' }}>
-            <button type="button" className="i-round" style={{ fontSize: 22 }} aria-label="Menos" onClick={() => set('objetivo_anual', Math.max(1, objetivo - 1))}>−</button>
-            <span className="n">{objetivo}</span>
-            <button type="button" className="i-round" style={{ fontSize: 22 }} aria-label="Más" onClick={() => set('objetivo_anual', Math.min(200, objetivo + 1))}>+</button>
-          </div>
-          <p>solicitudes. Un árbol por cada una. Lleváis {presentadas}.</p>
-          <Svg html={island(310, 250, Math.min(presentadas, objetivo), objetivo)} />
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-start', marginTop: 8 }}>
-            <button className="i-link" onClick={salir}>Cerrar sesión</button>
-          </div>
+      )}
+
+      {tab === 'docs' && (
+        <div className="pf-dos">
+          <div className="pf-col"><div className="i-card i-perfil">
+            <div className="i-field wide"><span>Documentos de la entidad</span>
+              {d.documentos.map((x, i) => (
+                <div key={x.nombre} className="i-docrow">
+                  <Sw on={x.tengo} label={`Tenemos ${x.nombre}`} onClick={() => set('documentos', d.documentos.map((y, j) => (j === i ? { ...y, tengo: !y.tengo } : y)))} />
+                  <b>{x.nombre}</b>
+                  <input className="i-in" type="date" aria-label={`Caduca ${x.nombre}`} value={x.caduca} onChange={e => set('documentos', d.documentos.map((y, j) => (j === i ? { ...y, caduca: e.target.value } : y)))} />
+                  <button type="button" className="i-link" onClick={() => set('documentos', d.documentos.filter((_, j) => j !== i))}>Quitar</button>
+                </div>
+              ))}
+              <form className="add" onSubmit={e => { e.preventDefault(); const n = doc.trim(); if (n && !d.documentos.some(x => x.nombre === n)) set('documentos', [...d.documentos, { nombre: n, tengo: false, caduca: '' }]); setDoc('') }}><input className="i-in" maxLength={80} placeholder="+ Añadir documento" value={doc} onChange={e => setDoc(e.target.value)} /></form></div>
+          </div></div>
+          <div className="pf-col"><div className="i-card i-perfil">
+            <div className="i-field wide"><span>Avisos por correo</span>
+              <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+                <select className="i-in" style={{ width: 180 }} value={d.avisos} onChange={e => set('avisos', e.target.value)}>{Object.entries(AVISOS).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select>
+                <input className="i-in" type="email" maxLength={120} placeholder="correo@reforesta.org" value={d.email_avisos} onChange={e => set('email_avisos', e.target.value)} />
+              </div>
+              <CorreoAvisos setToast={setToast} cambiado={d.email_avisos !== perfil.email_avisos} /></div>
+          </div></div>
         </div>
-        <Reglas setToast={setToast} recargarPerfil={recargarPerfil} />
+      )}
+
+      {(cambios.length > 0 || guardando) && (
+        <div className="pf-guardar" role="region" aria-label="Cambios sin guardar">
+          <span><b>{cambios.length}</b> {cambios.length === 1 ? 'cambio sin guardar' : 'cambios sin guardar'}</span>
+          <span style={{ flex: 1 }} />
+          <button className="i-btn" onClick={() => { setD(perfil); setLin({ lineas: perfil.lineas.join('\n'), no_sirve: perfil.no_sirve.join('\n') }) }}>Descartar</button>
+          <button className="i-btn p" disabled={guardando || !cifOk} onClick={guardar}><Icon n="check" s={19} w={2.6} />{guardando ? 'Guardando…' : 'Guardar cambios'}</button>
         </div>
-      </div>
+      )}
     </>
   )
 }
