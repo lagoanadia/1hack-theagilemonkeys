@@ -96,12 +96,16 @@ export function island(w, h, planted, total, sd = 4) {
   LP.setSeed(sd)
   const cx = w / 2, cy = h * .38, rx = w * .38
   let s = LP.island(cx, cy, rx, { top: '#86C27A', cliff: '#C79466', rock: '#8F6C56', seed: sd }).svg
-  const sp = [], cols = Math.ceil(total / 2)
-  for (let j = 0; j < 2; j++) for (let i = 0; i < cols; i++) { if (sp.length >= total) break; sp.push([cx + (i - (cols - 1) / 2) * rx * .36 + (j ? rx * .16 : -rx * .1), cy + (j - .5) * rx * .3]) }
+  // Los árboles siempre caben en el terreno: con más solicitudes, más filas, menos separación y árboles más pequeños.
+  const rows = total <= 8 ? 2 : total <= 15 ? 3 : 4, cols = Math.ceil(total / rows)
+  const dx = Math.min(rx * .36, rx * 1.25 / Math.max(cols, 1)), dy = Math.min(rx * .3, rx * .55 / Math.max(rows - 1, 1))
+  const f = Math.min(1, 4.2 / Math.max(cols, 1), rows > 2 ? .85 : 1)
+  const sp = []
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) { if (sp.length >= total) break; sp.push([cx + (i - (cols - 1) / 2) * dx + (j % 2 ? dx * .25 : -dx * .2), cy + (j - (rows - 1) / 2) * dy]) }
   sp.sort((a, b) => a[1] - b[1])
   const sel = []; for (let i = 0; i < Math.min(planted, total); i++) sel.push(Math.floor(i * total / Math.max(planted, 1) + 1) % total)
   sp.forEach((p, i) => {
-    if (sel.includes(i)) s += i % 2 ? LP.conifer(p[0], p[1], rx * .55, '#2F7650') : LP.roundTree(p[0], p[1], rx * .46, '#45935F')
+    if (sel.includes(i)) s += i % 2 ? LP.conifer(p[0], p[1], rx * .55 * f, '#2F7650') : LP.roundTree(p[0], p[1], rx * .46 * f, '#45935F')
     else s += `<ellipse cx="${p[0]}" cy="${p[1]}" rx="${rx * .05}" ry="${rx * .025}" fill="#63A257"/>` + LP.poly([[p[0] - 1.6, p[1]], [p[0] + 1.6, p[1]], [p[0] + 1.2, p[1] - rx * .13], [p[0] - 1.2, p[1] - rx * .13]], '#C79466') + `<line x1="${p[0]}" y1="${p[1] - rx * .1}" x2="${p[0] + rx * .05}" y2="${p[1] - rx * .085}" stroke="#EE6A4A" stroke-width="2"/>`
   })
   return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="max-width:${w}px;display:block;margin:0 auto">${s}</svg>`

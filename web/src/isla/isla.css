@@ -1099,3 +1099,9 @@ html,body{margin:0}
 .pf-obj-barra i{display:block;height:100%;border-radius:6px;background:linear-gradient(90deg,#79C08A,var(--gr))}
 .pf-obj-l{margin-top:10px;font-size:15px;color:var(--mut)}.pf-obj-l b{color:var(--gr-d)}
 .pf-obj-links{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:14px}
+/* Barra de cambios sin guardar del Perfil: visible y con iconos */
+.i-btn.pf-desc{color:var(--nv)!important}
+.pf-cambios{display:inline-flex;align-items:center;gap:12px;font-size:16px}
+.pf-cambios .pt{width:34px;height:34px;border-radius:50%;background:var(--am);color:#fff;display:grid;place-items:center;animation:pf-lat 1.6s ease-in-out 2}
+@keyframes pf-lat{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+@media (prefers-reduced-motion:reduce){.pf-cambios .pt{animation:none}}

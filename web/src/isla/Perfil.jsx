@@ -365,9 +365,9 @@ export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, pre
 
       {(cambios.length > 0 || guardando) && (
         <div className="pf-guardar" role="region" aria-label="Cambios sin guardar">
-          <span><b>{cambios.length}</b> {cambios.length === 1 ? 'cambio sin guardar' : 'cambios sin guardar'}</span>
+          <span className="pf-cambios"><span className="pt"><Icon n="alert" s={17} /></span><span><b>{cambios.length}</b> {cambios.length === 1 ? 'cambio sin guardar' : 'cambios sin guardar'}</span></span>
           <span style={{ flex: 1 }} />
-          <button className="i-btn" onClick={() => { setD(perfil); setLin({ lineas: perfil.lineas.join('\n'), no_sirve: perfil.no_sirve.join('\n') }) }}>Descartar</button>
+          <button className="i-btn pf-desc" onClick={() => { setD(perfil); setLin({ lineas: perfil.lineas.join('\n'), no_sirve: perfil.no_sirve.join('\n') }) }}><Icon n="undo" s={18} w={2.4} />Descartar cambios</button>
           <button className="i-btn p" disabled={guardando || !cifOk} onClick={guardar}><Icon n="check" s={19} w={2.6} />{guardando ? 'Guardando…' : 'Guardar cambios'}</button>
         </div>
       )}
