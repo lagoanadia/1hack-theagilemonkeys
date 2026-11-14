@@ -432,8 +432,7 @@ html,body{margin:0}
 .i-hero h3[title]{cursor:help}
 @media (max-height:690px){.i-page.fit .i-hero .pie .cita p{-webkit-line-clamp:2}}
 
-/* ====================================================================================
-   Convocatorias: ciclo de vida como navegación principal + tableros por secciones (tipo Notion)
+/* =============================================================================   Convocatorias: ciclo de vida como navegación principal + tableros por secciones (tipo Notion)
    ==================================================================================== */
 .i-sr{position:absolute!important;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .i-hint{color:var(--mut);font-size:15px;font-weight:500}
@@ -746,3 +745,26 @@ button.et-chip{padding:0 18px!important;border-radius:999px!important}
 .et-form .sw.on{box-shadow:0 0 0 2.5px var(--nv)}
 .et-form .acc{display:flex;gap:10px;align-items:center;flex-basis:100%}
 .i-tag.et-tag{background:var(--sct);color:var(--nv);gap:6px}
+
+/* Globo de impacto en vuelos (Globo.jsx) */
+.i-impacto{display:grid;grid-template-columns:minmax(0,.9fr) minmax(300px,1.1fr);gap:26px;align-items:center}
+.i-impacto h3{font-size:22px;font-weight:600;letter-spacing:-.01em;line-height:1.25;margin:14px 0 6px;color:var(--mut)}
+.i-impacto h3 b{color:var(--nv)}
+.i-impacto .grande{display:flex;align-items:center;gap:16px;margin:4px 0 18px}
+.i-impacto .grande b{font-size:96px;line-height:.9;font-weight:700;letter-spacing:-.05em;color:var(--co)}
+.i-impacto .grande span{font-size:21px;font-weight:700;line-height:1.25;color:var(--nv)}
+.i-impacto .mini{display:flex;gap:24px;color:var(--mut);font-size:13.5px;margin-bottom:10px}.i-impacto .mini b{display:block;font-size:22px;color:var(--nv)}
+.i-impacto small{color:var(--mut);font-size:12.5px}
+.i-impacto .mundo{position:relative;border-radius:24px;overflow:hidden;background:radial-gradient(circle at 50% 40%,#F4F8FB,#E3ECF1)}
+.i-globo{width:100%;aspect-ratio:4/3;display:block}
+.i-impacto .contador{position:absolute;left:16px;bottom:14px;background:var(--nv);color:#fff;font-weight:700;font-size:15px;padding:8px 14px;border-radius:999px}
+.i-pub .impacto{margin-top:26px;padding:26px 28px}
+.i-pub .box.ancha{max-width:1040px}
+@media (max-width:820px){
+  .i-impacto{grid-template-columns:1fr}.i-impacto .mundo{order:-1}
+  .i-impacto .grande b{font-size:72px}.i-impacto .grande span{font-size:18px}.i-impacto .mini{flex-wrap:wrap;gap:14px}
+}
+.i-impacto .mundo.fin .i-globo{cursor:grab}.i-impacto .mundo.fin .i-globo:active{cursor:grabbing}
+.i-impacto .i-globo{touch-action:pan-y}
+.i-impacto .pista{position:absolute;top:14px;right:14px;font-size:12.5px;font-weight:600;color:var(--mut);background:rgba(255,255,255,.85);padding:4px 10px;border-radius:999px}
+.i-impacto .otra{position:absolute;right:14px;bottom:12px;height:40px!important;font-size:14px!important}

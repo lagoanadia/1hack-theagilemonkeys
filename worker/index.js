@@ -241,9 +241,13 @@ const IMPACTO = {
 // Destinos para el globo: [nombre, longitud, latitud].
 const DESTINOS = [
   ["A Coruña", -8.41, 43.36], ["Tenerife", -16.25, 28.46], ["París", 2.35, 48.86], ["Londres", -0.13, 51.51],
-  ["Roma", 12.50, 41.90], ["Nueva York", -74.01, 40.71], ["Buenos Aires", -58.38, -34.60],
+  ["Roma", 12.50, 41.90], ["Reikiavik", -21.94, 64.15], ["El Cairo", 31.24, 30.04], ["Nueva York", -74.01, 40.71],
+  ["Dubái", 55.27, 25.20], ["Ciudad de México", -99.13, 19.43], ["São Paulo", -46.63, -23.55],
+  ["Nueva Delhi", 77.21, 28.61], ["Los Ángeles", -118.24, 34.05], ["Buenos Aires", -58.38, -34.60],
+  ["Ciudad del Cabo", 18.42, -33.92], ["Pekín", 116.40, 39.90], ["Bangkok", 100.50, 13.76],
   ["Tokio", 139.69, 35.69], ["Sídney", 151.21, -33.87],
 ];
+const MAX_VUELOS_VIAJE = 12;  // el globo dibuja un avión por vuelo: pocos y lejanos se entienden mejor
 // Distancia en km entre dos puntos [lon, lat] siguiendo la curva de la Tierra (fórmula del haversine).
 function kmEntre([lon1, lat1], [lon2, lat2]) {
   const r = Math.PI / 180;
@@ -254,19 +258,31 @@ function kmEntre([lon1, lat1], [lon2, lat2]) {
 function impacto(ha) {
   const anual = ha * IMPACTO.co2_ha_anio, total = anual * IMPACTO.anios;
   const r1 = (n) => Math.round(n * 10) / 10;
+  const vuelos = DESTINOS.map(([destino, lon, lat]) => {
+    const km = Math.round(kmEntre(IMPACTO.origen.ll, [lon, lat]));
+    const co2 = (km * 2 * IMPACTO.kg_co2_km) / 1000;  // ida y vuelta, 1 pasajero, en t
+    return { destino, ll: [lon, lat], km, co2_vuelo: Math.round(co2 * 100) / 100,
+      vuelos_anio: Math.floor(anual / co2), vuelos_total: Math.floor(total / co2) };
+  });
   return {
     hectareas: ha, anios: IMPACTO.anios, co2_anual: r1(anual), co2_total: Math.round(total),
     coches_anio: Math.round(anual / IMPACTO.coche_anio),
     personas_anio: r1(anual / IMPACTO.persona_anio),
     anios_persona: Math.round(total / IMPACTO.persona_anio),
     origen: IMPACTO.origen,
-    vuelos: DESTINOS.map(([destino, lon, lat]) => {
-      const km = Math.round(kmEntre(IMPACTO.origen.ll, [lon, lat]));
-      const co2 = (km * 2 * IMPACTO.kg_co2_km) / 1000;  // ida y vuelta, 1 pasajero, en t
-      return { destino, ll: [lon, lat], km, co2_vuelo: Math.round(co2 * 100) / 100,
-        vuelos_anio: Math.floor(anual / co2), vuelos_total: Math.floor(total / co2) };
-    }),
+    vuelos,
+    viaje: elegirViaje(vuelos, ha),
   };
+}
+// El viaje que enseña el globo: un destino donde quepan entre 1 y 12 vuelos al año. Cuanto más CO2, más
+// lejos (menos vuelos y más largos). Entre los posibles se elige uno «al azar», pero siempre el mismo
+// para las mismas hectáreas, para que la misma propuesta no cambie de destino al recargar.
+function elegirViaje(vuelos, ha) {
+  const caben = vuelos.filter((v) => v.vuelos_anio >= 1 && v.vuelos_anio <= MAX_VUELOS_VIAJE);
+  if (caben.length) return caben[Math.round(ha * 10) % caben.length];
+  const porKm = [...vuelos].sort((a, b) => a.km - b.km);
+  // Más de 12 vuelos incluso al más lejano: el más lejano. Menos de 1 incluso al más cercano: el más cercano.
+  return porKm.at(-1).vuelos_anio > MAX_VUELOS_VIAJE ? porKm.at(-1) : porKm[0];
 }
 function camposPropuesta(b) {
   const c = {};

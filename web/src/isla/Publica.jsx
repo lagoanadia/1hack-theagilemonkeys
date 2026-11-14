@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
 import { island, tree } from './lp.js'
+import Globo from './Globo.jsx'
 import { api } from '../api.js'
 import { euros, hectareas } from '../datos.js'
 
 // Página pública para empresas: lista de GET /api/proyectos y reserva con POST /api/proyectos/:id/interes.
 // No pide contraseña. Anti-spam: campo trampa «web» (invisible) y límite de envíos en el servidor.
-const VACIO = { empresa: '', persona: '', email: '', mensaje: '', web: '', ok: false }
+const VACIO = { empresa: '', persona: '', email: '', mensaje: '', hectareas: '', web: '', ok: false }
 // Solo llegan las propuestas publicadas; cada una trae plazas_libres (null = sin límite) y completa.
 // TODO backend: «avisadme si quedan plazas».
 
@@ -18,6 +19,7 @@ export default function Publica({ equipo, onEntrar }) {
   const [estado, setEstado] = useState('form')   // form · enviada · error
   const [msg, setMsg] = useState('')
   const [enviando, setEnviando] = useState(false)
+  const [impacto, setImpacto] = useState(null)   // impacto de la reserva hecha (para el avión)
 
   useEffect(() => { api('/proyectos').then(setLista).catch(e => setError(e.message)) }, [])
 
@@ -27,15 +29,17 @@ export default function Publica({ equipo, onEntrar }) {
     e.preventDefault()
     setEnviando(true)
     try {
-      await api(`/proyectos/${sel.id}/interes`, {
+      const r = await api(`/proyectos/${sel.id}/interes`, {
         metodo: 'POST',
-        datos: { empresa: f.empresa, contacto: `${f.persona} · ${f.email}`, mensaje: f.mensaje, web: f.web },
+        datos: { empresa: f.empresa, contacto: `${f.persona} · ${f.email}`, mensaje: f.mensaje, web: f.web,
+          hectareas: f.hectareas === '' ? null : Number(f.hectareas) },
       })
+      setImpacto(r.impacto || null)
       setEstado('enviada')
     } catch (err) { setMsg(err.message); setEstado('error') }
     setEnviando(false)
   }
-  const volver = () => { setSel(null); setF(VACIO); setEstado('form'); setMsg('') }
+  const volver = () => { setSel(null); setF(VACIO); setEstado('form'); setMsg(''); setImpacto(null) }
   const campo = k => ({ value: f[k], onChange: e => setF({ ...f, [k]: e.target.value }) })
   return (
     <div className="isla i-pub">
@@ -82,6 +86,9 @@ export default function Publica({ equipo, onEntrar }) {
             )
           })}
         </section>
+        <section className="i-card impacto">
+          <Globo ha={Math.max(1, Math.round(ha / Math.max(1, (lista || []).length)) || 8)} titulo="Lo que supone un proyecto" />
+        </section>
       </>)}
       {sel && estado !== 'enviada' && (
         <form className="i-card i-form box" onSubmit={enviar}>
@@ -90,6 +97,8 @@ export default function Publica({ equipo, onEntrar }) {
           <input className="i-in" required maxLength={150} placeholder="Empresa" {...campo('empresa')} />
           <input className="i-in" required maxLength={60} placeholder="Persona de contacto" {...campo('persona')} />
           <input className="i-in" required type="email" maxLength={80} placeholder="Email" {...campo('email')} />
+          <input className="i-in" type="number" min="0.1" step="0.1" max={sel.hectareas || undefined}
+            placeholder={`Hectáreas que queréis apoyar (opcional${sel.hectareas ? `, hasta ${sel.hectareas}` : ''})`} {...campo('hectareas')} />
           <textarea className="i-in" maxLength={1000} placeholder="Mensaje (opcional)" {...campo('mensaje')} />
           {/* Campo trampa: las personas no lo ven; los bots lo rellenan y el servidor los ignora. */}
           <input className="i-trampa" tabIndex={-1} autoComplete="off" aria-hidden="true" name="web" {...campo('web')} />
@@ -100,9 +109,10 @@ export default function Publica({ equipo, onEntrar }) {
         </form>
       )}
       {sel && estado === 'enviada' && (
-        <section className="i-card box" style={{ textAlign: 'center' }}>
-          <h2>Reserva recibida</h2>
+        <section className={`i-card box${impacto ? ' ancha' : ''}`} style={{ textAlign: 'center' }}>
+          <h2>Reserva recibida{impacto ? ': ¡vuestro avión despega!' : ''}</h2>
           <p className="i-sub">Reforesta os responderá en unos días. No supone compromiso de pago.</p>
+          {impacto && <div style={{ textAlign: 'left', margin: '8px 0 18px' }}><Globo impacto={impacto} titulo="Lo que compensa vuestra ayuda" /></div>}
           <button className="i-btn p" style={{ margin: '0 auto' }} onClick={volver}>Ver otros proyectos</button>
         </section>
       )}

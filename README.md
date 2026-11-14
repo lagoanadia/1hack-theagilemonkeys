@@ -134,11 +134,15 @@ radar basta con ponerla en `por_revisar`.
 ### Impacto para empresas (CO₂ en vuelos)
 
 `GET /api/impacto?ha=8` (público) traduce hectáreas a algo que se entiende: CO₂ absorbido al año y
-en 30 años, coches, personas y **vuelos de ida y vuelta desde Madrid** a 9 destinos (con coordenadas
+en 30 años, coches, personas y **vuelos de ida y vuelta desde Madrid** a 19 destinos (con coordenadas
 `ll: [lon, lat]` para dibujarlos en un globo). Cada propuesta de `/api/proyectos` con hectáreas trae
 ese mismo objeto en `impacto`. Supuestos (estimaciones, ajustables en `IMPACTO` del Worker):
 5 t CO₂/ha/año, 30 años, 0,1 kg CO₂ por pasajero y km, coche 1,6 t/año, persona 5 t/año.
 Ejemplo: 8 ha ≈ 40 t CO₂/año ≈ 34 vuelos Madrid–Nueva York cada año.
+`viaje` es el destino que enseña el globo: uno donde quepan entre 1 y 12 vuelos al año (cuanto más CO₂,
+más lejos; el mismo para las mismas hectáreas). En la web (`web/src/isla/Globo.jsx`, canvas sin
+librerías) un avión low poly vuela una vez de Madrid a ese destino con la cámara siguiéndolo; al
+aterrizar el globo se puede girar arrastrando. Sale en la página pública de propuestas y al reservar.
 - **Al ayudar**: `POST /api/proyectos/:id/interes` admite `hectareas` (opcional, como mucho las de la
   propuesta) y responde con el `impacto` de esa ayuda (para animar el avión). Cada propuesta trae
   `hectareas_apoyadas` y `/api/interesados` las hectáreas de cada empresa.
