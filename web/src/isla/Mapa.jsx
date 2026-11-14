@@ -76,7 +76,7 @@ export default function Mapa({ top, salir }) {
           <div className="mp-mapa" onClick={e => { const g = e.target.closest('[data-id]'); setSelId(g ? Number(g.dataset.id) : null) }}>
             <Svg html={svg} />
             {sel && (
-              <div className="mp-pop" style={{ left: `${(sp[0] / 720) * 100}%`, top: `${(sp[1] / 630) * 100}%` }} onClick={e => e.stopPropagation()}>
+              <div className={`mp-pop ${sp[1] < 260 ? 'abajo' : ''} ${sp[0] > 520 ? 'izq' : ''}`} style={{ left: `${(sp[0] / 720) * 100}%`, top: `${(sp[1] / 630) * 100}%` }} onClick={e => e.stopPropagation()}>
                 <button className="x" aria-label="Cerrar" onClick={() => setSelId(null)}><Icon n="x" s={14} w={2.6} /></button>
                 <span className="pill" style={{ background: COL[sel.tipo] + '22', color: COL[sel.tipo] }}><i style={{ background: COL[sel.tipo] }} />{TIPO[sel.tipo]} · {sel.anio}</span>
                 <b>{sel.nombre}</b>
