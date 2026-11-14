@@ -53,9 +53,9 @@ export default function Publica({ equipo, onEntrar }) {
             <h1>Planta un bosque <span>con Reforesta</span></h1>
             <p>Elegid un proyecto y reservad sin compromiso. Os escribimos en unos días para prepararlo juntos.</p>
             {lista && lista.length > 0 && (
-              <div className="nums">
-                <div><b>{lista.length}</b>{lista.length === 1 ? 'proyecto abierto' : 'proyectos abiertos'}</div>
-                {ha > 0 && <div><b>{hectareas(ha)}</b>por restaurar</div>}
+              <div className="nums2">
+                <div><span className="ic co"><Icon n="pin" s={22} /></span><span><b>{lista.length}</b>{lista.length === 1 ? 'proyecto abierto' : 'proyectos abiertos'}</span></div>
+                {ha > 0 && <div><span className="ic gr"><Icon n="leaf" s={22} /></span><span><b>{hectareas(ha)}</b>por restaurar</span></div>}
               </div>
             )}
           </div>

@@ -23,6 +23,10 @@ const TIPO_NOMBRE = {
   solicitud: 'Solicitud', anexo: 'Anexo', otro: 'Otro',
 }
 // Documentos propios de cada solicitud: no tienen sentido en la biblioteca general.
+// Icono de cada tipo de documento (casillas).
+const ICONO_TIPO = { solicitud: 'doc', estatutos: 'list', registro_entidad: 'building', cif: 'user', representante_legal: 'user', cert_hacienda: 'euro',
+  cert_seg_social: 'verified', declaracion_responsable: 'check', memoria_actividades: 'bookmark', memoria_proyecto: 'leaf', presupuesto: 'pct',
+  cuentas_anuales: 'euro', titularidad_bancaria: 'building', permiso_propietario: 'map', anexo: 'doc', otro: 'doc' }
 const PROPIOS = ['memoria_proyecto', 'presupuesto', 'permiso_propietario', 'solicitud', 'anexo']
 const MESL = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
 
@@ -158,36 +162,60 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
       <div className="i-split">
         {/* IZQUIERDA: lo que pide esta convocatoria */}
         <div className="i-card i-docs">
-          <div className="i-docs-h">
-            <small className="conv" title={`${a.titulo} · ${a.organo}`}>{a.titulo.length > 110 ? `${a.titulo.slice(0, 110)}…` : a.titulo}</small>
-            <b>{biblio ? `Tenéis ${listos} de ${obligatorios.length}` : 'Cargando…'}{detectados > 0 && <span className="det"> · {detectados} {detectados === 1 ? 'detectado' : 'detectados'} en vuestra biblioteca</span>}</b>
-            <span>{general
-              ? 'El radar no encontró la lista en el PDF de esta convocatoria: es una lista general. Revisad las bases.'
-              : `Lo que pide esta convocatoria${a.documentos_fuente ? ` (sacado de «${a.documentos_fuente}»)` : ''}. Subid cada documento o elegidlo de los que ya tenéis.`}</span>
-          </div>
-          {filas.map(({ r, doc, sugerido, aviso, estado }) => (
-            <div key={r.clave}
-              className={`i-doc i-hueco ${ocupado === r.clave ? 'comprobando' : estado} ${sobre === r.clave ? 'sobre' : ''}`}
-              onDragOver={ev => { ev.preventDefault(); setSobre(r.clave) }} onDragLeave={() => setSobre(null)} onDrop={ev => soltar(ev, r)}>
-              {doc
-                ? <button type="button" className="ico quitable" title="Quitar este documento" aria-label={`Quitar «${doc.nombre}» de ${r.nombre}`} onClick={() => asignar(r, null)}>
-                    <span className="si">{estado === 'listo' ? <Icon n="check" s={16} w={3} /> : '!'}</span><span className="no"><Icon n="x" s={15} w={3} /></span></button>
-                : <span className="ico" aria-hidden="true" />}
-              <div className="txt">
-                <b>{r.nombre}{r.obligatorio === false && <span className="i-opc"> · opcional</span>}</b>
-                <small>{doc ? <><Icon n="doc" s={13} /> {doc.nombre}{doc.tiene_archivo ? '' : ' (sin archivo)'}{asig[r.clave]?.estado === 'sugerido' && <span className="det"> · detectado</span>}</> : r.condicion || TIPO_NOMBRE[r.tipo]}</small>
-                {aviso && <em className="duda">{aviso}</em>}
-                {sugerido && <em className="sug">Tenéis «{sugerido.nombre}» en la biblioteca <button className="i-link" onClick={() => asignar(r, sugerido.id)}>Usarlo</button></em>}
-                {r.cita && <em className="cita">«{r.cita}»</em>}
-              </div>
-              <div className="acts">
-                <Desplegable className="i-up" alinear="der" etiqueta={`Asignar un documento a ${r.nombre}`} valor={doc?.id || ''}
-                  onCambio={v => asignar(r, v ? Number(v) : null)} boton={<><Icon n="doc" s={15} />{doc ? 'Cambiar' : 'Asignar'}</>}
-                  opciones={[...(biblio || []).map(d => ({ v: d.id, t: d.nombre, extra: d.caduca ? `caduca ${d.caduca}` : '' }))]} />
-                <label className={`i-up ${estado === 'falta' ? 'p' : ''}`}><Icon n="plus" s={15} w={2.4} />Subir<input type="file" accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx,.odt,.ods" hidden onChange={ev => { subirA(r, ev.target.files[0]); ev.target.value = '' }} /></label>
-              </div>
+          {/* Casillas: cada documento es una casilla; el color dice el estado. Todo en una pantalla. */}
+          <div className="cs-cab">
+            <div className="cs-anillo" aria-hidden="true">
+              <svg width="72" height="72" viewBox="0 0 72 72"><circle cx="36" cy="36" r="29" fill="none" stroke="#E6E1D3" strokeWidth="9" />
+                <circle cx="36" cy="36" r="29" fill="none" stroke="#3F9A66" strokeWidth="9" strokeLinecap="round" strokeDasharray={`${obligatorios.length ? (listos / obligatorios.length) * 182 : 0} 182`} transform="rotate(-90 36 36)" /></svg>
+              <b>{listos}/{obligatorios.length}</b>
             </div>
-          ))}
+            <div className="cs-tit">
+              <h3>{biblio ? (faltan === 0 ? '¡Tenéis todos los documentos!' : `Tenéis ${listos} de ${obligatorios.length} documentos`) : 'Cargando…'}</h3>
+              <small title={`${a.titulo} · ${a.organo}`}>{a.titulo.length > 90 ? `${a.titulo.slice(0, 90)}…` : a.titulo}</small>
+              {detectados > 0 && <small className="det">✨ {detectados} {detectados === 1 ? 'detectado' : 'detectados'} en vuestra biblioteca</small>}
+            </div>
+            <div className="cs-chips">
+              <span className="ok">{filas.filter(f => f.estado === 'listo').length} listos</span>
+              {filas.some(f => f.estado === 'revisar') && <span className="rev">{filas.filter(f => f.estado === 'revisar').length} revisar</span>}
+              {filas.some(f => f.estado === 'falta') && <span className="fa">{filas.filter(f => f.estado === 'falta').length} faltan</span>}
+            </div>
+          </div>
+          {general && <p className="cs-gen">El radar no encontró la lista en el PDF de esta convocatoria: es una lista general. Revisad las bases.</p>}
+          <div className="cs-grid">
+            {filas.map(({ r, doc, sugerido, aviso, estado }) => (
+              <div key={r.clave} title={r.cita ? `«${r.cita}»` : undefined}
+                className={`cs-t ${estado} ${ocupado === r.clave ? 'comprobando' : ''} ${sobre === r.clave ? 'sobre' : ''}`}
+                onDragOver={ev => { ev.preventDefault(); setSobre(r.clave) }} onDragLeave={() => setSobre(null)} onDrop={ev => soltar(ev, r)}>
+                <div className="cs-top">
+                  <span className="cs-ic"><Icon n={ICONO_TIPO[r.tipo] || 'doc'} s={22} /></span>
+                  {doc
+                    ? <button type="button" className="cs-est quitable" title="Quitar este documento" aria-label={`Quitar «${doc.nombre}» de ${r.nombre}`} onClick={() => asignar(r, null)}>
+                        <span className="si">{estado === 'listo' ? <><Icon n="check" s={13} w={3.4} />Listo</> : '! Revisar'}</span><span className="no"><Icon n="x" s={13} w={3} />Quitar</span></button>
+                    : <span className="cs-est">{estado === 'no_aplica' ? 'No aplica' : '+ Falta'}</span>}
+                </div>
+                <b>{r.nombre}{r.obligatorio === false && <span className="i-opc"> · opcional</span>}</b>
+                <small>{aviso || (doc ? <>{doc.nombre}{asig[r.clave]?.estado === 'sugerido' ? ' · detectado' : ''}</> : r.condicion || TIPO_NOMBRE[r.tipo])}</small>
+                {sugerido && <button className="i-link cs-sug" onClick={() => asignar(r, sugerido.id)}>Usar «{sugerido.nombre}»</button>}
+                {estado !== 'listo' && estado !== 'no_aplica' && (
+                  <div className="cs-acc">
+                    <label className="cs-b p"><Icon n="plus" s={13} w={2.6} />{estado === 'revisar' ? 'Subir uno nuevo' : 'Subir'}<input type="file" accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx,.odt,.ods" hidden onChange={ev => { subirA(r, ev.target.files[0]); ev.target.value = '' }} /></label>
+                    {estado === 'falta' && (biblio || []).length > 0 && (
+                      <Desplegable className="cs-b" alinear="izq" etiqueta={`Elegir de la biblioteca para ${r.nombre}`} valor="" onCambio={v => asignar(r, Number(v))} boton="Biblioteca"
+                        opciones={(biblio || []).map(d => ({ v: d.id, t: d.nombre, extra: d.caduca ? `caduca ${d.caduca}` : '' }))} />
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+          {(biblio || []).length > 0 && (
+            <div className="cs-bib"><span>Vuestra biblioteca · arrastrad a una casilla:</span>
+              {biblio.slice(0, 8).map(d => (
+                <i key={d.id} draggable onDragStart={ev => { ev.dataTransfer.setData('text/documento', String(d.id)); ev.dataTransfer.effectAllowed = 'copy' }} title={d.caduca ? `Caduca el ${d.caduca}` : d.nombre}>{d.nombre}</i>
+              ))}
+              {biblio.length > 8 && <i className="mas">+ {biblio.length - 8}</i>}
+            </div>
+          )}
           {a.plantillas?.length > 0 && (
             <div className="i-plant"><b>Modelos oficiales para rellenar</b>
               {a.plantillas.map(p => <a key={p.url} href={p.url} target="_blank" rel="noopener noreferrer"><Icon n="doc" s={14} /> {p.nombre}</a>)}

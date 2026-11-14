@@ -1106,3 +1106,42 @@ html,body{margin:0}
 @keyframes pf-lat{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 @media (prefers-reduced-motion:reduce){.pf-cambios .pt{animation:none}}
 .pf-obj-isla{width:100%;max-width:310px;margin:0 auto 6px}.pf-obj-isla svg{width:100%;height:auto}.pf-obj-t{margin-bottom:6px}
+/* Preparar papeles: casillas (opción A) */
+.cs-cab{display:flex;align-items:center;gap:18px;padding:4px 4px 14px}
+.cs-anillo{position:relative;width:72px;height:72px;flex-shrink:0}.cs-anillo b{position:absolute;inset:0;display:grid;place-items:center;font-size:18px}
+.cs-tit{flex:1;min-width:0}.cs-tit h3{font-size:22px;letter-spacing:-.01em}.cs-tit small{display:block;font-size:13.5px;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cs-chips{display:flex;gap:6px;flex-shrink:0}.cs-chips span{font-size:13px;font-weight:700;padding:5px 11px;border-radius:999px}
+.cs-chips .ok{background:var(--gr-l);color:var(--gr-d)}.cs-chips .rev{background:var(--am-l);color:#8A5300}.cs-chips .fa{background:var(--co-l);color:var(--co-d)}
+.cs-gen{font-size:13.5px;color:#8A5300;background:var(--am-l);border-radius:12px;padding:8px 12px;margin-bottom:10px}
+.cs-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+.cs-t{border-radius:18px;padding:12px 12px 10px;display:flex;flex-direction:column;gap:5px;min-height:142px;border:2px solid transparent;transition:transform .12s,box-shadow .12s}
+.cs-t.listo{background:var(--gr-l)}.cs-t.revisar{background:var(--am-l)}.cs-t.no_aplica{background:#EEF0EA;opacity:.7}
+.cs-t.falta{background:#fff;border:2px dashed #EBC3B5}
+.cs-t.sobre{transform:scale(1.03);box-shadow:0 0 0 3px var(--co)}.cs-t.comprobando{opacity:.6}
+.cs-top{display:flex;justify-content:space-between;align-items:center}
+.cs-ic{width:40px;height:40px;border-radius:13px;display:grid;place-items:center;background:rgba(255,255,255,.75)}
+.cs-t.listo .cs-ic{color:var(--gr-d)}.cs-t.revisar .cs-ic{color:#8A5300}.cs-t.falta .cs-ic{background:var(--co-l);color:var(--co-d)}
+.cs-est{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:700;border-radius:999px;padding:3px 8px}
+.cs-t.listo .cs-est{color:var(--gr-d)}.cs-t.revisar .cs-est{color:#8A5300}.cs-t.falta .cs-est{color:var(--co-d)}
+.cs-est.quitable{cursor:pointer}.cs-est.quitable .no{display:none}
+.cs-est.quitable:hover,.cs-est.quitable:focus-visible{background:var(--co);color:#fff!important}
+.cs-est.quitable:hover .si,.cs-est.quitable:focus-visible .si{display:none}.cs-est.quitable:hover .no,.cs-est.quitable:focus-visible .no{display:inline-flex;align-items:center;gap:3px}
+.cs-est .si{display:inline-flex;align-items:center;gap:3px}
+.cs-t b{font-size:15px;line-height:1.2}.cs-t small{font-size:12.5px;color:var(--mut);line-height:1.3}
+.cs-t.revisar small{color:#8A5300;font-weight:600}
+.cs-sug{font-size:12.5px;text-align:left}
+.cs-acc{display:flex;gap:6px;margin-top:auto;flex-wrap:wrap}
+.cs-b{display:inline-flex!important;align-items:center;gap:4px;font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:10px;background:#fff;border:1.5px solid var(--ln);cursor:pointer;color:var(--nv)}
+.cs-b.p{background:var(--co);border-color:var(--co);color:#fff}
+.cs-bib{margin-top:12px;padding:10px 12px;border-radius:16px;background:var(--soft);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.cs-bib span{font-size:12.5px;font-weight:700;color:var(--mut);margin-right:4px}
+.cs-bib i{font-style:normal;background:#fff;border:1px solid var(--ln);border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:600;cursor:grab}
+.cs-bib i.mas{cursor:default;color:var(--mut)}
+.cs-tit small.det{color:var(--gr-d);font-weight:700}
+/* Página pública: las dos cifras de la cabecera en tarjetas con icono */
+.i-pub .nums2{display:flex;gap:14px;margin-top:24px;flex-wrap:wrap}
+.i-pub .nums2>div{display:flex;align-items:center;gap:14px;background:#fff;border-radius:22px;padding:14px 22px 14px 14px;box-shadow:0 1px 0 var(--ln),0 14px 30px -24px rgba(27,39,66,.35)}
+.i-pub .nums2 .ic{width:52px;height:52px;border-radius:16px;display:grid;place-items:center}
+.i-pub .nums2 .ic.co{background:var(--co-l);color:var(--co-d)}.i-pub .nums2 .ic.gr{background:var(--gr-l);color:var(--gr-d)}
+.i-pub .nums2 span:last-child{display:flex;flex-direction:column;font-size:14.5px;color:var(--mut);line-height:1.2}
+.i-pub .nums2 b{font-size:32px;color:var(--nv);letter-spacing:-.03em;line-height:1.05}
