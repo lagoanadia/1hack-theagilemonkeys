@@ -13,6 +13,13 @@
 .cd{text-align:right}.cd b{display:block;font-size:34px;font-weight:400;letter-spacing:-.03em;line-height:1}
 .acts{display:flex;gap:8px;margin-top:10px}
 .mini{flex:none;width:32px;height:32px;border-radius:50%;border:1px solid #DDE0D8;display:grid;place-items:center;background:#fff;color:#4A554D;font-size:13px}
+.scroller{position:relative;height:440px;margin-top:14px;overflow:hidden;border-top:1px solid #ECEDE7}
+.scroll-in{padding-right:34px}
+.scroll-in .dec:first-child{border-top:0}
+.fade{position:absolute;left:0;right:0;bottom:0;height:70px;background:linear-gradient(rgba(255,255,255,0),#fff);pointer-events:none}
+.track{position:absolute;right:4px;top:8px;bottom:8px;width:4px;border-radius:2px;background:rgba(22,32,27,.06)}
+.thumb{position:absolute;left:0;top:0;width:4px;height:62%;border-radius:2px;background:#1F4D2E}
+.bubble{position:absolute;right:12px;top:calc(31% - 13px);background:#16201B;color:#fff;font:500 11.5px "Archivo";padding:5px 9px;border-radius:999px;white-space:nowrap;box-shadow:0 8px 18px -8px rgba(0,0,0,.45)}
 </style></head><body>
 <div id="page">
  <div class="toolbar"><h1>Buenos días, Sara</h1><span style="color:#6A746C;font-size:14px">viernes 14 de noviembre · el radar se actualizó a las 05:17</span><div class="search">Buscar en todo el radar…<kbd>⌘K</kbd></div></div>
@@ -20,10 +27,11 @@
   <!-- PROTAGONISTA: decidir -->
   <div class="c" style="grid-column:span 8;padding:22px 26px">
    <div style="display:flex;align-items:flex-start;gap:16px">
-    <div><div style="font-size:24px;font-weight:500;letter-spacing:-.02em;font-stretch:108%">Para decidir esta semana</div><div style="font-size:13.5px;color:#5F6962;margin-top:4px">3 convocatorias abiertas encajan con Reforesta. El radar ya ha leído las bases por vosotras.</div></div>
+    <div><div style="font-size:24px;font-weight:500;letter-spacing:-.02em;font-stretch:108%">Para decidir esta semana</div><div style="font-size:13.5px;color:#5F6962;margin-top:4px">5 convocatorias abiertas encajan con Reforesta. El radar ya ha leído las bases por vosotras.</div></div>
     <span class="btn" style="margin-left:auto">Ver bandeja completa</span></div>
 
-   <div class="dec" style="margin-top:14px">
+   <div class="scroller"><div class="scroll-in">
+   <div class="dec">
     <div class="tl"><svg data-t="bosque:4:1.1" width="80" height="80" viewBox="0 0 80 80" aria-hidden="true" style="position:absolute;inset:0"></svg></div>
     <div><div style="display:flex;gap:8px;align-items:center"><span class="pill pr">● Presenta · encaje 88</span><span style="font-size:12.5px;color:#6E7871">Comunidad de Madrid</span></div>
      <div style="font-size:17px;font-weight:500;letter-spacing:-.01em;margin-top:6px">Subvención a entidades sin ánimo de lucro para proyectos ambientales</div>
@@ -47,7 +55,16 @@
     <div><div class="bar" style="height:8px"><i style="width:75%"></i></div><div style="font-size:12px;color:#6E7871;margin-top:6px">Encaje con conservación de hábitats</div></div>
     <div class="cd"><b>41 días</b><span style="font-size:12px;color:#6E7871">cierra el 24 dic</span><div class="acts" style="justify-content:flex-end"><span class="mini" title="No interesa">✕</span><span class="btn" style="height:32px">Revisar</span></div></div>
    </div>
-  </div>
+     <div class="dec">
+    <div class="tl"><svg data-t="bosque:23:1.1" width="80" height="80" viewBox="0 0 80 80" aria-hidden="true" style="position:absolute;inset:0"></svg></div>
+    <div><div style="display:flex;gap:8px;align-items:center"><span class="pill pr">● Presenta · encaje 82</span><span style="font-size:12.5px;color:#6E7871">Ejemplo · fundación privada</span></div>
+     <div style="font-size:17px;font-weight:500;letter-spacing:-.01em;margin-top:6px">Restauración de zonas quemadas · convocatoria anual</div>
+     <div class="facts"><span>Hasta <b>25.000 €</b></span><span><b>5 de 5</b> requisitos claros</span></div></div>
+    <div><div class="bar" style="height:8px"><i style="width:82%"></i></div><div style="font-size:12px;color:#6E7871;margin-top:6px">Encaje con restauración tras incendios</div></div>
+    <div class="cd"><b>52 días</b><span style="font-size:12px;color:#6E7871">cierra el 4 ene</span><div class="acts" style="justify-content:flex-end"><span class="mini">✕</span><span class="btn" style="height:32px">Revisar</span></div></div>
+   </div>
+   </div><div class="fade"></div><div class="track" aria-hidden="true"><div class="thumb"></div><div class="bubble">1–3 de 5</div></div></div>
+</div>
 
   <!-- OBJETIVO + MAPA -->
   <div style="grid-column:span 4;display:flex;flex-direction:column;gap:14px;min-height:0">
