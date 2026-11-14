@@ -3,8 +3,6 @@ import Icon, { Svg } from './Icon.jsx'
 import { plant } from './lp.js'
 import { api } from '../api.js'
 import { LINEAS, descartadaPor, etapaDe, fechaCorta } from '../datos.js'
-import { useSecciones } from '../tablero.js'
-import Tablero from './Tablero.jsx'
 import Menu from './Menu.jsx'
 import { useRecordado } from '../recordado.js'
 import { useProgresoDocs } from './papeles.js'
@@ -151,7 +149,7 @@ export function Descarte({ a, cerrar, guardar }) {
   useEffect(() => { api('/motivos').then(l => setCatalogo(l.map(m => m.texto))).catch(() => setCatalogo([])) }, [])
   const toggle = m => setSel(sel.includes(m) ? sel.filter(x => x !== m) : [...sel, m])
   const final = [...sel, ...(nuevo.trim() && !sel.includes(nuevo.trim()) ? [nuevo.trim()] : [])]
-  const dinero = sel.includes('Piden poner mucho dinero')
+  const dinero = sel.includes('Cofinanciación demasiado alta')
   const enviar = async (motivos, extra) => { setGuardando(true); await guardar(a, motivos, extra); setGuardando(false) }
   return (
     <div className="i-dim" onClick={cerrar}>
@@ -415,48 +413,67 @@ const MOTIVOS_RADAR = [
 ]
 const motivoRadar = a => (MOTIVOS_RADAR.find(([, , re]) => re.test(a.motivo || '')) || ['otros'])[0]
 
-function Descartadas({ lista, recuperar, reclasificar, tab }) {
+function Descartadas({ lista, recuperar, reclasificar }) {
   const [cat, setCat] = useState([])
+  const [sel, setSel] = useState(null)        // grupo elegido (un filtro a la vez)
+  const [arrastrando, setArrastrando] = useState(null)
+  const [sobre, setSobre] = useState(null)
+  const [creando, setCreando] = useState(false)
   const cargar = useCallback(() => api('/motivos').then(l => setCat(l.map(m => m.texto))).catch(() => {}), [])
   useEffect(() => { cargar() }, [cargar])
-  const motivoDe = a => (descartadaPor(a) === 'radar' ? null : a.sol?.motivos?.[0] || '')
-  const usos = useMemo(() => lista.reduce((o, a) => { const m = motivoDe(a); if (m) o[m] = (o[m] || 0) + 1; return o }, {}), [lista])
-  const extra = useMemo(() => {
-    const nombres = [...new Set([...cat, ...Object.keys(usos)])].sort((x, y) => (usos[y] || 0) - (usos[x] || 0))
-    return {
-      secs: [
-        ...nombres.map(m => ({ id: `m:${m}`, nombre: m, plegadaInicial: !usos[m] })),
-        { id: 'sin', nombre: 'Sin motivo', fija: true, plegadaInicial: !lista.some(a => motivoDe(a) === '') },
-        ...MOTIVOS_RADAR.map(([id, nombre]) => ({ id: `radar:${id}`, nombre, color: 'azul', fija: true, noSoltar: true })),
-        { id: 'radar:otros', nombre: 'Radar · Otros motivos', color: 'azul', fija: true, noSoltar: true },
-      ],
-      posDe: a => { const m = motivoDe(a); return m === null ? `radar:${motivoRadar(a)}` : m ? `m:${m}` : 'sin' },
-    }
-  }, [cat, usos, lista])
-  const t = useSecciones(tab, 'descartadas', lista, porPlazo, { fija: true, disponer: extra })
-  const mover = (id, dest, idx, desde) => {
-    const a = lista.find(x => x.id === id)
-    if (a && dest !== desde && !dest.startsWith('radar')) reclasificar(a, dest === 'sin' ? [] : [dest.slice(2)])
-    t.onReordenar(id, dest, idx)
+  const grupoDe = a => (descartadaPor(a) === 'radar' ? `radar:${motivoRadar(a)}` : a.sol?.motivos?.[0] ? `m:${a.sol.motivos[0]}` : 'sin')
+  const porGrupo = useMemo(() => lista.reduce((o, a) => { (o[grupoDe(a)] ||= []).push(a); return o }, {}), [lista])
+  const equipo = [...new Set([...cat, ...Object.keys(porGrupo).filter(k => k.startsWith('m:')).map(k => k.slice(2))])]
+    .map(m => ({ id: `m:${m}`, nombre: m, n: porGrupo[`m:${m}`]?.length || 0 }))
+    .concat([{ id: 'sin', nombre: 'Sin motivo', n: porGrupo.sin?.length || 0 }])
+    .sort((x, y) => y.n - x.n)
+  const radar = [...MOTIVOS_RADAR.map(([id, nombre]) => ({ id: `radar:${id}`, nombre: nombre.replace('Radar · ', '') })), { id: 'radar:otros', nombre: 'Otros motivos' }]
+    .map(g => ({ ...g, n: porGrupo[g.id]?.length || 0 })).filter(g => g.n > 0).sort((x, y) => y.n - x.n)
+  const visiblesEquipo = equipo.filter(g => g.n > 0 || arrastrando)
+  const actual = (sel && porGrupo[sel]?.length ? sel : null) || visiblesEquipo.find(g => g.n)?.id || radar[0]?.id
+  const tarjetas = [...(porGrupo[actual] || [])].sort(porPlazo)
+  const esRadar = actual?.startsWith('radar')
+  const soltar = (e, g) => {
+    e.preventDefault(); setSobre(null)
+    const a = lista.find(x => x.id === arrastrando); setArrastrando(null)
+    if (a && grupoDe(a) !== g.id) reclasificar(a, g.id === 'sin' ? [] : [g.id.slice(2)])
   }
+  const chip = (g, puedeSoltar) => (
+    <button key={g.id} className={`ds-chip ${actual === g.id ? 'on' : ''} ${sobre === g.id ? 'sobre' : ''} ${g.n ? '' : 'vacio'}`} aria-pressed={actual === g.id}
+      onClick={() => g.n && setSel(g.id)}
+      {...(puedeSoltar ? { onDragOver: e => { e.preventDefault(); setSobre(g.id) }, onDragLeave: () => setSobre(null), onDrop: e => soltar(e, g) } : {})}>
+      {g.nombre}<b>{g.n}</b>
+    </button>
+  )
   return (
-    <Tablero {...t} onMover={mover} tope={9} ocultarVacias vacio="Arrastrad una tarjeta aquí para darle este motivo"
-      onNueva={async nombre => { try { await api('/motivos', { metodo: 'POST', datos: { texto: nombre } }); cargar() } catch { /* se reintenta al volver */ } }}
-      izq={<span className="i-hint">Nada desaparece sin explicar por qué. Arrastrad una tarjeta a otro motivo para reclasificarla.</span>}
-      card={(a, sec) => {
-        const radar = sec.id.startsWith('radar')
-        const motivos = radar ? [] : (a.sol?.motivos || []).filter(m => `m:${m}` !== sec.id)
-        return (
-          <article className="tc">
-            <div className="tc-tags">{a.demo && <span className="i-ej">Ejemplo real</span>}{radar ? null : motivos.map(m => <span key={m} className="i-tag">{m}</span>)}{!radar && !motivos.length && sec.id === 'sin' && <span className="i-tag">Sin motivo</span>}</div>
-            <h4 title={a.titulo}>{tituloCorto(a)}</h4>
-            <div className="tc-org">{a.organo}{a.plazo ? ` · plazo ${fechaCorta(a.plazo)}` : ''}</div>
-            {radar && a.motivo && <p className="i-mot tc-mot"><b>Por qué la descarta el radar:</b> {a.motivo}</p>}
-            {!radar && a.sol?.nota && <p className="i-mot tc-mot">{a.sol.nota}</p>}
-            <div className="tc-acc"><button className="i-link" onClick={() => recuperar(a)}><Icon n="undo" s={15} w={2.4} />Recuperar</button></div>
-            {a.cita && <Mas texto="Ver la frase oficial"><div className="i-cita" style={{ fontSize: 14, padding: '10px 14px' }}>«{a.cita}»<small><Icon n="verified" s={13} />Frase del texto oficial</small></div></Mas>}
-          </article>
-        )
-      }} />
+    <div className="ds">
+      <div className="ds-filtros">
+        <div className="ds-grupo"><span className="ds-lbl">Vuestros motivos</span>
+          {visiblesEquipo.map(g => chip(g, true))}
+          {creando
+            ? <input className="ds-nuevo" autoFocus maxLength={60} placeholder="Nuevo motivo…" onBlur={async e => { const v = e.target.value.trim(); setCreando(false); if (v) { try { await api('/motivos', { metodo: 'POST', datos: { texto: v } }); cargar() } catch { /* se reintenta */ } } }} onKeyDown={e => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') { e.target.value = ''; e.target.blur() } }} />
+            : <button className="ds-chip mas" onClick={() => setCreando(true)}><Icon n="plus" s={14} w={2.6} />Motivo</button>}
+        </div>
+        {radar.length > 0 && <div className="ds-grupo radar"><span className="ds-lbl"><Icon n="radar" s={14} />El radar</span>{radar.map(g => chip(g, false))}</div>}
+      </div>
+      {arrastrando && <p className="ds-pista">Soltad la tarjeta en un motivo de arriba para reclasificarla</p>}
+      {tarjetas.length === 0 ? <div className="i-card i-empty">No hay convocatorias descartadas.</div> : (
+        <div className="ds-rejilla">
+          {tarjetas.map(a => (
+            <article key={a.id} className={`tc ds-tc ${arrastrando === a.id ? 'lev' : ''}`} draggable={!esRadar}
+              onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; setArrastrando(a.id) }} onDragEnd={() => { setArrastrando(null); setSobre(null) }}>
+              <div className="tc-tags">
+                <span className="i-tag" title={a.organo}>{orgCorto(a.organo)}</span>
+                {a.plazo && <span className="tb-mut">plazo {fechaCorta(a.plazo)}</span>}
+              </div>
+              <h4 title={a.titulo}>{tituloCorto(a)}</h4>
+              {esRadar && a.motivo && <p className="i-mot tc-mot"><b>Por qué la descarta el radar:</b> {a.motivo}</p>}
+              {!esRadar && (a.sol?.nota || (a.sol?.motivos || []).length > 1) && <p className="i-mot tc-mot">{[(a.sol?.motivos || []).slice(1).join(' · '), a.sol?.nota].filter(Boolean).join(' · ')}</p>}
+              <div className="tc-acc"><button className="i-link" onClick={() => recuperar(a)}><Icon n="undo" s={15} w={2.4} />Recuperar</button>{a.url && <a className="i-link" style={{ marginLeft: 'auto' }} href={a.url} target="_blank" rel="noopener noreferrer">Ver ↗</a>}</div>
+            </article>
+          ))}
+        </div>
+      )}
+    </div>
   )
 }
