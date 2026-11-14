@@ -566,19 +566,6 @@ async function convocatoriasConDemo(env, request) {
   return { ...d, convocatorias: [...demo, ...d.convocatorias], demo: demo.length };
 }
 
-// Empresas del BOE: impacto de las hectáreas que deben compensar (superficie total o suma de sus medidas).
-function haEmpresa(e) {
-  if (e.superficie_total_ha > 0) return e.superficie_total_ha;
-  const suma = (e.medidas || []).reduce((s, m) => s + (m.superficie_ha > 0 ? m.superficie_ha : 0), 0);
-  return suma > 0 ? suma : null;
-}
-function empresasConImpacto(d) {
-  return { ...d, empresas: (d.empresas || []).map((e) => {
-    const ha = haEmpresa(e);
-    return { ...e, impacto: ha ? impacto(ha) : null };
-  }) };
-}
-
 // Datos del radar (convocatorias.json / empresas.json) indexados por código; {} si no hay.
 async function datosRadar(env, request, archivo) {
   try {
@@ -1426,7 +1413,6 @@ export default {
         await prepararEsquema(env.DB);
         if (await modoDemo(env, env.DB)) r = Response.json(await convocatoriasConDemo(env, request));
       }
-      if (ruta === "/data/empresas.json" && r.ok) r = Response.json(empresasConImpacto(await r.json()));
       const privado = new Response(r.body, r);
       privado.headers.set("cache-control", "private, no-store");
       return privado;
