@@ -22,7 +22,7 @@
 //   GET    /api/solicitudes/convocatoria/:codigo/documentos        qué documento va en cada hueco (equipo)
 //   PUT    /api/solicitudes/convocatoria/:codigo/documentos/:req   {documento_id, estado, responsable} (equipo)
 //   GET    /api/impacto?ha=8                CO2 que absorben esas hectáreas, en vuelos, coches y personas (público)
-//   GET    /api/solicitudes/convocatoria/:codigo/zip   ZIP con los documentos asignados + LEEME.txt (equipo)
+//   GET    /api/solicitudes/convocatoria/:codigo/zip   ZIP con los documentos asignados, listos para subir (equipo)
 //   GET    /api/plantaciones                dónde ha plantado Reforesta + totales      (público; notas solo equipo)
 //   POST   /api/plantaciones                {nombre, ll:[lon,lat], ha, tipo, anio, ...} (equipo)
 //   PUT    /api/plantaciones/:id · DELETE   editar / quitar                           (equipo)
@@ -413,7 +413,7 @@ async function borrarArchivo(env, db, key) {
   else if (env.ARCHIVOS) await env.ARCHIVOS.delete(key);
 }
 
-// ---------- ZIP para presentar: los documentos de una solicitud con nombres que se entienden ----------
+// ---------- ZIP para presentar: los documentos de la solicitud, con nombres claros y listos para subir ----------
 // ZIP sin comprimir (método "store"): los PDF ya van comprimidos y así no hace falta ninguna librería.
 const TABLA_CRC = Array.from({ length: 256 }, (_, n) => {
   let c = n;
@@ -477,37 +477,21 @@ async function zipSolicitud(db, env, request, codigo) {
   const conocidas = new Set(reqs.map((r) => r.clave));
   for (const a of asignados) if (!conocidas.has(a.requisito)) reqs.push({ nombre: a.requisito, clave: a.requisito, obligatorio: false });
   const base = `Reforesta_BDNS-${codigo}_${slug(conv.titulo, 50)}_${new Date().toISOString().slice(0, 10)}`;
-  const archivos = [], lineas = [], usados = new Set();
-  let n = 0;
+  const archivos = [], usados = new Set();
+  let n = 0, faltan = 0;
   for (const r of reqs) {
     const a = porHueco[r.clave];
-    if (a?.estado === "no_aplica") { lineas.push(`  –  ${r.nombre} (no aplica)`); continue; }
+    if (a?.estado === "no_aplica") continue;
     const datos = a?.archivo_key ? await leerArchivo(env, db, a.archivo_key) : null;
-    if (!datos) {
-      lineas.push(`  ✗  ${r.nombre}${r.obligatorio ? " (OBLIGATORIO)" : ""}${r.condicion ? ` · ${r.condicion}` : ""} · FALTA`);
-      continue;
-    }
+    if (!datos) { if (r.obligatorio) faltan++; continue; }
     const ext = (a.archivo_nombre || "").match(/\.[A-Za-z0-9]{1,5}$/)?.[0] || "";
     let nombre = `${String(++n).padStart(2, "0")}_${slug(r.nombre)}${ext}`;
     if (usados.has(nombre)) nombre = nombre.replace(ext || /$/, `_${a.id}${ext}`);
     usados.add(nombre);
     const bytes = datos instanceof Uint8Array ? datos : new Uint8Array(await new Response(datos).arrayBuffer());
-    archivos.push({ nombre: `${base}/${nombre}`, datos: bytes });
-    const caducado = a.caduca && a.caduca < new Date().toISOString().slice(0, 10);
-    lineas.push(`  ✓  ${r.nombre} → ${nombre}${caducado ? ` · ¡CADUCADO el ${a.caduca}!` : ""}`);
+    archivos.push({ nombre, datos: bytes });
   }
-  const faltan = lineas.filter((l) => l.includes("FALTA")).length;
-  const leeme = [
-    `Solicitud de Reforesta · ${conv.titulo}`, "",
-    `Código BDNS: ${codigo}`, conv.organo ? `Organismo: ${conv.organo}` : "",
-    conv.fin ? `Fin de plazo: ${conv.fin}` : "", conv.url ? `Ficha oficial: ${conv.url}` : "",
-    `Preparado el ${new Date().toISOString().slice(0, 10)} con el Radar Reforesta.`, "",
-    `Documentos (${archivos.length} incluidos${faltan ? `, ${faltan} faltan` : ""}):`, ...lineas,
-    ...(conv.plantillas?.length ? ["", "Modelos oficiales:", ...conv.plantillas.map((p) => `  · ${p.nombre || p.titulo || "Modelo"}: ${p.url || ""}`)] : []),
-    ...(conv.demo ? ["", "AVISO: convocatoria de ejemplo (modo demo), ya cerrada en la realidad."] : []),
-  ].filter((l, i, t) => l !== "" || t[i - 1] !== "").join("\r\n");
-  archivos.unshift({ nombre: `${base}/00_LEEME.txt`, datos: new TextEncoder().encode(leeme) });
-  return { nombre: `${base}.zip`, zip: crearZip(archivos), incluidos: archivos.length - 1, faltan };
+  return { nombre: `${base}.zip`, zip: crearZip(archivos), incluidos: archivos.length, faltan };
 }
 
 // Siguiente paso que se propone al entrar en cada estado (si el equipo no escribe otro).

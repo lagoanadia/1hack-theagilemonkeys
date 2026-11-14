@@ -156,9 +156,8 @@ Ejemplo: 8 ha ≈ 40 t CO₂/año ≈ 34 vuelos Madrid–Nueva York cada año.
   `PUT .../documentos/:requisito` con `{documento_id, estado, responsable}` (el arrastrar y soltar).
 - **ZIP para presentar**: `GET /api/solicitudes/convocatoria/:codigo/zip` descarga
   `Reforesta_BDNS-<codigo>_<titulo>_<fecha>.zip` con los documentos asignados a cada hueco, numerados
-  y con el nombre del requisito (`01_Solicitud-de-subvencion.pdf`…) y un `00_LEEME.txt` con la
-  convocatoria, lo que falta, lo caducado y los modelos oficiales. Cabeceras `x-documentos-incluidos`
-  y `x-documentos-faltan`.
+  y con el nombre del requisito (`01_Solicitud-de-subvencion.pdf`…), listos para subir a la sede.
+  Cabeceras `x-documentos-incluidos` y `x-documentos-faltan` (obligatorios sin archivo).
 - Archivos privados (solo equipo), hasta 10 MB: se guardan en D1 (gratis); si se configura R2, en R2.
 
 ### Modo demo
