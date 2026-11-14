@@ -142,6 +142,14 @@ radar basta con ponerla en `por_revisar`.
   `PUT .../documentos/:requisito` con `{documento_id, estado, responsable}` (el arrastrar y soltar).
 - Archivos en Cloudflare R2 (privados, solo equipo): ver `wrangler.jsonc` para activarlo.
 
+### Mapa de plantaciones
+
+`GET /api/plantaciones` (público) devuelve los sitios con el mismo formato que `data/actuaciones.js`
+(`nombre, ll:[lon,lat], ha, tipo c/e/v, anio, con`) más `arboles`, `especies` y `totales`
+(hectáreas, sitios y árboles, por año y por tipo). Las `notas` solo las ve el equipo.
+`POST` (equipo) admite `origen: {tipo, id}` para enlazarla con la convocatoria o empresa de la que
+salió; si no se indica `con`, se rellena con su título. `PUT/DELETE /api/plantaciones/:id`.
+
 ### Seguimiento
 
 Al cambiar de estado, la solicitud recibe un **siguiente paso con fecha** propuesto (subsanar: 14 días;

@@ -21,6 +21,9 @@
 //   GET    /api/archivos/:id                descargar el archivo                      (equipo)
 //   GET    /api/solicitudes/convocatoria/:codigo/documentos        qué documento va en cada hueco (equipo)
 //   PUT    /api/solicitudes/convocatoria/:codigo/documentos/:req   {documento_id, estado, responsable} (equipo)
+//   GET    /api/plantaciones                dónde ha plantado Reforesta + totales      (público; notas solo equipo)
+//   POST   /api/plantaciones                {nombre, ll:[lon,lat], ha, tipo, anio, ...} (equipo)
+//   PUT    /api/plantaciones/:id · DELETE   editar / quitar                           (equipo)
 //   GET    /api/seguimiento                 lo que está en marcha, con su siguiente paso y avisos (equipo)
 //   GET    /api/reglas                      reglas del equipo + sugerencias detectadas (equipo)
 //   POST   /api/reglas                      {motivo, accion: aceptar|ignorar} o {texto} (equipo)
@@ -89,6 +92,13 @@ const ESQUEMA = [
   `CREATE TABLE IF NOT EXISTS reglas (
      id INTEGER PRIMARY KEY AUTOINCREMENT, texto TEXT NOT NULL, origen TEXT NOT NULL, motivo TEXT DEFAULT '',
      criterio TEXT, autor TEXT DEFAULT '', creado TEXT NOT NULL)`,
+  // Mapa de plantaciones. tipo: c convocatoria · e empresa · v voluntariado.
+  // origen_tipo/origen_id enlazan con la solicitud de la que salió (opcional).
+  `CREATE TABLE IF NOT EXISTS plantaciones (
+     id INTEGER PRIMARY KEY AUTOINCREMENT, nombre TEXT NOT NULL, lon REAL NOT NULL, lat REAL NOT NULL,
+     ha REAL NOT NULL DEFAULT 0, arboles INTEGER, especies TEXT DEFAULT '', tipo TEXT NOT NULL DEFAULT 'c',
+     anio INTEGER NOT NULL, con TEXT DEFAULT '', origen_tipo TEXT DEFAULT '', origen_id TEXT DEFAULT '',
+     notas TEXT DEFAULT '', activo INTEGER NOT NULL DEFAULT 1, autor TEXT DEFAULT '', creado TEXT NOT NULL)`,
   // Anti-spam del formulario público: huella (hash) de la IP, nunca la IP en claro.
   `CREATE TABLE IF NOT EXISTS envios (huella TEXT NOT NULL, creado TEXT NOT NULL)`,
 ];
@@ -349,6 +359,42 @@ async function datosRadar(env, request, archivo) {
   } catch {
     return {};
   }
+}
+
+const TIPOS_PLANTACION = ["c", "e", "v"];
+// Valida una plantación; parcial = true en PUT (solo los campos enviados).
+function camposPlantacion(b, parcial) {
+  const p = {};
+  if (b.nombre !== undefined || !parcial) p.nombre = texto(b.nombre, 120);
+  if (b.ll !== undefined || !parcial) {
+    const [lon, lat] = Array.isArray(b.ll) ? b.ll.map(Number) : [];
+    // Península, Baleares y Canarias
+    if (!(lon >= -18.5 && lon <= 4.5 && lat >= 27.5 && lat <= 44)) return { error: "ll: [longitud, latitud] dentro de España" };
+    Object.assign(p, { lon, lat });
+  }
+  if (b.ha !== undefined || !parcial) p.ha = Math.min(100000, numero(b.ha) ?? 0);
+  if (b.arboles !== undefined) p.arboles = b.arboles === null || b.arboles === "" ? null : entero(b.arboles, 0, 10000000) ?? null;
+  if (b.especies !== undefined) p.especies = texto(b.especies, 300);
+  if (b.tipo !== undefined || !parcial) p.tipo = TIPOS_PLANTACION.includes(b.tipo) ? b.tipo : "c";
+  if (b.anio !== undefined || !parcial) p.anio = entero(b.anio ?? new Date().getFullYear(), 1990, 2100);
+  for (const [k, max] of [["con", 200], ["notas", 1000]]) if (b[k] !== undefined) p[k] = texto(b[k], max);
+  if (b.origen && TIPOS.includes(b.origen.tipo)) Object.assign(p, { origen_tipo: b.origen.tipo, origen_id: texto(b.origen.id, 60) });
+  if (!parcial && !p.nombre) return { error: "Falta el nombre del sitio" };
+  return { p };
+}
+const filaPlantacion = (r, equipo) => ({
+  id: r.id, nombre: r.nombre, ll: [r.lon, r.lat], ha: r.ha, arboles: r.arboles, especies: r.especies, tipo: r.tipo,
+  anio: r.anio, con: r.con, origen: r.origen_tipo ? { tipo: r.origen_tipo, id: r.origen_id } : null,
+  ...(equipo ? { notas: r.notas, autor: r.autor, creado: r.creado } : {}),
+});
+function totalesPlantaciones(l) {
+  const suma = (xs, f) => Math.round(xs.reduce((s, x) => s + (f(x) || 0), 0) * 100) / 100;
+  const agrupar = (clave) => Object.fromEntries([...new Set(l.map(clave))].sort().map((k) => {
+    const g = l.filter((x) => clave(x) === k);
+    return [k, { sitios: g.length, ha: suma(g, (x) => x.ha) }];
+  }));
+  return { sitios: l.length, ha: suma(l, (x) => x.ha), arboles: suma(l, (x) => x.arboles),
+    por_anio: agrupar((x) => x.anio), por_tipo: agrupar((x) => x.tipo) };
 }
 
 // Lo que está en marcha, con días hasta su siguiente paso y nivel de aviso. Lo usan la API y el correo.
@@ -724,6 +770,51 @@ async function api(request, env, ruta) {
            responsable = excluded.responsable, actualizado = excluded.actualizado, actualizado_por = excluded.actualizado_por`,
       ).bind(codigo, req, docId, estado, texto(b.responsable, 40), ahora(), autor).run();
       return json({ ok: true, estado });
+    }
+  }
+
+  // --- mapa de plantaciones
+  if (ruta === "/api/plantaciones") {
+    if (metodo === "GET") {
+      const { results } = await db.prepare("SELECT * FROM plantaciones WHERE activo = 1 ORDER BY anio DESC, id DESC").all();
+      const l = results.map((r) => filaPlantacion(r, equipo));
+      return json({ plantaciones: l, totales: totalesPlantaciones(l) });
+    }
+    if (metodo === "POST") {
+      if (!equipo) return soloEquipo();
+      const b = await leerJSON(request);
+      const { p, error: e } = camposPlantacion(b, false);
+      if (e) return error(e);
+      if (!p.con && p.origen_id) {  // si viene de una solicitud, se rellena «con quién» con su título
+        const d = (await datosRadar(env, request, p.origen_tipo === "empresa" ? "empresas" : "convocatorias"))[p.origen_id];
+        p.con = texto(d?.promotor || d?.titulo || "", 200);
+      }
+      const k = Object.keys(p);
+      const r = await db.prepare(
+        `INSERT INTO plantaciones (${k.join(", ")}, autor, creado) VALUES (${k.map(() => "?").join(", ")}, ?, ?)`,
+      ).bind(...k.map((x) => p[x]), autor, ahora()).run();
+      return json({ ok: true, id: r.meta.last_row_id }, 201);
+    }
+  }
+  ms = ruta.match(/^\/api\/plantaciones\/(\d+)$/);
+  if (ms) {
+    if (!equipo) return soloEquipo();
+    const id = Number(ms[1]);
+    if (!(await db.prepare("SELECT 1 FROM plantaciones WHERE id = ? AND activo = 1").bind(id).first())) {
+      return error("Esa plantación no existe", 404);
+    }
+    if (metodo === "PUT") {
+      const { p, error: e } = camposPlantacion(await leerJSON(request), true);
+      if (e) return error(e);
+      const k = Object.keys(p);
+      if (!k.length) return error("No hay nada que cambiar");
+      await db.prepare(`UPDATE plantaciones SET ${k.map((x) => `${x} = ?`).join(", ")} WHERE id = ?`)
+        .bind(...k.map((x) => p[x]), id).run();
+      return json({ ok: true });
+    }
+    if (metodo === "DELETE") {
+      await db.prepare("UPDATE plantaciones SET activo = 0 WHERE id = ?").bind(id).run();
+      return json({ ok: true });
     }
   }
 
