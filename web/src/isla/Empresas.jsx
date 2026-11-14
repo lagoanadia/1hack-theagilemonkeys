@@ -8,7 +8,7 @@ import { etapaEmpresa, hectareas } from '../datos.js'
 //  · Nuevas: rejilla de fichas; cada una se añade a «En contacto» o se descarta.
 //  · En contacto (segunda fase): tabla con una fila por empresa y sus fases, con fechas y plantillas de mensaje.
 const SEGS = [['nueva', 'Nuevas'], ['contactada', 'En contacto'], ['cerrada', 'Cerradas'], ['descartada', 'Descartadas']]
-const ACCION = { contactar: 'Contactar', mira: 'Valorar', descarta: 'Descartada' }
+const ACCION = { contactar: 'Contactar', mira: 'Valorar', descarta: 'Descartar' }
 const SECTOR = { hibrido: 'Eólico + solar', infraestructura: 'Infraestructura', eolico: 'Eólico', solar: 'Solar', linea_electrica: 'Línea eléctrica', otro: 'Otro sector' }
 const TONOS = ['t0', 't1', 't2', 't3', 't4']
 const hash = t => [...String(t)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7)
