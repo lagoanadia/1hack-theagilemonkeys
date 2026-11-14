@@ -8,7 +8,7 @@ import { etapaEmpresa, hectareas } from '../datos.js'
 //  · Nuevas: rejilla de fichas; cada una se añade a «En contacto» o se descarta.
 //  · En contacto (segunda fase): tabla con una fila por empresa y sus fases, con fechas y plantillas de mensaje.
 const SEGS = [['nueva', 'Nuevas'], ['contactada', 'En contacto'], ['cerrada', 'Cerradas'], ['descartada', 'Descartadas']]
-const ACCION = { contactar: 'Obligada a reforestar', mira: 'Mirad si encaja', descarta: 'El radar la descarta' }
+const ACCION = { contactar: 'Contactar', mira: 'Valorar', descarta: 'Descartada' }
 const SECTOR = { hibrido: 'Eólico + solar', infraestructura: 'Infraestructura', eolico: 'Eólico', solar: 'Solar', linea_electrica: 'Línea eléctrica', otro: 'Otro sector' }
 const TONOS = ['t0', 't1', 't2', 't3', 't4']
 const hash = t => [...String(t)].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7)
@@ -144,7 +144,7 @@ function Ficha({ e, puesto, grande, nueva, pie }) {
         <div><dt>Sector</dt><dd>{SECTOR[e.tipo] || 'Otro'}</dd></div>
         <div><dt>Ubicación</dt><dd title={e.ubicacion}>{e.ubicacion || 'No indicada'}</dd></div>
         <div><dt>Tamaño</dt><dd className={tam || ha ? '' : 'i-ni'}>{tam || hectareas(ha) || 'No indicado'}</dd></div>
-        <div className={`enc ${nivel(n)}`}><dt>Encaje</dt><dd><b>{n}</b><span>/ 100</span></dd></div>
+        <div className={`enc ${nivel(n)}`}><dt>Afinidad</dt><dd><b>{n}</b><span>/ 100</span></dd></div>
       </dl>
       <div className="em-por">
         <span className="i-tag" style={{ background: 'var(--soft)' }}>{ACCION[e.accion] || ACCION.descarta}</span>
@@ -197,7 +197,7 @@ function Contacto({ lista, tab, cambiarEstado, setBorrador }) {
               <span className="em-grip" aria-hidden="true"><svg width="12" height="16" viewBox="0 0 14 18" fill="currentColor">{[3, 9, 15].map(y => [3, 11].map(x => <circle key={`${x}${y}`} cx={x} cy={y} r="1.6" />))}</svg></span>
               <span className={`em-ini peq ${TONOS[hash(e.id) % TONOS.length]}`} aria-hidden="true">{iniciales(e)}</span>
               <div className="em-nom"><h3 title={e.promotor}>{nombreCorto(e)}</h3><p title={e.proyecto}>{e.proyecto}</p>
-                <div className="ec-pie"><span className={`i-tag em-enc-t ${nivel(e.encaje ?? 0)}`}>Encaje {e.encaje ?? 0}</span>{toca && <span className="i-tag em-nueva">Toca volver a contactar</span>}
+                <div className="ec-pie"><span className={`i-tag em-enc-t ${nivel(e.encaje ?? 0)}`}>Afinidad {e.encaje ?? 0}</span>{toca && <span className="i-tag em-nueva">Toca volver a contactar</span>}
                   <button className="i-link" onClick={() => cambiarEstado(e, 'descartada', 'Empresa descartada')}>Descartar</button></div></div>
             </div>
             {FASES.map((f, i) => {
