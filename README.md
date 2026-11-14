@@ -142,6 +142,15 @@ radar basta con ponerla en `por_revisar`.
   `PUT .../documentos/:requisito` con `{documento_id, estado, responsable}` (el arrastrar y soltar).
 - Archivos en Cloudflare R2 (privados, solo equipo): ver `wrangler.jsonc` para activarlo.
 
+### Avisos por correo
+
+Cada mañana (07:23 UTC, cron del Worker) se manda a `email_avisos` del perfil un resumen: pasos que
+vencen, convocatorias nuevas que encajan y empresas que esperan respuesta. Respeta `avisos`
+(`cada_manana`, `semanal` = lunes, `nunca`) y no manda nada si no hay novedades.
+Requiere el secreto `RESEND_API_KEY` (resend.com, gratis) en Cloudflare; opcional `EMAIL_REMITENTE`
+(dominio verificado en Resend) y `URL_PUBLICA` (enlace del correo).
+`GET /api/avisos/correo` muestra la vista previa (`?html=1`, el correo tal cual) y `POST` lo envía ya.
+
 ### Mapa de plantaciones
 
 `GET /api/plantaciones` (público) devuelve los sitios con el mismo formato que `data/actuaciones.js`

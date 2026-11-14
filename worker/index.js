@@ -24,6 +24,8 @@
 //   GET    /api/plantaciones                dónde ha plantado Reforesta + totales      (público; notas solo equipo)
 //   POST   /api/plantaciones                {nombre, ll:[lon,lat], ha, tipo, anio, ...} (equipo)
 //   PUT    /api/plantaciones/:id · DELETE   editar / quitar                           (equipo)
+//   GET    /api/avisos/correo               vista previa del correo de avisos         (equipo)
+//   POST   /api/avisos/correo               enviarlo ahora (prueba)                    (equipo)
 //   GET    /api/seguimiento                 lo que está en marcha, con su siguiente paso y avisos (equipo)
 //   GET    /api/reglas                      reglas del equipo + sugerencias detectadas (equipo)
 //   POST   /api/reglas                      {motivo, accion: aceptar|ignorar} o {texto} (equipo)
@@ -424,6 +426,75 @@ async function seguimiento(db, env, request) {
   return { en_marcha: lista, avisos, resumen: Object.fromEntries(Object.keys(orden).map((n) => [n, lista.filter((x) => x.nivel === n).length])) };
 }
 
+// ---------- Avisos por correo ----------
+// Cada mañana (cron en wrangler.jsonc) se manda a perfil.email_avisos un resumen con:
+// convocatorias nuevas que encajan, pasos vencidos o a punto de vencer, y reservas de empresas sin contestar.
+// Necesita el secreto RESEND_API_KEY (resend.com, gratis 100 correos/día) y, opcional, EMAIL_REMITENTE
+// (un remitente de un dominio verificado en Resend; sin él se usa onboarding@resend.dev, que solo
+// entrega a la dirección de la propia cuenta de Resend).
+const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+
+async function correoAvisos(db, env, request, { forzar = false } = {}) {
+  const { guardado: perfil } = await leerPerfil(db);
+  const modo = perfil.avisos || PERFIL_BASE.avisos;
+  const ultimo = (await db.prepare("SELECT valor FROM ajustes WHERE clave = 'ultimo_correo'").first())?.valor || "";
+  const desde = ultimo || new Date(Date.now() - 86400000).toISOString();
+  const convs = Object.values(await datosRadar(env, request, "convocatorias"));
+  const { results: tratadas } = await db.prepare("SELECT id FROM solicitudes WHERE tipo = 'convocatoria'").all();
+  const yaVistas = new Set(tratadas.map((t) => t.id));
+  const nuevas = convs.filter((c) => ["presenta", "mira"].includes(c.veredicto) && !yaVistas.has(c.codigo)
+    && (c.publicada || "") >= desde.slice(0, 10)).sort((a, b) => b.puntuacion - a.puntuacion).slice(0, 10);
+  const { avisos } = await seguimiento(db, env, request);
+  const { results: reservas } = await db.prepare(
+    `SELECT i.empresa, p.titulo FROM interesados i LEFT JOIN proyectos p ON p.id = i.proyecto_id
+     WHERE COALESCE(i.estado, 'nueva') = 'nueva' ORDER BY i.id DESC LIMIT 10`).all();
+  const total = nuevas.length + avisos.length + reservas.length;
+  const url = new URL(request.url).origin;
+  const bloque = (titulo, filas) => filas.length
+    ? `<h3 style="margin:18px 0 6px;font:600 16px system-ui">${titulo}</h3><ul style="padding-left:18px;margin:0">${filas.map((f) => `<li style="margin:4px 0">${f}</li>`).join("")}</ul>` : "";
+  const html = `<div style="font:15px/1.5 system-ui;color:#1d2a20;max-width:620px">
+    <h2 style="font:700 20px system-ui;margin:0 0 4px">Radar Reforesta · ${total ? `${total} ${total === 1 ? "cosa" : "cosas"} para hoy` : "nada urgente"}</h2>
+    ${bloque("⏰ Pasos que vencen", avisos.map((a) => esc(a.texto)))}
+    ${bloque("🌱 Convocatorias nuevas que encajan", nuevas.map((c) =>
+      `<a href="${esc(c.url)}">${esc(c.titulo.slice(0, 110))}</a> · ${c.veredicto === "presenta" ? "Presentad" : "Miradla"} (${c.puntuacion})${c.fin ? ` · hasta ${esc(c.fin)}` : ""}`))}
+    ${bloque("🤝 Empresas que esperan respuesta", reservas.map((r) => `${esc(r.empresa)}${r.titulo ? ` · ${esc(r.titulo)}` : ""}`))}
+    <p style="margin-top:20px"><a href="${url}">Abrir el radar</a> · Podéis cambiar o quitar estos avisos en Perfil.</p></div>`;
+  const n = (k, uno, varios) => k && `${k} ${k === 1 ? uno : varios}`;
+  const asunto = total ? `Radar Reforesta: ${[n(avisos.length, "paso", "pasos"), n(nuevas.length, "convocatoria", "convocatorias"),
+    n(reservas.length, "empresa", "empresas")].filter(Boolean).join(", ")}` : "Radar Reforesta: nada urgente hoy";
+  // Semanal: solo los lunes. Sin novedades no se manda nada (salvo prueba).
+  const toca = modo === "cada_manana" || (modo === "semanal" && new Date().getUTCDay() === 1);
+  return { para: perfil.email_avisos || "", modo, enviar: forzar || (toca && total > 0), asunto, html, total,
+    contenido: { avisos, nuevas: nuevas.map((c) => c.codigo), reservas: reservas.length } };
+}
+
+async function enviarCorreo(env, { para, asunto, html }) {
+  if (!env.RESEND_API_KEY) return { ok: false, motivo: "Falta el secreto RESEND_API_KEY en Cloudflare" };
+  if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(para)) return { ok: false, motivo: "Poned un email de avisos válido en Perfil" };
+  const r = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { authorization: `Bearer ${env.RESEND_API_KEY}`, "content-type": "application/json" },
+    body: JSON.stringify({ from: env.EMAIL_REMITENTE || "Radar Reforesta <onboarding@resend.dev>", to: [para], subject: asunto, html }),
+  });
+  if (!r.ok) return { ok: false, motivo: `Resend respondió ${r.status}: ${(await r.text()).slice(0, 200)}` };
+  return { ok: true };
+}
+
+async function avisosDiarios(env) {
+  const db = env.DB;
+  await prepararEsquema(db);
+  // En el cron no hay petición: los datos del radar se piden a los assets con una URL cualquiera.
+  const request = new Request(env.URL_PUBLICA || "https://radar-reforesta.local/");
+  const c = await correoAvisos(db, env, request);
+  if (c.modo === "nunca" || !c.enviar) return console.log(`Avisos: no se envía (${c.modo}, ${c.total} novedades)`);
+  const r = await enviarCorreo(env, c);
+  console.log(r.ok ? `Avisos enviados a ${c.para}` : `Avisos sin enviar: ${r.motivo}`);
+  if (r.ok) {
+    await db.prepare(`INSERT INTO ajustes (clave, valor, actualizado, actualizado_por) VALUES ('ultimo_correo', ?, ?, 'cron')
+      ON CONFLICT (clave) DO UPDATE SET valor = excluded.valor, actualizado = excluded.actualizado`).bind(ahora(), ahora()).run();
+  }
+}
+
 // Compatibilidad con la web actual (Me interesa / No interesa).
 const DE_ANTIGUO = { interesa: "preparando", descarta: "descartada" };
 const A_ANTIGUO = { preparando: "interesa", descartada: "descarta" };
@@ -818,6 +889,23 @@ async function api(request, env, ruta) {
     }
   }
 
+  // --- correo de avisos: vista previa (GET, ?html=1 para verlo tal cual) y envío de prueba (POST)
+  if (ruta === "/api/avisos/correo") {
+    if (!equipo) return soloEquipo();
+    const c = await correoAvisos(db, env, request, { forzar: true });
+    if (metodo === "GET") {
+      if (new URL(request.url).searchParams.get("html")) {
+        return new Response(c.html, { headers: { "content-type": "text/html; charset=utf-8" } });
+      }
+      return json({ para: c.para, modo: c.modo, asunto: c.asunto, total: c.total, contenido: c.contenido,
+        listo: Boolean(env.RESEND_API_KEY && c.para) });
+    }
+    if (metodo === "POST") {
+      const r = await enviarCorreo(env, c);
+      return r.ok ? json({ ok: true, para: c.para }) : error(r.motivo, 400);
+    }
+  }
+
   // --- seguimiento: qué toca hacer y cuándo
   if (ruta === "/api/seguimiento" && metodo === "GET") {
     if (!equipo) return soloEquipo();
@@ -1052,5 +1140,9 @@ export default {
       return privado;
     }
     return env.ASSETS.fetch(request);  // la web React
+  },
+  // Cron diario (wrangler.jsonc → triggers.crons): correo de avisos.
+  async scheduled(evento, env, ctx) {
+    ctx.waitUntil(avisosDiarios(env));
   },
 };
