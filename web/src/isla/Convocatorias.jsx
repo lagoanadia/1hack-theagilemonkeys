@@ -91,6 +91,8 @@ function Revisar({ ruta, curId, setCurId, decidir, setDescartando, ir, generado 
   })
   const decidida = a && !pend(a)
   const [vt, vi, vc] = a ? VEREDICTO[a.veredicto] : []
+  const reqs = a ? [...(a.requisitos || [])].sort((x, y) => ({ no: 0, cumple: 2 }[x.estado] ?? 1) - ({ no: 0, cumple: 2 }[y.estado] ?? 1)) : []
+  const reqVis = reqs.length > 4 ? reqs.slice(0, 3) : reqs
   return (
     <div className="i-oferta">
       {ruta.length > 1 && <Pasos {...{ ruta, a, setCurId }} />}
@@ -108,15 +110,28 @@ function Revisar({ ruta, curId, setCurId, decidir, setDescartando, ir, generado 
               <div><span>¿Cuánto dan?</span><b className={a.importe ? '' : 'i-ni'}>{a.importe || 'No indicado'}</b>{a.importeEsPresupuesto && <small>presupuesto total</small>}</div>
               <div><span>¿Qué parte pagan?</span><b className={a.cubierto ? '' : 'i-ni'}>{a.cubierto || 'No indicado'}</b></div>
               <div className="hot"><span>¿Hasta cuándo?</span><b>{plazoTxt(a)}</b>{a.plazo && <small>{a.plazoEstimado ? 'plazo estimado · ' : ''}{fechaCorta(a.plazo)}</small>}</div>
-              <div><span>¿Por qué encaja?</span><b className="enc">{LINEAS[a.linea] && <em className="lin">{LINEAS[a.linea]}</em>}{a.motivo || 'Sin análisis todavía'}</b></div>
+              <div className="why"><span>¿Por qué encaja?</span><b className={`enc ${(a.motivo || '').length > 240 ? 'largo' : ''}`}>{LINEAS[a.linea] && <em className="lin">{LINEAS[a.linea]}</em>}{a.motivo || 'Sin análisis todavía'}</b></div>
             </div>
-            {a.requisitos?.length > 0 && (
-              <ul className="i-req">
-                {a.requisitos.map(r => <li key={r.texto} className={r.estado}><i>{r.estado === 'cumple' ? '✓' : r.estado === 'no' ? '✗' : '?'}</i>{r.texto}</li>)}
-              </ul>
-            )}
             {a.avisos.length > 0 && <div className="i-cita aviso">{a.avisos.map(t => <div key={t}><Icon n="info" s={14} /> {t}</div>)}<small>Según vuestros criterios del Perfil</small></div>}
-            {a.cita && <div className="i-cita">«…<mark>{a.cita}</mark>…»<small><Icon n="verified" s={14} />Comprobado en el texto oficial</small></div>}
+            {(reqs.length > 0 || a.cita) && (
+              <div className="pie">
+                {reqs.length > 0 && (
+                  <div className="reqs">
+                    <div className="lab">Lo que piden <small>✓ lo cumplís · ? comprobadlo · ✗ no lo cumplís</small></div>
+                    <ul className="i-req">
+                      {reqVis.map(r => <li key={r.texto} className={r.estado} title={r.texto}><i>{r.estado === 'cumple' ? '✓' : r.estado === 'no' ? '✗' : '?'}</i><span>{r.texto}</span></li>)}
+                      {reqs.length > reqVis.length && <li className="mas">+{reqs.length - reqVis.length} más</li>}
+                    </ul>
+                  </div>
+                )}
+                {a.cita && (
+                  <div className={`cita ${reqs.length ? '' : 'solo'}`}>
+                    <div className="lab">Frase del texto oficial <small><Icon n="verified" s={13} />comprobada</small></div>
+                    <p>«…<mark>{a.cita}</mark>…»</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
           {/* Solo dos decisiones, fuera de la tarjeta: descartar, o presentar (pasa a «En proceso»). */}
           <div className="i-dos">
