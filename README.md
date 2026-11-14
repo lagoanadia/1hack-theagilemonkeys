@@ -131,6 +131,15 @@ radar basta con ponerla en `por_revisar`.
 | `POST /api/proyectos/:id/interes` | Público: reservar (rechaza si no quedan plazas) |
 | `PUT /api/interesados/:id` | `{estado}`: `nueva`, `contestada`, `confirmada`, `descartada` (descartada libera la plaza) |
 
+### Impacto para empresas (CO₂ en vuelos)
+
+`GET /api/impacto?ha=8` (público) traduce hectáreas a algo que se entiende: CO₂ absorbido al año y
+en 30 años, coches, personas y **vuelos de ida y vuelta desde Madrid** a 9 destinos (con coordenadas
+`ll: [lon, lat]` para dibujarlos en un globo). Cada propuesta de `/api/proyectos` con hectáreas trae
+ese mismo objeto en `impacto`. Supuestos (estimaciones, ajustables en `IMPACTO` del Worker):
+5 t CO₂/ha/año, 30 años, 0,1 kg CO₂ por pasajero y km, coche 1,6 t/año, persona 5 t/año.
+Ejemplo: 8 ha ≈ 40 t CO₂/año ≈ 34 vuelos Madrid–Nueva York cada año.
+
 ### Documentos
 
 - El radar guarda en cada convocatoria interesante `documentos_requeridos` (nombre, `tipo`,

@@ -21,6 +21,7 @@
 //   GET    /api/archivos/:id                descargar el archivo                      (equipo)
 //   GET    /api/solicitudes/convocatoria/:codigo/documentos        qué documento va en cada hueco (equipo)
 //   PUT    /api/solicitudes/convocatoria/:codigo/documentos/:req   {documento_id, estado, responsable} (equipo)
+//   GET    /api/impacto?ha=8                CO2 que absorben esas hectáreas, en vuelos, coches y personas (público)
 //   GET    /api/plantaciones                dónde ha plantado Reforesta + totales      (público; notas solo equipo)
 //   POST   /api/plantaciones                {nombre, ll:[lon,lat], ha, tipo, anio, ...} (equipo)
 //   PUT    /api/plantaciones/:id · DELETE   editar / quitar                           (equipo)
@@ -218,7 +219,49 @@ const SQL_PROPUESTAS = `SELECT p.id, p.titulo, p.lugar, p.tipo, p.incluye, p.des
   FROM proyectos p WHERE p.activo = 1`;
 function conPlazas(p) {
   const libres = p.plazas == null ? null : Math.max(0, p.plazas - p.reservas);
-  return { ...p, plazas_libres: libres, completa: libres === 0 };
+  return { ...p, plazas_libres: libres, completa: libres === 0, impacto: p.hectareas > 0 ? impacto(p.hectareas) : null };
+}
+
+// ---------- Impacto: el CO2 de una plantación traducido a vuelos, coches y personas ----------
+// Estimaciones redondas para enseñar a las empresas. Si Reforesta tiene datos propios
+// (p. ej. la calculadora de absorciones del MITECO por especie), se cambian aquí.
+const IMPACTO = {
+  co2_ha_anio: 5,     // t de CO2 que absorbe al año 1 ha de bosque mediterráneo joven
+  anios: 30,          // años que contamos de vida del bosque
+  kg_co2_km: 0.1,     // kg de CO2 por pasajero y km volado (media aproximada)
+  coche_anio: 1.6,    // t de CO2 de un coche en un año (~12.000 km)
+  persona_anio: 5,    // t de CO2 de la huella media de una persona en España en un año
+  origen: { nombre: "Madrid", ll: [-3.70, 40.42] },
+};
+// Destinos para el globo: [nombre, longitud, latitud].
+const DESTINOS = [
+  ["A Coruña", -8.41, 43.36], ["Tenerife", -16.25, 28.46], ["París", 2.35, 48.86], ["Londres", -0.13, 51.51],
+  ["Roma", 12.50, 41.90], ["Nueva York", -74.01, 40.71], ["Buenos Aires", -58.38, -34.60],
+  ["Tokio", 139.69, 35.69], ["Sídney", 151.21, -33.87],
+];
+// Distancia en km entre dos puntos [lon, lat] siguiendo la curva de la Tierra (fórmula del haversine).
+function kmEntre([lon1, lat1], [lon2, lat2]) {
+  const r = Math.PI / 180;
+  const a = Math.sin(((lat2 - lat1) * r) / 2) ** 2
+    + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(((lon2 - lon1) * r) / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(a));
+}
+function impacto(ha) {
+  const anual = ha * IMPACTO.co2_ha_anio, total = anual * IMPACTO.anios;
+  const r1 = (n) => Math.round(n * 10) / 10;
+  return {
+    hectareas: ha, anios: IMPACTO.anios, co2_anual: r1(anual), co2_total: Math.round(total),
+    coches_anio: Math.round(anual / IMPACTO.coche_anio),
+    personas_anio: r1(anual / IMPACTO.persona_anio),
+    anios_persona: Math.round(total / IMPACTO.persona_anio),
+    origen: IMPACTO.origen,
+    vuelos: DESTINOS.map(([destino, lon, lat]) => {
+      const km = Math.round(kmEntre(IMPACTO.origen.ll, [lon, lat]));
+      const co2 = (km * 2 * IMPACTO.kg_co2_km) / 1000;  // ida y vuelta, 1 pasajero, en t
+      return { destino, ll: [lon, lat], km, co2_vuelo: Math.round(co2 * 100) / 100,
+        vuelos_anio: Math.floor(anual / co2), vuelos_total: Math.floor(total / co2) };
+    }),
+  };
 }
 function camposPropuesta(b) {
   const c = {};
@@ -697,6 +740,13 @@ async function api(request, env, ruta) {
 
   if (ruta === "/api/config" && metodo === "GET") {
     return json({ google_client_id: env.GOOGLE_CLIENT_ID || "" });
+  }
+
+  // --- impacto de X hectáreas (público: lo ven las empresas)
+  if (ruta === "/api/impacto" && metodo === "GET") {
+    const ha = numero(new URL(request.url).searchParams.get("ha"));
+    if (!ha || ha > 100000) return error("ha: número de hectáreas mayor que 0");
+    return json(impacto(ha));
   }
 
   await prepararEsquema(db);
