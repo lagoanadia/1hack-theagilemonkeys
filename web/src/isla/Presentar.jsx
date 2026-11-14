@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
 import { island } from './lp.js'
-import { ErrorSesion, api, sesionGuardada, subirDocumento } from '../api.js'
+import { ErrorSesion, api, subirDocumento } from '../api.js'
 import { fechaCorta } from '../datos.js'
 import { LISTA_GENERAL, clave } from './papeles.js'
 
@@ -53,7 +53,6 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
   const [asig, setAsig] = useState({})
   const [error, setError] = useState('')
   const [ocupado, setOcupado] = useState(null)
-  const [arrastrando, setArrastrando] = useState(null)   // tipo del documento que se arrastra
   const [sobre, setSobre] = useState(null)
 
   const reqs = useMemo(() => (a.documentos_requeridos?.length ? a.documentos_requeridos : LISTA_GENERAL)
@@ -126,11 +125,11 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
             <b>{biblio ? `Tenéis ${listos} de ${obligatorios.length}` : 'Cargando…'}</b>
             <span>{general
               ? 'El radar no encontró la lista en el PDF de esta convocatoria: es una lista general. Revisad las bases.'
-              : `Lo que pide esta convocatoria${a.documentos_fuente ? ` (sacado de «${a.documentos_fuente}»)` : ''}. Arrastrad aquí vuestros documentos.`}</span>
+              : `Lo que pide esta convocatoria${a.documentos_fuente ? ` (sacado de «${a.documentos_fuente}»)` : ''}. Subid cada documento o elegidlo de los que ya tenéis.`}</span>
           </div>
           {filas.map(({ r, doc, sugerido, aviso, estado }) => (
             <div key={r.clave}
-              className={`i-doc i-hueco ${ocupado === r.clave ? 'comprobando' : estado} ${sobre === r.clave ? 'sobre' : ''} ${arrastrando && arrastrando === r.tipo ? 'compatible' : ''}`}
+              className={`i-doc i-hueco ${ocupado === r.clave ? 'comprobando' : estado} ${sobre === r.clave ? 'sobre' : ''}`}
               onDragOver={ev => { ev.preventDefault(); setSobre(r.clave) }} onDragLeave={() => setSobre(null)} onDrop={ev => soltar(ev, r)}>
               <span className="ico" aria-hidden="true">{estado === 'listo' ? <Icon n="check" s={16} w={3} /> : estado === 'revisar' ? '!' : null}</span>
               <div className="txt">
@@ -158,24 +157,6 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
 
         {/* DERECHA: biblioteca de Reforesta */}
         <div className="i-side">
-          <div className="i-card i-biblio">
-            <b>Documentos de Reforesta</b>
-            <p className="i-sub" style={{ margin: '2px 0 10px' }}>Los que se piden siempre. Arrastradlos a la izquierda.</p>
-            {biblio && biblio.length === 0 && <p className="i-sub">Aún no hay ninguno: subid uno en cualquier hueco de la izquierda.</p>}
-            {(biblio || []).map(d => {
-              const caducado = d.caduca && new Date(`${d.caduca}T00:00:00`) < new Date(new Date().toDateString())
-              return (
-                <div key={d.id} className="i-bdoc" draggable
-                  onDragStart={ev => { ev.dataTransfer.setData('text/documento', String(d.id)); setArrastrando(d.tipo) }}
-                  onDragEnd={() => { setArrastrando(null); setSobre(null) }}>
-                  <Icon n="doc" s={18} />
-                  <div><b>{d.nombre}</b><small>{TIPO_NOMBRE[d.tipo]}{d.caduca ? ` · ${caducado ? 'caducó' : 'caduca'} ${fechaCorta(d.caduca)}` : ''}</small></div>
-                  {d.tiene_archivo && <a className="i-link" href={`/api/archivos/${d.id}`} onClick={ev => descargar(ev, d)} aria-label={`Descargar ${d.nombre}`}>↓</a>}
-                </div>
-              )
-            })}
-            {!almacen && <p className="i-priv"><Icon n="info" s={14} />Aún no hay almacén de archivos: se guarda qué documento es y su caducidad, sin el archivo.</p>}
-          </div>
           <div className="i-card i-dl">
             <span className="i-k">Plazo</span>
             <div className="big">{a.dias == null ? 'Sin fecha' : a.dias < 0 ? 'Cerrada' : `${a.dias} días`}</div>
@@ -190,15 +171,4 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
       </div>
     </>
   )
-}
-
-// La descarga necesita la contraseña en la cabecera: se pide con fetch y se guarda como archivo.
-async function descargar(ev, d) {
-  ev.preventDefault()
-  const r = await fetch(`/api/archivos/${d.id}`, { headers: { 'x-clave-equipo': sesionGuardada() } })
-  if (!r.ok) return
-  const url = URL.createObjectURL(await r.blob())
-  const enlace = Object.assign(document.createElement('a'), { href: url, download: d.archivo_nombre || d.nombre })
-  enlace.click()
-  setTimeout(() => URL.revokeObjectURL(url), 2000)
 }
