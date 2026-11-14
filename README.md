@@ -170,6 +170,13 @@ convocatorias reales recientes ya cerradas) como si
 estuvieran abiertas, con `demo: true` y fechas de demostración. No van en los correos.
 `PUT /api/demo {activo: false}` lo apaga (o la variable `MODO_DEMO = "0"`).
 
+### Datos de prueba
+
+`POST /api/demo/datos` (equipo) carga datos para recorrer la app entera: convocatorias en cada fase
+(preparando, subsanar con aviso urgente, justificar), 3 descartes que generan una regla, 2 empresas
+en contacto, 3 propuestas con reservas, 5 documentos con caducidades y 9 plantaciones.
+`DELETE /api/demo/datos` quita exactamente lo que se cargó (y la regla aceptada de esos descartes).
+
 ### Avisos por correo
 
 Cada mañana (07:23 UTC, cron del Worker) se manda a `email_avisos` del perfil un resumen: pasos que
