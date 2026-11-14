@@ -81,6 +81,13 @@ meses). A la IA solo le pasa el arranque de la resolución y los párrafos sobre
 hectáreas**, y marca cada empresa como *Contactar*, *Mira* o *Descarta*. La web lo enseña en la
 pestaña **Empresas**, con la cita literal del BOE comprobada.
 
+**Contacto con IA.** El BOE no publica cómo contactar con la promotora. Para las empresas que interesan,
+`radar/contactos.py` pide a Groq (modelos `groq/compound`, con búsqueda web, plan gratuito) sus canales
+**corporativos y públicos**: web, correo general o de sostenibilidad, teléfono de centralita y página de contacto,
+con las fuentes. Si la promotora es una sociedad vehículo, da el contacto de su grupo. Nunca datos personales.
+Se guarda en `empresas.json` (`contacto_ia`) con caché en `data/contactos.json`; la web lo enseña como
+«Encontrado con IA · comprobadlo» y el equipo lo confirma con «Es correcto» o lo corrige.
+
 ## Trabajo en equipo y canal de proyectos
 
 La web tiene un pequeño backend, un Worker de Cloudflare con base de datos **D1** (gratuita):

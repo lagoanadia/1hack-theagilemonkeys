@@ -2,6 +2,7 @@ import { useMemo, useCallback, useEffect, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
 import { island } from './lp.js'
 import { mapaLugar } from './mapa.js'
+import Desplegable from './Desplegable.jsx'
 import { ErrorSesion, api } from '../api.js'
 import { euros, hectareas } from '../datos.js'
 
@@ -152,13 +153,9 @@ function Agenda({ reservas, estadoReserva, borrarReserva }) {
                     <span className="ag-proy" title={r.proyecto}><Icon n="leaf" s={14} />{r.proyecto || '—'}</span>
                     <small>{r.hectareas ? `${r.hectareas} ha · ` : ''}{new Date(r.creado).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</small>
                   </div>
-                  <label className={`ag-est ${cls}`}>
-                    <span className="sr">Estado de la reserva de {r.empresa}</span>
-                    <select value={r.estado || 'nueva'} onChange={e => estadoReserva(r, e.target.value)}>
-                      {Object.entries(ESTADO_AG).map(([k, [t]]) => <option key={k} value={k}>{t}</option>)}
-                    </select>
-                    <span aria-hidden="true">{txt}</span>
-                  </label>
+                  <Desplegable etiqueta={`Estado de la reserva de ${r.empresa}`} valor={r.estado || 'nueva'} className={`ag-est ${cls}`} alinear="der"
+                    onCambio={v => estadoReserva(r, v)} boton={txt}
+                    opciones={Object.entries(ESTADO_AG).map(([k, [t]]) => ({ v: k, t }))} />
                   <div className="ag-acc">
                     {mail && <a className="ag-ib" href={`mailto:${mail}?subject=${encodeURIComponent('Reforesta · ' + (r.proyecto || 'vuestra reserva'))}`} title={`Escribir a ${mail}`} aria-label={`Escribir a ${r.empresa}`}><Icon n="send" s={16} /></a>}
                     <button className="ag-ib" onClick={() => borrarReserva(r)} title="Borrar la reserva" aria-label={`Borrar la reserva de ${r.empresa}`}><Icon n="x" s={16} w={2.4} /></button>

@@ -16,6 +16,7 @@ import json
 from datetime import date, datetime, timedelta
 
 from . import boe
+from . import contactos
 from .__main__ import RAIZ
 from . import perfil
 from .puntuador import CupoAgotado, Puntuador, _entero, cita_verificada
@@ -139,6 +140,8 @@ def main() -> None:
         empresas.append(resultado)
         print(f"  [{resultado['encaje']:3}] {resultado['promotor'][:40]} | {resultado['proyecto'][:60]}")
 
+    # Contacto público de cada empresa que interesa, buscado en internet con IA (caché en data/contactos.json).
+    contactos.completar(empresas, puntuador.cliente)
     empresas.sort(key=lambda e: (-e["encaje"], e["fecha"]))
     SALIDA.write_text(json.dumps({
         "generado": datetime.now().isoformat(timespec="minutes"),

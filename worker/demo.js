@@ -87,12 +87,12 @@ export const convocatoriasSim = () => [
 ];
 
 export const empresasSim = () => [
-  { id: "SIM-E1", fecha: dia(-1), titulo: "Declaración de impacto ambiental del parque fotovoltaico «Sol de Aranjuez» (simulada)", url: "",
+  { id: "SIM-E1", contacto_ia: { web: "https://www.solartajo.example", email: "sostenibilidad@solartajo.example", telefono: "910 000 101", formulario: "https://www.solartajo.example/contacto", grupo: "", fuentes: ["https://www.solartajo.example/contacto"], buscado: "2026-11-14" }, fecha: dia(-1), titulo: "Declaración de impacto ambiental del parque fotovoltaico «Sol de Aranjuez» (simulada)", url: "",
     promotor: "Solar Tajo Energía, SL", proyecto: "Parque fotovoltaico Sol de Aranjuez", tipo: "solar", ubicacion: "Aranjuez, Comunidad de Madrid",
     medidas: [{ texto: "Plantación de 12 ha de encinar y coscojar como medida compensatoria", superficie_ha: 12 }, { texto: "Creación de dos charcas para anfibios", superficie_ha: null }],
     superficie_total_ha: 12, encaje: 91, accion: "contactar", resumen: "Solar Tajo Energía debe plantar 12 ha de encinar en Aranjuez por su parque fotovoltaico.",
     cita: "el promotor ejecutará la plantación de 12 ha de encinar como medida compensatoria", metodo: "simulada", demo: true, simulada: true },
-  { id: "SIM-E2", fecha: dia(-3), titulo: "Declaración de impacto ambiental del parque eólico «Altos de Somosierra» (simulada)", url: "",
+  { id: "SIM-E2", contacto_ia: { web: "https://www.eolicasierranorte.example", email: "", telefono: "910 000 202", formulario: "https://www.eolicasierranorte.example/contacto", grupo: "Grupo Energías del Norte", fuentes: ["https://www.eolicasierranorte.example"], buscado: "2026-11-14" }, fecha: dia(-3), titulo: "Declaración de impacto ambiental del parque eólico «Altos de Somosierra» (simulada)", url: "",
     promotor: "Eólica Sierra Norte, SA", proyecto: "Parque eólico Altos de Somosierra", tipo: "eolico", ubicacion: "Somosierra, Comunidad de Madrid",
     medidas: [{ texto: "Revegetación de taludes y zonas de obra con especies autóctonas", superficie_ha: 6 }, { texto: "Restauración de 4 ha de pinar", superficie_ha: 4 }],
     superficie_total_ha: 10, encaje: 86, accion: "contactar", resumen: "Eólica Sierra Norte debe revegetar 10 ha en Somosierra por su parque eólico.",

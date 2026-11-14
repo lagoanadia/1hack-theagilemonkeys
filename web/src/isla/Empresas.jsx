@@ -173,18 +173,30 @@ function descargarIcs({ titulo, fecha, descripcion }) {
 }
 const IcoMail = <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3" /><path d="m4 8 8 6 8-6" /></svg>
 
-// Correo, teléfono y web de la empresa (guardados en el tablero compartido). Se añaden a mano; «Buscar contacto» abre una búsqueda.
-function Contactos({ e, tab }) {
+// Contacto de una empresa: el que guarda el equipo y, si no hay, el que encontró la IA del radar en internet
+// (e.contacto_ia: web, email, teléfono y formulario corporativos, con sus fuentes). ia: true = sin comprobar.
+function contactoDe(tab, e) {
   const c = tab.datos.contactos[e.id]?.contacto || {}
+  if (c.email || c.telefono || c.web) return { ...c, ia: false }
+  const ia = e.contacto_ia
+  return ia ? { email: ia.email || '', telefono: ia.telefono || '', web: ia.web || '', formulario: ia.formulario || '', grupo: ia.grupo || '', fuentes: ia.fuentes || [], ia: true } : {}
+}
+
+// Correo, teléfono y web de la empresa (guardados en el tablero compartido). Si no hay, se enseña lo que
+// encontró la IA («Encontrado con IA · comprobadlo») con un botón para darlo por bueno.
+function Contactos({ e, tab }) {
+  const c = contactoDe(tab, e)
   const [editando, setEditando] = useState(false)
   const [f, setF] = useState({ email: c.email || '', telefono: c.telefono || '', web: c.web || '' })
   const [copiado, setCopiado] = useState('')
   const hay = c.email || c.telefono || c.web
+  const guardarComo = v => tab.cambiarRaiz(d => { const x = d.contactos[e.id] || {}; return { ...d, contactos: { ...d.contactos, [e.id]: { ...x, contacto: v } } } })
   const guardar = ev => {
     ev.preventDefault()
-    tab.cambiarRaiz(d => { const x = d.contactos[e.id] || {}; return { ...d, contactos: { ...d.contactos, [e.id]: { ...x, contacto: { email: f.email.trim(), telefono: f.telefono.trim(), web: f.web.trim() } } } } })
+    guardarComo({ email: f.email.trim(), telefono: f.telefono.trim(), web: f.web.trim() })
     setEditando(false)
   }
+  const usarIA = () => guardarComo({ email: c.email, telefono: c.telefono, web: c.web })
   const copiar = async (t, k) => { try { await navigator.clipboard.writeText(t); setCopiado(k); setTimeout(() => setCopiado(''), 1800) } catch { /* sin portapapeles */ } }
   const buscar = `https://www.google.com/search?q=${encodeURIComponent(`${nombreCorto(e)} contacto`)}`
   const chip = (k, icono, texto, href) => (
@@ -206,12 +218,19 @@ function Contactos({ e, tab }) {
       {c.email && chip('email', IcoMail, c.email, `mailto:${c.email}`)}
       {c.telefono && chip('tel', <Icon n="phone" s={16} />, c.telefono, `tel:${c.telefono.replace(/\s/g, '')}`)}
       {c.web && chip('web', <Icon n="globe" s={16} />, c.web.replace(/^https?:\/\//, ''), /^https?:/.test(c.web) ? c.web : `https://${c.web}`)}
-      {!hay && <div className="n2-no">Aún no tenéis un contacto de esta empresa. El BOE no lo publica.</div>}
+      {c.ia && c.formulario && chip('form', <Icon n="ext" s={16} />, 'Formulario de contacto', c.formulario)}
+      {!hay && !c.formulario && <div className="n2-no">Aún no tenéis un contacto de esta empresa. El BOE no lo publica.</div>}
+      {c.ia && (
+        <p className="n2-ia"><span>✨ Encontrado con IA en internet · comprobadlo</span>
+          {c.grupo && <> Es del grupo <b>{c.grupo}</b>.</>}
+          {c.fuentes?.[0] && <> <a href={c.fuentes[0]} target="_blank" rel="noopener noreferrer">Ver fuente ↗</a></>}</p>
+      )}
       <div className="n2-bot">
-        <button className="i-btn sm" onClick={() => setEditando(true)}><Icon n="plus" s={16} w={2.6} />{hay ? 'Cambiar contacto' : 'Añadir correo o teléfono'}</button>
+        {c.ia && hay && <button className="i-btn sm p" onClick={usarIA}><Icon n="check" s={16} w={3} />Es correcto</button>}
+        <button className="i-btn sm" onClick={() => { setF({ email: c.email || '', telefono: c.telefono || '', web: c.web || '' }); setEditando(true) }}><Icon n={hay ? 'undo' : 'plus'} s={16} w={2.6} />{hay ? (c.ia ? 'Corregir' : 'Cambiar contacto') : 'Añadir correo o teléfono'}</button>
         {!hay && <a className="i-btn sm" href={buscar} target="_blank" rel="noopener noreferrer"><Icon n="search" s={16} />Buscar contacto</a>}
       </div>
-      <p className="n2-f">{hay ? 'Añadido por vosotros' : 'La búsqueda se abre en otra pestaña'}</p>
+      {!c.ia && <p className="n2-f">{hay ? 'Añadido por vosotros' : 'La búsqueda se abre en otra pestaña'}</p>}
     </>
   )
 }
@@ -255,7 +274,7 @@ function Contacto({ lista, tab, cambiarEstado, setBorrador }) {
       izq={<span className="i-hint">Arrastrad cada empresa a la columna siguiente.</span>}
       card={(e, col) => {
         const c = datosDe(e), fs = c.fechas || {}, ult = c.envios?.at(-1)
-        const tiene = c.contacto?.email || c.contacto?.telefono || c.contacto?.web
+        const cc = contactoDe(tab, e), tiene = cc.email || cc.telefono || cc.web
         const dias = fs.volver ? diasHasta(fs.volver) : null, toca = dias !== null && dias <= 0
         return (
           <article className="tc k3">
@@ -320,10 +339,10 @@ function Borrador({ e, plantilla, cerrar, tab }) {
         <p className="i-sub" style={{ margin: '4px 0 12px' }}>Ya está rellenado con los datos del proyecto. Cambiad lo que queráis.</p>
         <label className="em-camp">Asunto<input className="i-in" value={asunto} onChange={ev => setAsunto(ev.target.value)} /></label>
         <label className="em-camp">Mensaje<textarea className="i-in" rows={11} value={cuerpo} onChange={ev => setCuerpo(ev.target.value)} autoFocus /></label>
-        {!tab.datos.contactos[e.id]?.contacto?.email && <p className="em-aviso"><Icon n="info" s={15} />Aún no tenéis el correo de esta empresa (el BOE no lo publica). Añadidlo en su ficha o pegadlo al enviar.</p>}
+        {!contactoDe(tab, e).email && <p className="em-aviso"><Icon n="info" s={15} />Aún no tenéis el correo de esta empresa (el BOE no lo publica). Añadidlo en su ficha o pegadlo al enviar.</p>}
         <label className="cb"><input type="checkbox" checked={recordar} onChange={ev => setRecordar(ev.target.checked)} />Recordarme en {pl.espera} días si no contestan</label>
         <div className="em-bor-acc">
-          <a className="i-btn" href={`mailto:${tab.datos.contactos[e.id]?.contacto?.email || ''}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`}><Icon n="send" s={18} />Abrir en mi correo</a>
+          <a className="i-btn" href={`mailto:${contactoDe(tab, e).email || ''}?subject=${encodeURIComponent(asunto)}&body=${encodeURIComponent(cuerpo)}`}><Icon n="send" s={18} />Abrir en mi correo</a>
           <button className="i-btn" onClick={copiar}><Icon n={copiado ? 'check' : 'doc'} s={18} w={copiado ? 3 : 2} />{copiado ? 'Copiado' : 'Copiar'}</button>
           <span style={{ flex: 1 }} />
           <button className="i-btn p" onClick={enviado}><Icon n="check" s={19} w={2.6} />Ya lo he enviado</button>

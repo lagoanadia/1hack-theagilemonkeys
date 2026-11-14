@@ -920,7 +920,6 @@ html,body{margin:0}
 .mp-anio{position:relative;display:inline-flex;align-items:center;gap:8px;height:46px;padding:0 18px;border-radius:999px;background:var(--nvs);color:#fff;font-weight:700;font-size:15px}
 .mp-anio select{appearance:none;background:none;border:0;color:inherit;font:inherit;cursor:pointer;padding-right:16px}
 .mp-anio select option{color:var(--nv)}
-.mp-anio::after{content:"▾";position:absolute;right:16px;pointer-events:none;font-size:12px}
 .mp-lienzo{position:relative;min-height:600px;height:calc(100vh - 150px);display:flex;justify-content:center;align-items:center;overflow:hidden;padding:10px}
 .mp-mapa{position:relative;height:100%;aspect-ratio:720/630;max-width:100%}
 .mp-mapa>span,.mp-mapa svg{display:block;width:100%!important;height:100%!important;max-height:none!important}
@@ -981,3 +980,21 @@ html,body{margin:0}
 .mp-kpi .tres i.gr{background:var(--gr-l);color:var(--gr-d)}.mp-kpi .tres i.am{background:var(--am-l);color:#8A5300}.mp-kpi .tres i.co{background:var(--co-l);color:var(--co-d)}
 .mp-kpi .tres b{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1}
 .mp-kpi .tres span{font-size:13px;color:var(--mut)}
+.n2-ia{font-size:13px;color:var(--mut);line-height:1.45;margin:2px 0 4px}.n2-ia span{display:inline-block;font-weight:700;color:#6E3F86;background:#F1E4F5;border-radius:999px;padding:2px 9px;margin-right:4px}.n2-ia a{color:var(--nvs);font-weight:600}
+/* Desplegable propio (Desplegable.jsx) */
+.dsp{position:relative;display:inline-block}
+.dsp-btn{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.dsp-btn .dsp-fl{transition:transform .15s;opacity:.8}.dsp-btn.on .dsp-fl{transform:rotate(180deg)}
+.dsp-pop{position:absolute;top:calc(100% + 6px);min-width:100%;list-style:none;background:#fff;border-radius:16px;padding:6px;box-shadow:0 1px 0 var(--ln),0 18px 40px -16px rgba(27,39,66,.4);z-index:40;animation:i-popin .14s ease-out}
+.dsp-pop.izq{left:0}.dsp-pop.der{right:0}
+.dsp-pop button{width:100%;display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:11px;font-size:14.5px;font-weight:600;color:var(--nv);text-align:left;white-space:nowrap}
+.dsp-pop button span{flex:1}.dsp-pop button small{color:var(--mut);font-size:13px;font-weight:600}
+.dsp-pop button:hover{background:var(--soft)}
+.dsp-pop button.on{background:var(--gr-l);color:var(--gr-d)}.dsp-pop button.on small{color:var(--gr-d)}
+/* Botón del año (Mapa) y del estado (agenda) */
+.dsp-btn.mp-anio{height:46px;padding:0 16px;border-radius:999px;background:var(--nvs);color:#fff;font-weight:700;font-size:15px}
+.dsp-btn.mp-anio small{font-weight:600;opacity:.75;font-size:13.5px}
+.dsp .mp-anio::after{content:none}
+.dsp-btn.ag-est{padding:6px 12px;border-radius:999px;font-size:13px;font-weight:700;gap:6px}
+.dsp-btn.ag-est.nueva{background:var(--co-l);color:var(--co-d)}.dsp-btn.ag-est.cont{background:var(--am-l);color:#8A5300}
+.dsp-btn.ag-est.conf{background:var(--gr-l);color:var(--gr-d)}.dsp-btn.ag-est.desc{background:#EDEFEA;color:var(--mut)}

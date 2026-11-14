@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { ErrorSesion, api } from '../api.js'
 import Icon from './Icon.jsx'
+import Desplegable from './Desplegable.jsx'
 import { madridMap, spainMini, ZONAS, P, inPoly, COL, TIPO } from './mapa.js'
 
 const Svg = ({ html, ...p }) => <span {...p} dangerouslySetInnerHTML={{ __html: html }} />
@@ -47,13 +48,11 @@ export default function Mapa({ top, salir }) {
   const controles = (
     <div className="mp-ctl">
       <div className="i-seg">{['Madrid', 'España'].map(k => <button key={k} className={ambito === k ? 'on' : ''} onClick={() => setAmbito(k)}>{k}</button>)}</div>
-      <label className="mp-anio">
-        <Icon n="cal" s={16} />
-        <select value={anio} onChange={e => { setAnio(e.target.value); setSelId(null) }} aria-label="Ver lo plantado hasta el año">
-          <option value="Todo">Todo · {fmt(haHasta('Todo'))} ha</option>
-          {[...anios].reverse().map(y => <option key={y} value={String(y)}>{y === anios[0] ? `Solo ${y}` : `Hasta ${y}`} · {fmt(haHasta(y))} ha</option>)}
-        </select>
-      </label>
+      <Desplegable etiqueta="Ver lo plantado hasta el año" valor={anio} className="mp-anio"
+        onCambio={v => { setAnio(v); setSelId(null) }}
+        boton={<><Icon n="cal" s={16} />{anio === 'Todo' ? 'Todo' : anio === String(anios[0]) ? `Solo ${anio}` : `Hasta ${anio}`}<small>{fmt(haHasta(anio))} ha</small></>}
+        opciones={[{ v: 'Todo', t: 'Todo', extra: `${fmt(haHasta('Todo'))} ha` },
+          ...[...anios].reverse().slice(1).map(y => ({ v: String(y), t: y === anios[0] ? `Solo ${y}` : `Hasta ${y}`, extra: `${fmt(haHasta(y))} ha` }))]} />
     </div>
   )
   return (
