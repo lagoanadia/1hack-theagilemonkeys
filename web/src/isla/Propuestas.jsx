@@ -60,13 +60,11 @@ export default function Propuestas({ top, setToast, salir }) {
   const campo = k => ({ value: form[k], onChange: e => setForm({ ...form, [k]: e.target.value }) })
   return (
     <>
-      {top('Propuestas')}
-      <div className="i-head" style={{ justifyContent: 'flex-end', marginBottom: 14 }}>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <a className="i-btn sm" href="#/propuestas" target="_blank" rel="noreferrer"><Icon n="ext" s={17} />Ver página pública</a>
-          <button className="i-btn p sm" onClick={() => setForm(VACIA)}><Icon n="plus" s={17} w={2.4} />Nueva propuesta</button>
-        </div>
-      </div>
+      {/* Acciones a la izquierda de la barra superior, como el menú de las demás pantallas. */}
+      {top('Propuestas', false, <div style={{ display: 'flex', gap: 10 }}>
+        <button className="i-btn p sm" onClick={() => setForm(VACIA)}><Icon n="plus" s={17} w={2.4} />Nueva propuesta</button>
+        <a className="i-btn sm" href="#/propuestas" target="_blank" rel="noreferrer"><Icon n="ext" s={17} />Ver página pública</a>
+      </div>)}
       {error && <p className="i-err" role="alert">{error} <button className="i-link" onClick={recargar}>Reintentar</button></p>}
       {form && (
         <form className="i-card i-form" onSubmit={crear}>
