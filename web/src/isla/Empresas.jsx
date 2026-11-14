@@ -131,7 +131,7 @@ export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
 // Tarjeta de empresa en bloques: identidad · qué tienen que hacer · datos clave · medidas · acción.
 function Ficha({ e, puesto, grande, nueva, pie }) {
   const [ver, setVer] = useState(false)
-  const ha = e.superficie_total_ha || e.impacto?.hectareas, tam = mw(e), n = e.encaje ?? 0, viaje = e.impacto?.viaje
+  const ha = e.superficie_total_ha || e.impacto?.hectareas, tam = mw(e), n = e.encaje ?? 0
   return (
     <article className={`em-card ${grande ? 'grande' : ''}`}>
       <header className="em-id">
@@ -150,7 +150,6 @@ function Ficha({ e, puesto, grande, nueva, pie }) {
         <span className="i-tag" style={{ background: 'var(--soft)' }}>{ACCION[e.accion] || ACCION.descarta}</span>
         {nPlantacion(e) > 0 && <span className="i-tag" style={{ background: 'var(--gr-l)', color: 'var(--gr-d)' }}>{nPlantacion(e)} {nPlantacion(e) === 1 ? 'medida' : 'medidas'} de plantación</span>}
         {ha > 0 && <span className="i-tag">{hectareas(ha)} a plantar</span>}
-        {viaje && <span className="i-tag" style={{ background: 'var(--co-l)', color: 'var(--co-d)' }}>✈️ {viaje.vuelos_anio} vuelos Madrid–{viaje.destino} al año</span>}
       </div>
       <div className="em-links">
         {(e.medidas || []).length > 0 ? <button className="tc-mas" aria-expanded={ver} onClick={() => setVer(!ver)}>{ver ? 'Ocultar medidas' : `Ver las ${e.medidas.length} medidas`}<Icon n="keyD" s={14} w={2.8} /></button> : <span />}
