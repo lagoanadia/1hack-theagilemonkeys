@@ -1,0 +1,72 @@
+/* Tema "campo": sans ancha y ligera, etiquetas en frase, tarjetas blancas redondeadas, barra lateral verde azulado. */
+body{font-family:"Archivo",sans-serif;font-stretch:104%;color:#16201B}
+.mono{font-family:"Archivo",sans-serif !important;font-variant-numeric:tabular-nums;letter-spacing:0 !important}
+
+/* Ventana */
+.win{background:#EEF0EA}
+.tb{background:#F7F8F4;border-bottom:1px solid #E1E4DC}
+.tbtitle{font-weight:500;color:#59635C}
+.seg{background:#E9ECE5;border-radius:999px}.seg span{border-radius:999px;font-weight:500}
+
+/* Barra lateral (Tink) */
+.side{background:#1F3A35 !important;border-right:0 !important;color:#DCE6E0;padding:18px 14px !important}
+.side .ni{color:#C6D3CC;font-size:14px;padding:9px 10px;border-radius:10px}
+.side .ni svg{opacity:.8}
+.side .ni.on{background:rgba(255,255,255,.1) !important;color:#fff;font-weight:500}
+.side .ni b{font-family:"Archivo";opacity:.55}
+.side .sh{font:500 11px "Archivo" !important;letter-spacing:.06em !important;color:rgba(220,230,224,.5) !important;padding:18px 10px 6px !important}
+.side .view,.side .layer{color:#C6D3CC}
+.side .view.mono,.side .layer.mono{color:rgba(220,230,224,.6) !important}
+.side .k{color:rgba(220,230,224,.6) !important}
+.side > div:first-child span:first-child{background:#CFE3B8 !important}
+.side > div:first-child span:first-child svg{stroke:#1F3A35}
+.side > div:first-child div div:last-child{color:rgba(220,230,224,.55) !important}
+.side > div:last-child{background:rgba(255,255,255,.07) !important;color:#E8EFEA}
+.side > div:last-child span{color:#E8EFEA !important}
+.side .bar{background:rgba(255,255,255,.12) !important}.side .bar i{background:#CFE3B8 !important}
+.side .tog{background:#9CC07A}.side .tog.off{background:rgba(255,255,255,.18)}
+
+/* Lienzo con cuadrícula tenue (AgroControl) */
+.content,.map{background-color:#EEF0EA}
+.content{background-image:linear-gradient(rgba(22,32,27,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(22,32,27,.035) 1px,transparent 1px);background-size:72px 72px}
+
+/* Etiquetas de bloque: frase, gris, sin mayúsculas */
+.k,.lbl,.dh,th,.group{font:500 13px "Archivo" !important;letter-spacing:0 !important;text-transform:none !important;color:#6E7871}
+th,.group,.dh{color:#6E7871 !important}
+th{font-size:12px !important;background:transparent !important}
+
+/* Cabecera de página */
+.toolbar{height:auto !important;min-height:112px;padding:22px 28px 18px !important;align-items:flex-end !important;background:transparent !important;border-bottom:0 !important;gap:14px !important}
+.toolbar .ttl{display:flex;flex-direction:column;gap:12px;margin-right:auto}
+.toolbar .tag{align-self:flex-start;display:inline-flex;align-items:center;gap:7px;font:500 12px "Archivo";color:#38433C;background:#fff;border:1px solid #E1E4DC;border-radius:999px;padding:5px 11px}
+.toolbar .tag::before{content:"";width:7px;height:7px;border-radius:50%;background:#9CC07A}
+.toolbar h1{font:400 38px/1.02 "Archivo" !important;font-stretch:112% !important;letter-spacing:-.025em !important;margin:0 !important}
+.toolbar > span:not(.btn):not(.pill){font-size:13.5px !important;color:#5F6962 !important;max-width:280px;line-height:1.45;padding-bottom:4px}
+.toolbar .search{border-radius:999px;background:#fff;border-color:#E1E4DC;height:42px}
+
+/* Tarjetas */
+.c,.ec,.pj,.card2,.card,.float,.kp div.c,.insp,.pipe,.right,.list,.detail{border-color:#E4E6DF !important}
+.c,.ec,.pj,.card2,.kp div.c{background:#fff !important;border-radius:22px !important;box-shadow:0 1px 2px rgba(22,32,27,.04),0 14px 30px -22px rgba(22,32,27,.25)}
+.card2{border-radius:16px !important}
+.float{border-radius:18px !important}
+
+/* Cifras grandes (ForestDrop) */
+.big,.n{font-weight:500 !important;letter-spacing:-.035em !important;font-stretch:100%}
+
+/* Píldoras y botones */
+.pill{font:500 12px "Archivo" !important;padding:5px 11px !important}
+.pr{background:#E5EFD9 !important;color:#24502F !important}
+.mi{background:#F1E4C8 !important;color:#7A5410 !important}
+.de{background:#ECEDE8 !important;color:#6E7871 !important}
+.chip{font-weight:500 !important;border-radius:999px;border-color:#E1E4DC !important}
+.chip.on{background:#16201B !important}
+.btn{border-radius:999px !important;font-weight:500 !important;border-color:#DDE0D8 !important;height:40px}
+.btn.p{background:#16201B !important;border-color:#16201B !important;padding-right:6px !important;gap:10px !important}
+.btn.p::after{content:"↗";width:28px;height:28px;border-radius:50%;background:#fff;color:#16201B;display:grid;place-items:center;font-size:13px;flex:none}
+.av{font-family:"Archivo" !important;font-weight:600 !important}
+blockquote{border-left-color:#9CC07A !important;font-size:14px}
+h1,h2,h3,h4{font-weight:500 !important;font-stretch:108%}
+.tt,.t{font-weight:500 !important}
+.f label{font:500 13px "Archivo" !important;text-transform:none !important;letter-spacing:0 !important;color:#6E7871 !important}
+.side .mb{background:rgba(255,255,255,.12) !important}.side .mb i{background:#CFE3B8 !important}
+.big span{letter-spacing:0;margin-left:4px}

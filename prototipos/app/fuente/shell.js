@@ -16,6 +16,9 @@ function tiles() {
 }
 function shell({ titulo, seg, nav, extra = '' }) {
   const page = document.getElementById('page');
+  aplicarTema();
+  const tb = page.querySelector('.toolbar h1');
+  if (tb) { const w = document.createElement('div'); w.className = 'ttl'; w.innerHTML = `<span class="tag">${nav === 'Bandeja' && /Ficha/.test(titulo) ? 'Ficha de convocatoria' : nav}</span>`; tb.replaceWith(w); w.appendChild(tb); }
   const NAV = [['Panel', '', 'M3 3h7v9H3zM14 3h7v5h-7zM14 12h7v9h-7zM3 16h7v5H3z'], ['Bandeja', '98', 'M3 12h18M3 6h18M3 18h12'],
     ['Mapa', '', 'm3 6 6-3 6 3 6-3v15l-6 3-6-3-6 3zM9 3v15M15 6v15'], ['Empresas BOE', '28', 'M3 21V8l6-4 6 4v13M15 21V12h6v9'],
     ['Flujo de solicitudes', '9', 'M3 4h5v16H3zM10 4h5v10h-5zM17 4h4v13h-4z'], ['Proyectos', '3', 'M12 21v-9M12 12c0-4 3-7 8-7 0 5-3 8-8 7z']];
@@ -36,4 +39,9 @@ function shell({ titulo, seg, nav, extra = '' }) {
   page.style.display = 'contents';
   terrain(document.getElementById('wall'), { w: 1760, h: 1160, seed: 3, scale: 3, levels: 14, palette: ['#5C7A47', '#7E9658', '#A9B072', '#C8BC8A', '#D9CDAA'], stroke: 'rgba(20,30,20,.25)' });
   tiles();
+}
+
+function aplicarTema() {
+  if (document.getElementById('tema')) return;
+  document.head.insertAdjacentHTML('beforeend', '<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,300..700&display=swap" rel="stylesheet"><link id="tema" rel="stylesheet" href="theme.css">');
 }
