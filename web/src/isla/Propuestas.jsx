@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useMemo, useCallback, useEffect, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
 import { island } from './lp.js'
+import { mapaLugar } from './mapa.js'
 import { ErrorSesion, api } from '../api.js'
 import { euros, hectareas } from '../datos.js'
 
@@ -94,7 +95,9 @@ export default function Propuestas({ top, setToast, salir }) {
           const [et, bg, fg] = ESTADO_TAG[p.estado === 'publicada' && p.completa ? 'completa' : p.estado] || ESTADO_TAG.publicada
           return (
             <div key={p.id} className="i-card" style={{ padding: '12px 14px 16px', display: 'flex', flexDirection: 'column' }}>
-              <div className="i-art"><Svg html={island(220, 150, n, n, 20 + i)} /></div>
+              {mapaLugar(p.lugar)
+                ? <div className="i-art i-art-mapa" title={p.lugar}><Svg html={mapaLugar(p.lugar)} /><span className="i-art-lugar">📍 {p.lugar.replace(/\s*\(Madrid\)/i, '')}</span></div>
+                : <div className="i-art"><Svg html={island(220, 150, n, n, 20 + i)} /></div>}
               <div className="i-head" style={{ margin: '10px 0 4px', alignItems: 'center' }}><span className="i-tag" style={{ background: bg, color: fg }}>{et}</span><span className="i-tag">{p.plazas_libres == null ? (k === 0 ? 'Sin reservas' : k === 1 ? '1 reserva' : `${k} reservas`) : `${p.plazas_libres} de ${p.plazas} plazas libres`}</span></div>
               <b style={{ fontSize: 18 }}>{p.titulo}</b>
               <div style={{ color: 'var(--mut)', fontSize: 14 }}>{[TIPOS[p.tipo], p.lugar, hectareas(p.hectareas), euros(p.presupuesto), p.incluye || p.descripcion].filter(Boolean).join(' · ')}</div>
@@ -108,26 +111,66 @@ export default function Propuestas({ top, setToast, salir }) {
           )
         })}
       </div>
-      <div className="i-card" style={{ padding: '14px 20px' }}>
-        <div className="i-head" style={{ alignItems: 'center' }}><b style={{ fontSize: 18 }}>Reservas recibidas{reservas ? ` · ${reservas.length}` : ''}</b></div>
-        {reservas && reservas.length === 0 && <p style={{ color: 'var(--mut)', padding: '10px 0' }}>Aún no hay reservas. Compartid vuestra página pública con empresas.</p>}
-        {(reservas || []).map(r => {
-          const mail = (r.contacto.match(/[^\s·<>]+@[^\s·<>]+/) || [])[0]
-          return (
-            <div key={r.id} className="i-rs i-rs3">
-              <div><b>{r.empresa}</b> <span className="i-tag" style={r.estado === 'confirmada' ? { background: 'var(--gr-l)', color: 'var(--gr-d)' } : undefined}>{RESERVA[r.estado] || 'Nueva'}</span><small>{r.contacto}</small>{r.mensaje && <small>«{r.mensaje}»</small>}</div>
-              <div>{r.proyecto || '—'}<small>{new Date(r.creado).toLocaleDateString('es-ES')}</small></div>
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                {mail && <a className="i-btn sm" style={{ height: 40 }} href={`mailto:${mail}?subject=${encodeURIComponent('Reforesta · ' + (r.proyecto || 'vuestra reserva'))}`}><Icon n="send" s={15} />Escribir</a>}
-                <select className="i-btn sm" style={{ height: 40 }} aria-label={`Estado de la reserva de ${r.empresa}`} value={r.estado || 'nueva'} onChange={e => estadoReserva(r, e.target.value)}>
-                  {Object.entries(RESERVA).map(([k, t]) => <option key={k} value={k}>{t}</option>)}
-                </select>
-                <button className="i-btn sm" style={{ height: 40 }} onClick={() => borrarReserva(r)} aria-label={`Borrar la reserva de ${r.empresa}`}>Borrar</button>
-              </div>
-            </div>
-          )
-        })}
-      </div>
+      <Agenda reservas={reservas} estadoReserva={estadoReserva} borrarReserva={borrarReserva} />
     </>
+  )
+}
+
+// Reservas como una agenda: agrupadas por la inicial de la empresa, con índice de letras arriba.
+const TONOS_AG = ['#F7E3D4,#9A5B2E', '#DFF0E3,#256B45', '#E3ECF7,#2F5683', '#FFF0D6,#8A5300', '#F1E4F5,#6E3F86']
+const ESTADO_AG = { nueva: ['Nueva', 'nueva'], contestada: ['Contestada', 'cont'], confirmada: ['Confirmada', 'conf'], descartada: ['Descartada', 'desc'] }
+function inicialDe(t) { const c = (t || '#').trim().normalize('NFD').replace(/[\u0300-\u036f]/g, '')[0]?.toUpperCase() || '#'; return /[A-Z]/.test(c) ? c : '#' }
+function Agenda({ reservas, estadoReserva, borrarReserva }) {
+  const grupos = useMemo(() => {
+    const g = {}
+    for (const r of [...(reservas || [])].sort((a, b) => a.empresa.localeCompare(b.empresa, 'es'))) (g[inicialDe(r.empresa)] ||= []).push(r)
+    return Object.entries(g)
+  }, [reservas])
+  return (
+    <div className="i-card i-agenda">
+      <div className="ag-cab">
+        <b>Agenda de empresas{reservas ? <span>{reservas.length}</span> : null}</b>
+        <nav aria-label="Ir a la letra">{grupos.map(([l]) => <a key={l} href={`#ag-${l}`} onClick={e => { e.preventDefault(); document.getElementById(`ag-${l}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }}>{l}</a>)}</nav>
+      </div>
+      {reservas && reservas.length === 0 && <p className="ag-vacio">Aún no hay reservas. Compartid vuestra página pública con empresas.</p>}
+      {grupos.map(([letra, lista]) => (
+        <section key={letra} id={`ag-${letra}`} className="ag-grupo" aria-label={`Letra ${letra}`}>
+          <h3 className="ag-letra">{letra}</h3>
+          <ul>
+            {lista.map(r => {
+              const mail = (r.contacto.match(/[^\s·<>]+@[^\s·<>]+/) || [])[0]
+              const persona = r.contacto.split('·')[0].trim()
+              const [bg, fg] = TONOS_AG[[...r.empresa].reduce((n, c) => n + c.charCodeAt(0), 0) % TONOS_AG.length].split(',')
+              const [txt, cls] = ESTADO_AG[r.estado] || ESTADO_AG.nueva
+              return (
+                <li key={r.id} className="ag-fila">
+                  <span className="ag-av" style={{ background: bg, color: fg }} aria-hidden="true">{r.empresa.trim().slice(0, 2).toUpperCase()}</span>
+                  <div className="ag-quien">
+                    <b>{r.empresa}</b>
+                    <span>{persona}{mail && persona !== mail ? ` · ${mail}` : ''}</span>
+                    {r.mensaje && <i>«{r.mensaje}»</i>}
+                  </div>
+                  <div className="ag-que">
+                    <span className="ag-proy" title={r.proyecto}><Icon n="leaf" s={14} />{r.proyecto || '—'}</span>
+                    <small>{r.hectareas ? `${r.hectareas} ha · ` : ''}{new Date(r.creado).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</small>
+                  </div>
+                  <label className={`ag-est ${cls}`}>
+                    <span className="sr">Estado de la reserva de {r.empresa}</span>
+                    <select value={r.estado || 'nueva'} onChange={e => estadoReserva(r, e.target.value)}>
+                      {Object.entries(ESTADO_AG).map(([k, [t]]) => <option key={k} value={k}>{t}</option>)}
+                    </select>
+                    <span aria-hidden="true">{txt}</span>
+                  </label>
+                  <div className="ag-acc">
+                    {mail && <a className="ag-ib" href={`mailto:${mail}?subject=${encodeURIComponent('Reforesta · ' + (r.proyecto || 'vuestra reserva'))}`} title={`Escribir a ${mail}`} aria-label={`Escribir a ${r.empresa}`}><Icon n="send" s={16} /></a>}
+                    <button className="ag-ib" onClick={() => borrarReserva(r)} title="Borrar la reserva" aria-label={`Borrar la reserva de ${r.empresa}`}><Icon n="x" s={16} w={2.4} /></button>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
+        </section>
+      ))}
+    </div>
   )
 }

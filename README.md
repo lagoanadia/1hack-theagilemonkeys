@@ -169,6 +169,10 @@ defecto), `/data/convocatorias.json` añade las convocatorias reales de `validac
 convocatorias reales recientes ya cerradas) como si
 estuvieran abiertas, con `demo: true` y fechas de demostración. No van en los correos.
 `PUT /api/demo {activo: false}` lo apaga (o la variable `MODO_DEMO = "0"`).
+Además, en modo demo se añaden datos **simulados** (`worker/demo.js`, con `simulada: true`) para que todas
+las pantallas tengan contenido: 11 convocatorias y 3 empresas simuladas, y se siembran en D1 solicitudes en
+todos los estados (con historial, pasos y motivos que disparan una regla), 4 propuestas con reservas,
+7 plantaciones y 7 documentos con PDF. Al apagar el modo demo se borra todo lo sembrado.
 
 ### Datos de prueba
 

@@ -55,6 +55,9 @@
 // Preparado también, pero sin usar en la web: login con Google (Authorization: Bearer <id_token>)
 // para los emails o dominios del secreto EMAILS_EQUIPO, con el secreto GOOGLE_CLIENT_ID.
 
+import { convocatoriasSim, empresasSim, solicitudesSim, PROYECTOS_SIM, RESERVAS_SIM, PLANTACIONES_SIM,
+  DOCUMENTOS_SIM, diaDemo } from "./demo.js";
+
 const ESQUEMA = [
   `CREATE TABLE IF NOT EXISTS estados (
      tipo TEXT NOT NULL, id TEXT NOT NULL, estado TEXT NOT NULL, nota TEXT DEFAULT '',
@@ -564,7 +567,115 @@ async function convocatoriasConDemo(env, request) {
     fin: new Date(hoy + (21 + 9 * i) * 86400000).toISOString().slice(0, 10),
     plazo_texto: "Ejemplo real: convocatoria ya cerrada, con fechas de demostración",
   }));
-  return { ...d, convocatorias: [...demo, ...d.convocatorias], demo: demo.length };
+  // Y las simuladas (worker/demo.js) para que todas las pantallas tengan datos.
+  const usados = new Set([...ya, ...demo.map((c) => c.codigo)]);
+  const sim = convocatoriasSim().filter((c) => !usados.has(c.codigo));
+  return { ...d, convocatorias: [...sim, ...demo, ...d.convocatorias], demo: demo.length + sim.length };
+}
+async function empresasConDemo(env, request) {
+  const r = await env.ASSETS.fetch(new Request(new URL("/data/empresas.json", request.url)));
+  const d = r.ok ? await r.json() : { empresas: [] };
+  return { ...d, empresas: [...empresasSim(), ...(d.empresas || [])] };
+}
+
+// Siembra en D1 solicitudes, propuestas, reservas, plantaciones y documentos simulados (una vez).
+// Todo queda apuntado en ajustes.demo_sembrado para borrarlo al apagar el modo demo.
+const PDF_DEMO = (t) => new TextEncoder().encode(`%PDF-1.4
+1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
+2 0 obj<</Type/Pages/Kids[3 0 R]/Count 1>>endobj
+3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 595 842]/Contents 4 0 R/Resources<</Font<</F1 5 0 R>>>>>>endobj
+4 0 obj<</Length ${t.length + 40}>>stream
+BT /F1 18 Tf 60 780 Td (${t.replace(/[()\\]/g, "")} - DEMO) Tj ET
+endstream endobj
+5 0 obj<</Type/Font/Subtype/Type1/BaseFont/Helvetica>>endobj
+trailer<</Root 1 0 R>>
+%%EOF`);
+async function sembrarDemo(env, db, request) {
+  const r = await db.prepare(
+    "INSERT OR IGNORE INTO ajustes (clave, valor, actualizado, actualizado_por) VALUES ('demo_sembrado', '{}', ?, 'Demo')",
+  ).bind(ahora()).run();
+  if (!r.meta.changes) return;  // ya sembrado (o sembrándose en otra petición)
+  const ids = { solicitudes: [], proyectos: [], interesados: [], plantaciones: [], documentos: [] };
+  try {
+    const convsSim = convocatoriasSim();
+    for (const [tipo, id, cambios] of solicitudesSim()) {
+      if (await db.prepare("SELECT 1 FROM solicitudes WHERE tipo = ? AND id = ?").bind(tipo, id).first()) continue;
+      const def = PASO_POR_ESTADO[tipo][cambios.estado];
+      const fechaFin = convsSim.find((c) => c.codigo === id)?.fin || "";
+      await cambiarSolicitud(db, tipo, id, {
+        siguiente_paso: def?.paso || "", fecha_paso: def ? (def.dias === "plazo" ? fechaFin : masDias(def.dias)) : "",
+        responsable: ["Marta", "Jorge", "Lucía"][ids.solicitudes.length % 3], ...cambios,
+      }, "Demo");
+      ids.solicitudes.push([tipo, id]);
+    }
+    for (const p of PROYECTOS_SIM) {
+      const x = await db.prepare(
+        `INSERT INTO proyectos (titulo, lugar, tipo, incluye, descripcion, hectareas, presupuesto, plazas, estado, creado, actualizado)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).bind(p.titulo, p.lugar, p.tipo, p.incluye, p.descripcion, p.hectareas, p.presupuesto, p.plazas, p.estado, ahora(), ahora()).run();
+      ids.proyectos.push(x.meta.last_row_id);
+    }
+    for (const [i, empresa, contacto, ha, estado] of RESERVAS_SIM) {
+      const x = await db.prepare(
+        "INSERT INTO interesados (proyecto_id, empresa, contacto, mensaje, hectareas, creado, estado, actualizado_por) VALUES (?, ?, ?, ?, ?, ?, ?, 'Demo')",
+      ).bind(ids.proyectos[i], empresa, contacto, "Nos gustaría plantar con vosotros este año.", ha, ahora(), estado).run();
+      ids.interesados.push(x.meta.last_row_id);
+    }
+    for (const pl of PLANTACIONES_SIM) {
+      const x = await db.prepare(
+        `INSERT INTO plantaciones (nombre, lon, lat, ha, arboles, especies, tipo, anio, con, autor, creado)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'Demo', ?)`,
+      ).bind(pl.nombre, pl.ll[0], pl.ll[1], pl.ha, pl.arboles, pl.especies, pl.tipo, pl.anio, pl.con, ahora()).run();
+      ids.plantaciones.push(x.meta.last_row_id);
+    }
+    const porTipo = {};
+    for (const [nombre, tipo, emitido, caduca] of DOCUMENTOS_SIM) {
+      const archivo = new File([PDF_DEMO(nombre)], `${nombre}.pdf`, { type: "application/pdf" });
+      const key = await guardarArchivo(env, db, archivo);
+      const x = await db.prepare(
+        `INSERT INTO documentos (tipo, nombre, archivo_key, archivo_nombre, mime, tamano, emitido, caduca, subido_por, creado)
+         VALUES (?, ?, ?, ?, 'application/pdf', ?, ?, ?, 'Demo', ?)`,
+      ).bind(tipo, nombre, key, archivo.name, archivo.size, diaDemo(emitido), caduca === null ? null : diaDemo(caduca), ahora()).run();
+      ids.documentos.push(x.meta.last_row_id);
+      porTipo[tipo] = x.meta.last_row_id;
+    }
+    // Huecos ya rellenos en las dos que se están preparando
+    for (const codigo of ["SIM-07", "SIM-01"]) {
+      const conv = convsSim.find((c) => c.codigo === codigo);
+      for (const req of conv.documentos_requeridos) {
+        const doc = porTipo[req.tipo];
+        if (!doc) continue;
+        await db.prepare(
+          `INSERT OR IGNORE INTO solicitud_documentos (codigo, requisito, documento_id, estado, responsable, actualizado, actualizado_por)
+           VALUES (?, ?, ?, 'confirmado', 'Marta', ?, 'Demo')`,
+        ).bind(codigo, claveHueco(req), doc, ahora()).run();
+      }
+    }
+  } finally {
+    await db.prepare("UPDATE ajustes SET valor = ?, actualizado = ? WHERE clave = 'demo_sembrado'").bind(JSON.stringify(ids), ahora()).run();
+  }
+}
+async function quitarDemo(env, db) {
+  const f = await db.prepare("SELECT valor FROM ajustes WHERE clave = 'demo_sembrado'").first();
+  if (!f) return;
+  const ids = JSON.parse(f.valor || "{}");
+  const q = [];
+  for (const [tipo, id] of ids.solicitudes || []) {
+    q.push(db.prepare("DELETE FROM solicitudes WHERE tipo = ? AND id = ? AND actualizado_por = 'Demo'").bind(tipo, id));
+    q.push(db.prepare("DELETE FROM historial WHERE tipo = ? AND ref = ? AND autor = 'Demo'").bind(tipo, id));
+  }
+  for (const id of ids.interesados || []) q.push(db.prepare("DELETE FROM interesados WHERE id = ?").bind(id));
+  for (const id of ids.proyectos || []) q.push(db.prepare("DELETE FROM proyectos WHERE id = ?").bind(id));
+  for (const id of ids.plantaciones || []) q.push(db.prepare("DELETE FROM plantaciones WHERE id = ?").bind(id));
+  for (const id of ids.documentos || []) {
+    const d = await db.prepare("SELECT archivo_key FROM documentos WHERE id = ?").bind(id).first();
+    if (d?.archivo_key) await borrarArchivo(env, db, d.archivo_key);
+    q.push(db.prepare("DELETE FROM documentos WHERE id = ?").bind(id));
+    q.push(db.prepare("UPDATE solicitud_documentos SET documento_id = NULL, estado = 'falta' WHERE documento_id = ?").bind(id));
+  }
+  q.push(db.prepare("DELETE FROM solicitud_documentos WHERE actualizado_por = 'Demo'"));
+  q.push(db.prepare("DELETE FROM ajustes WHERE clave = 'demo_sembrado'"));
+  await db.batch(q);
 }
 
 // Datos de prueba para recorrer la app entera: solicitudes en cada fase, descartes que generan una
@@ -673,8 +784,9 @@ async function quitarDatosDemo(db) {
 // Datos del radar (convocatorias.json / empresas.json) indexados por código; {} si no hay.
 async function datosRadar(env, request, archivo) {
   try {
-    const d = archivo === "convocatorias" && env.DB && await modoDemo(env, env.DB)
-      ? await convocatoriasConDemo(env, request)
+    const demo = env.DB && await modoDemo(env, env.DB);
+    const d = archivo === "convocatorias" && demo ? await convocatoriasConDemo(env, request)
+      : archivo === "empresas" && demo ? await empresasConDemo(env, request)
       : await (await env.ASSETS.fetch(new Request(new URL(`/data/${archivo}.json`, request.url)))).json();
     return Object.fromEntries((d.convocatorias || d.empresas || []).map((c) => [c.codigo || c.id, c]));
   } catch {
@@ -959,6 +1071,7 @@ async function api(request, env, ruta) {
   }
 
   await prepararEsquema(db);
+  if (await modoDemo(env, db)) await sembrarDemo(env, db, request);
   const usuario = await quienEs(request, env);
   const equipo = Boolean(usuario && !usuario.denegado);
   const soloEquipo = () => {
@@ -1272,6 +1385,7 @@ async function api(request, env, ruta) {
       await db.prepare(`INSERT INTO ajustes (clave, valor, actualizado, actualizado_por) VALUES ('modo_demo', ?, ?, ?)
         ON CONFLICT (clave) DO UPDATE SET valor = excluded.valor, actualizado = excluded.actualizado,
         actualizado_por = excluded.actualizado_por`).bind(activo ? "1" : "0", ahora(), autor).run();
+      if (activo) await sembrarDemo(env, db, request); else await quitarDemo(env, db);
     }
     return json({ activo: await modoDemo(env, db) });
   }
@@ -1536,6 +1650,10 @@ export default {
       if (ruta === "/data/convocatorias.json" && r.ok) {
         await prepararEsquema(env.DB);
         if (await modoDemo(env, env.DB)) r = Response.json(await convocatoriasConDemo(env, request));
+      }
+      if (ruta === "/data/empresas.json") {
+        await prepararEsquema(env.DB);
+        if (await modoDemo(env, env.DB)) r = Response.json(await empresasConDemo(env, request));
       }
       const privado = new Response(r.body, r);
       privado.headers.set("cache-control", "private, no-store");

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
 import { island, tree } from './lp.js'
+import { mapaLugar } from './mapa.js'
 import { GloboInfo } from './Globo.jsx'
 import { api } from '../api.js'
 import { euros, hectareas } from '../datos.js'
@@ -71,7 +72,9 @@ export default function Publica({ equipo, onEntrar }) {
             const n = Math.max(3, Math.min(8, Math.round((p.hectareas || 4) / 1.7)))
             return (
               <div key={p.id} className="i-card" style={{ padding: '14px 16px 18px', display: 'flex', flexDirection: 'column' }}>
-                <div className="i-art"><Svg html={island(220, 150, n, n, 20 + i)} /></div>
+                {mapaLugar(p.lugar)
+                  ? <div className="i-art i-art-mapa" title={p.lugar}><Svg html={mapaLugar(p.lugar)} /><span className="i-art-lugar">📍 {p.lugar.replace(/\s*\(Madrid\)/i, '')}</span></div>
+                  : <div className="i-art"><Svg html={island(220, 150, n, n, 20 + i)} /></div>}
                 <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '10px 0 0' }}>
                   {p.hectareas > 0 && <span className="i-tag">{hectareas(p.hectareas)}</span>}
                   {p.presupuesto > 0 && <span className="i-tag">{euros(p.presupuesto)}</span>}

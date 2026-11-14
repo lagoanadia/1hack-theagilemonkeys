@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
 import { tree } from './lp.js'
 import Convocatorias, { Descarte } from './Convocatorias.jsx'
@@ -116,7 +116,6 @@ export default function IslaApp({ salir }) {
     () => setToast({ texto, go, undo: () => deshacer('empresa', e.id) }))
 
   const nPorRevisar = items.filter(a => etapaDe(a) === 'revisar' && pend(a)).length
-  const nAvisos = seg?.avisos?.length || 0
   const nEmpresas = radar.empresas.filter(e => etapaEmpresa(e) === 'nueva').length
   const nav = [['conv', 'inbox', 'Convocatorias', nPorRevisar], ['empresas', 'building', 'Empresas', nEmpresas], ['propuestas', 'leaf', 'Propuestas', 0], ['mapa', 'map', 'Mapa', 0]]
   const top = (k, ejemplo = false, extra = null) => (
@@ -125,7 +124,7 @@ export default function IslaApp({ salir }) {
       <div style={{ display: 'flex', gap: 10 }}>
         <label className="i-srch"><Icon n="search" s={18} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar…" aria-label="Buscar" /></label>
         {/* Avisos: los pasos que vencen (GET /api/seguimiento). Se pueden recibir también por correo (Perfil). */}
-        <button className="i-round i-campana" aria-label={nAvisos ? `${nAvisos} avisos` : 'Avisos'} title={nAvisos ? seg.avisos.map(x => x.texto).join('\n') : 'Sin avisos. Podéis activarlos por correo en Perfil'} onClick={() => (nAvisos ? ir('presentadas') : ir('perfil'))}><Icon n="bell" s={19} />{nAvisos > 0 && <span className="cnt">{nAvisos}</span>}</button>
+        <Campana seg={seg} ir={ir} />
       </div>
     </div>
   )
@@ -157,6 +156,56 @@ export default function IslaApp({ salir }) {
       <div className={`i-page ${vista === 'conv' && etapa === 'revisar' && radar.cargado && !radar.error ? 'fit' : ''}`}>{page}</div>
       {descartando && <Descarte a={descartando} cerrar={() => setDescartando(null)} guardar={guardarDescarte} />}
       {toast && <div className={`i-toast ${toast.aviso ? 'aviso' : ''}`} role="status"><Icon n={toast.aviso ? 'alert' : 'check'} s={18} w={2.6} />{toast.texto}{toast.go && <button className="go" onClick={() => { toast.go[1](); setToast(null) }}>{toast.go[0]} →</button>}{toast.undo && <button onClick={() => { toast.undo(); setToast(null) }}><Icon n="undo" s={16} w={2.4} />Deshacer</button>}</div>}
+    </div>
+  )
+}
+
+// Campana de avisos: un desplegable como en cualquier app. Cada aviso dice qué toca, de qué y cuándo;
+// al pulsarlo lleva a la pantalla donde se hace. Se cierra al pulsar fuera o con Escape.
+const NIVEL_TXT = { vencido: 'Vencido', urgente: 'Urgente', pronto: 'Pronto' }
+function Campana({ seg, ir }) {
+  const [abierta, setAbierta] = useState(false)
+  const caja = useRef(null)
+  const avisos = seg?.avisos || []
+  useEffect(() => {
+    if (!abierta) return
+    const fuera = e => { if (!caja.current?.contains(e.target)) setAbierta(false) }
+    const esc = e => { if (e.key === 'Escape') setAbierta(false) }
+    document.addEventListener('pointerdown', fuera); document.addEventListener('keydown', esc)
+    return () => { document.removeEventListener('pointerdown', fuera); document.removeEventListener('keydown', esc) }
+  }, [abierta])
+  const detalle = x => seg?.en_marcha?.find(m => m.tipo === x.tipo && m.id === x.id)
+  const cuando = d => (d == null ? '' : d < 0 ? `venció hace ${-d} ${d === -1 ? 'día' : 'días'}` : d === 0 ? 'hoy' : d === 1 ? 'mañana' : `en ${d} días`)
+  return (
+    <div className="i-camp" ref={caja}>
+      <button className={`i-round i-campana ${abierta ? 'on' : ''}`} aria-expanded={abierta} aria-haspopup="dialog"
+        aria-label={avisos.length ? `${avisos.length} avisos` : 'Avisos'} onClick={() => setAbierta(!abierta)}>
+        <Icon n="bell" s={19} />{avisos.length > 0 && <span className="cnt">{avisos.length}</span>}
+      </button>
+      {abierta && (
+        <div className="i-pop" role="dialog" aria-label="Avisos">
+          <div className="cab"><b>Avisos</b>{avisos.length > 0 && <span>{avisos.length}</span>}</div>
+          {avisos.length === 0 && <p className="vacio">Todo al día. No hay pasos que venzan pronto.</p>}
+          <ul>
+            {avisos.map(x => {
+              const m = detalle(x)
+              return (
+                <li key={`${x.tipo}${x.id}`}>
+                  <button onClick={() => { setAbierta(false); ir(x.tipo === 'empresa' ? 'empresas' : 'presentadas') }}>
+                    <i className={`pt ${x.nivel}`} aria-hidden="true" />
+                    <span className="tx">
+                      <b>{m?.siguiente_paso || 'Siguiente paso'}</b>
+                      <span className="t" title={m?.titulo}>{m?.titulo || x.texto}</span>
+                    </span>
+                    <span className={`cu ${x.nivel}`}>{NIVEL_TXT[x.nivel] ? `${cuando(x.dias)}` : ''}</span>
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+          <button className="pie" onClick={() => { setAbierta(false); ir('perfil') }}><Icon n="bell" s={14} />Recibirlos también por correo</button>
+        </div>
+      )}
     </div>
   )
 }
