@@ -2,13 +2,14 @@ import { Fragment, useEffect, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
 import { plant } from './lp.js'
 import { api } from '../api.js'
-import { REGLA } from '../data/ejemplos.js'
 import { LINEAS, descartadaPor, etapaDe, fechaCorta } from '../datos.js'
 
-// Pantalla «Convocatorias»: Por revisar → Preparando → Presentadas, y Descartadas.
-// Datos: convocatorias.json (radar) + estados del equipo (API /solicitudes, ver radar.js).
-const ESTADO_RUTA = { por_revisar: 'pend', mas_tarde: 'lt', descartada: 'no', preparando: 'ok' }
-const ETIQ_RUTA = { pend: 'Pendiente', lt: 'Más tarde', no: 'No interesa', ok: 'A presentar' }
+// Pantalla «Convocatorias»: Radar → En proceso → Presentado, y Descartadas (icono aparte).
+// Datos: convocatorias.json (radar) + estados del equipo (API /solicitudes, ver radar.js)
+// + siguiente paso, fecha y avisos de cada solicitud (GET /api/seguimiento).
+// Estados de la API: por_revisar / mas_tarde = Radar · preparando = En proceso · presentada y siguientes = Presentado.
+const pend = x => x.estado === 'por_revisar' || x.estado === 'mas_tarde'
+const ETIQ_RUTA = { descartada: 'Descartada', preparando: 'En proceso' }
 const VEREDICTO = {
   presenta: ['Sí, merece la pena presentarla', 'check', ''],
   mira: ['Mirad antes de decidir', 'eye', 'mira'],
@@ -16,71 +17,81 @@ const VEREDICTO = {
   descarta: ['El radar la descartó', 'x', 'no'],
 }
 const plazoTxt = a => (a.plazo == null ? 'Sin fecha' : a.dias < 0 ? 'Cerrada' : a.dias === 0 ? 'Hoy' : `${a.plazoEstimado ? '≈ ' : ''}${a.dias} días`)
+const AVISOS_TXT = { nunca: 'Sin avisos por correo', cada_manana: 'Avisos por correo cada mañana', semanal: 'Avisos por correo cada lunes' }
+// Cuenta atrás de un siguiente paso (días que faltan según GET /api/seguimiento).
+const cuenta = dias => (dias === null || dias === undefined ? 'Sin fecha' : dias < 0 ? `Hace ${-dias} ${dias === -1 ? 'día' : 'días'}` : dias === 0 ? 'Hoy' : `${dias} ${dias === 1 ? 'día' : 'días'}`)
+const segDe = (seg, id) => (seg?.en_marcha || []).find(x => x.tipo === 'convocatoria' && x.id === id)
 
 export default function Convocatorias(props) {
-  const { radar, visibles, etapa, ir, top } = props
+  const { radar, visibles, etapa, ir, top, seg, perfil } = props
   const n = { revisar: 0, preparando: 0, presentadas: 0, descartadas: 0 }
   visibles.forEach(a => { n[etapaDe(a)]++ })
-  const etapas = [['revisar', 'Por revisar', 'El radar las encontró', 0], ['preparando', 'Preparando', 'Reunís los papeles', 1], ['presentadas', 'Presentadas', 'Esperando respuesta', 2]]
+  const etapas = [['revisar', 'Radar'], ['preparando', 'En proceso'], ['presentadas', 'Presentado']]
   return (
     <>
       {top('Convocatorias')}
-      <div className="i-pipe">
-        {etapas.map(([k, t, s, p], i) => (
-          <Fragment key={k}>
-            <button className={`stg ${etapa === k ? 'on' : ''}`} onClick={() => ir(k)}><Svg className="pl" html={plant(p)} /><b>{n[k]}</b><span>{t}<small>{s}</small></span></button>
-            {i < 2 && <span className="arr"><Icon n="keyR" s={18} w={2.4} /></span>}
-          </Fragment>
-        ))}
-        <span />
-        <button className={`stg dis ${etapa === 'descartadas' ? 'on' : ''}`} onClick={() => ir('descartadas')}><Icon n="eye" s={22} /><b>{n.descartadas}</b><span>Descartadas<small>con su motivo</small></span></button>
+      <div className="i-estado">
+        <div className="i-linea" role="group" aria-label="Estado de las convocatorias">
+          {etapas.map(([k, t], i) => (
+            <Fragment key={k}>
+              <button className={`seg ${etapa === k ? 'on' : ''} ${k === 'revisar' && n.revisar ? 'hot' : ''}`} aria-pressed={etapa === k} onClick={() => ir(k)}><b>{n[k]}</b>{t}</button>
+              {i < 2 && <span className="arr"><Icon n="keyR" s={14} w={2.4} /></span>}
+            </Fragment>
+          ))}
+        </div>
+        <button className={`i-arch ${etapa === 'descartadas' ? 'on' : ''}`} onClick={() => ir('descartadas')} title="Descartadas" aria-label={`Descartadas: ${n.descartadas}`}><Icon n="archive" s={22} /><span className="n">{n.descartadas}</span></button>
       </div>
       {etapa === 'revisar' && <Revisar {...props} generado={radar.conv?.generado} />}
       {etapa === 'preparando' && <Preparando {...props} lista={visibles.filter(a => etapaDe(a) === 'preparando')} />}
-      {etapa === 'presentadas' && <Seguimiento {...props} lista={visibles.filter(a => etapaDe(a) === 'presentadas')} />}
+      {etapa === 'presentadas' && <Presentado {...props} seg={seg} perfil={perfil} lista={visibles.filter(a => etapaDe(a) === 'presentadas')} />}
       {etapa === 'descartadas' && <Descartadas {...props} lista={visibles.filter(a => etapaDe(a) === 'descartadas')} />}
     </>
   )
 }
 
-function Revisar({ ruta, curId, setCurId, decidir, setDescartando, ir, ej, setEj, generado }) {
+// Barra de posición: un círculo por convocatoria de la ruta; el grande es en la que estáis.
+function Pasos({ ruta, a, setCurId }) {
+  const mucho = ruta.length > 8
+  const cur = a ? ruta.indexOf(a) : ruta.length
+  return (
+    <div className={`i-pasos ${mucho ? 'many' : ''}`} role="group" aria-label={a ? `Convocatoria ${cur + 1} de ${ruta.length}` : `${ruta.length} convocatorias, todas clasificadas`}>
+      {ruta.map((x, i) => {
+        const actual = i === cur, hecha = !pend(x)
+        return (
+          <Fragment key={x.id}>
+            <button className={`p ${actual ? 'cur' : hecha ? 'ok' : ''}`} onClick={() => setCurId(x.id)} title={x.titulo} aria-label={`Convocatoria ${i + 1}: ${x.titulo}`} aria-current={actual ? 'step' : undefined}>
+              {actual ? i + 1 : hecha && !mucho ? <Icon n="check" s={13} w={3.4} /> : null}
+            </button>
+            {i < ruta.length - 1 && <i className={`l ${i < cur ? 'ok' : ''}`} />}
+          </Fragment>
+        )
+      })}
+    </div>
+  )
+}
+
+function Revisar({ ruta, curId, setCurId, decidir, setDescartando, ir, generado }) {
   // ruta: lo que hay por revisar más lo que se ha clasificado en esta sesión (para poder cambiarlo).
-  const a = curId === -1 ? null : ruta.find(x => x.id === curId) || ruta.find(x => x.estado === 'por_revisar') || null
-  const hechas = ruta.filter(x => x.estado !== 'por_revisar').length
+  const a = curId === -1 ? null : ruta.find(x => x.id === curId) || ruta.find(pend) || null
+  const hechas = ruta.filter(x => !pend(x)).length
   useEffect(() => {
     const k = e => {
       if (!a || e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || document.querySelector('.i-dim')) return
       if (e.key === 'ArrowLeft') setDescartando(a)
-      if (e.key === 'ArrowDown') decidir(a, 'mas_tarde')
       if (e.key === 'ArrowRight') decidir(a, 'preparando')
     }
     addEventListener('keydown', k)
     return () => removeEventListener('keydown', k)
   })
-  const decidida = a && a.estado !== 'por_revisar'
+  const decidida = a && !pend(a)
   const [vt, vi, vc] = a ? VEREDICTO[a.veredicto] : []
   return (
-    <div className="i-two" style={{ gridTemplateColumns: 'minmax(0,1fr) 330px' }}>
-      <div>
-        <h2>El radar tiene {ruta.length} por revisar · <span>{a ? `vais por la ${ruta.indexOf(a) + 1}` : 'todas clasificadas'}</span></h2>
-        {generado && <p className="i-sub" style={{ margin: '2px 0 10px' }}>Actualizado el {new Date(generado).toLocaleString('es-ES', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</p>}
-        <div className="i-ruta">
-          {ruta.map((x, i) => {
-            const s = ESTADO_RUTA[x.estado] || 'pend'
-            return (
-              <Fragment key={x.id}>
-                <button className={`nd ${s} ${a && a.id === x.id ? 'cur' : ''}`} onClick={() => setCurId(x.id)} title={s === 'pend' ? 'Abrir' : 'Pulsad para volver a clasificarla'}>
-                  <span className="dot">{s === 'no' ? <Icon n="x" s={17} w={2.8} /> : s === 'lt' ? <Icon n="later" s={17} w={2.6} /> : s === 'ok' ? <Icon n="check" s={17} w={3} /> : i + 1}</span>
-                  <b>{x.titulo}</b><small>{a && a.id === x.id ? 'Revisando' : ETIQ_RUTA[s]}{s !== 'pend' && <em> · cambiar ↺</em>}</small>
-                </button>
-                {i < ruta.length - 1 && <i className={`ln ${s}`} />}
-              </Fragment>
-            )
-          })}
-        </div>
-        {a ? (
+    <div className="i-oferta">
+      {ruta.length > 0 && <Pasos {...{ ruta, a, setCurId }} />}
+      {a ? (
+        <>
           <div className="i-card i-hero">
-            {decidida && <div className="i-ya"><Icon n="undo" s={16} w={2.4} />La clasificasteis como «{ETIQ_RUTA[ESTADO_RUTA[a.estado]]}». Elegid otra opción para cambiarla.</div>}
+            {decidida && <div className="i-ya"><Icon n="undo" s={16} w={2.4} />La clasificasteis como «{ETIQ_RUTA[a.estado]}». Elegid otra opción para cambiarla.</div>}
             <div className="i-head" style={{ alignItems: 'center' }}>
               <span className={`i-v ${vc}`}><i><Icon n={vi} s={14} w={3} /></i>{vt}</span>
               <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span className="i-tag">BDNS {a.codigo}</span>{a.url && <a className="i-link" href={a.url} target="_blank" rel="noopener noreferrer">Ver convocatoria ↗</a>}</span>
@@ -98,58 +109,25 @@ function Revisar({ ruta, curId, setCurId, decidir, setDescartando, ir, ej, setEj
                 {a.requisitos.map(r => <li key={r.texto} className={r.estado}><i>{r.estado === 'cumple' ? '✓' : r.estado === 'no' ? '✗' : '?'}</i>{r.texto}</li>)}
               </ul>
             )}
-            {a.avisos.length > 0 && <div className="i-cita" style={{ background: '#FBF1DC', borderColor: '#E5B54A' }}>{a.avisos.map(t => <div key={t}><Icon n="info" s={14} /> {t}</div>)}<small>Según vuestros criterios del Perfil</small></div>}
+            {a.avisos.length > 0 && <div className="i-cita aviso">{a.avisos.map(t => <div key={t}><Icon n="info" s={14} /> {t}</div>)}<small>Según vuestros criterios del Perfil</small></div>}
             {a.cita && <div className="i-cita">«…<mark>{a.cita}</mark>…»<small><Icon n="verified" s={14} />Comprobado en el texto oficial</small></div>}
-            <div className="acts3">
-              <button className={`i-btn ${a.estado === 'descartada' ? 'sel' : ''}`} onClick={() => setDescartando(a)}><Icon n="x" s={19} w={2.4} />No nos interesa</button>
-              <button className={`i-btn ${a.estado === 'mas_tarde' ? 'sel' : ''}`} onClick={() => decidir(a, 'mas_tarde')}><Icon n="later" s={19} />Más tarde</button>
-              <button className="i-btn p" onClick={() => decidir(a, 'preparando')}><Icon n="send" s={19} />Vamos a presentarla</button>
-            </div>
           </div>
-        ) : (
-          <div className="i-card" style={{ padding: 34, textAlign: 'center' }}>
-            <Svg html={plant(3)} />
-            <h3 style={{ fontSize: 26, margin: '6px 0' }}>{ruta.length ? `Hecho por hoy · ${hechas} de ${ruta.length} clasificadas` : 'No hay nada por revisar'}</h3>
-            <p className="i-sub">{ruta.length ? 'Pulsad cualquier convocatoria de la ruta para cambiar su decisión. ' : ''}El radar vuelve a buscar mañana por la mañana.</p>
-            {ruta.some(x => x.estado === 'preparando') && <button className="i-btn p" style={{ margin: '0 auto' }} onClick={() => ir('preparando')}><Icon n="doc" s={19} />Ir a preparar las que vais a presentar</button>}
+          {/* Solo dos decisiones, fuera de la tarjeta: descartar, o presentar (pasa a «En proceso»). */}
+          <div className="i-dos">
+            <button className={`i-btn ${a.estado === 'descartada' ? 'sel' : ''}`} onClick={() => setDescartando(a)}><Icon n="x" s={19} w={2.4} />Descartar<kbd>←</kbd></button>
+            <button className="i-btn p" onClick={() => decidir(a, 'preparando')}><Icon n="send" s={19} />Presentar<kbd>→</kbd></button>
           </div>
-        )}
-      </div>
-      <Aprendido {...{ ej, setEj }} />
+        </>
+      ) : (
+        <div className="i-card i-vacio">
+          <Svg html={plant(3)} />
+          <h3>{ruta.length ? `Hecho por hoy · ${hechas} de ${ruta.length} clasificadas` : 'No hay nada por revisar'}</h3>
+          <p>{ruta.length ? 'Pulsad un círculo de la barra para cambiar su decisión. ' : 'No hemos encontrado convocatorias nuevas. '}El radar vuelve a buscar mañana por la mañana.</p>
+          {generado && <small>Actualizado el {new Date(generado).toLocaleString('es-ES', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}</small>}
+          {ruta.some(x => x.estado === 'preparando') && <button className="i-btn p" style={{ margin: '14px auto 0' }} onClick={() => ir('preparando')}><Icon n="doc" s={19} />Ir a las que están en proceso</button>}
+        </div>
+      )}
     </div>
-  )
-}
-
-// TODO backend: reglas aprendidas (ver data/ejemplos.js). Todo este panel es de EJEMPLO.
-function Aprendido({ ej, setEj }) {
-  const cuenta = ej.historial.reduce((m, x) => ({ ...m, [x]: (m[x] || 0) + 1 }), {})
-  const total = ej.historial.length
-  const detectadas = Object.entries(cuenta).filter(([m, c]) => REGLA[m] && c >= 2 && ej.reglas[m] !== 'no').sort((x, y) => y[1] - x[1])
-  const set = (m, v) => setEj(s => ({ ...s, reglas: { ...s.reglas, [m]: v } }))
-  const nueva = () => { const t = prompt('Escribid la regla, por ejemplo: «No nos interesan las que exigen aval bancario»'); if (t) setEj(s => ({ ...s, propias: [...s.propias, { id: Date.now(), texto: t, autor: 'Vosotros', fecha: 'hoy' }] })) }
-  const editar = r => { const t = prompt('Editad la regla', r.texto); if (t) setEj(s => ({ ...s, propias: s.propias.map(x => (x.id === r.id ? { ...x, texto: t } : x)) })) }
-  return (
-    <aside className="i-learn">
-      <div className="h"><Icon n="info" s={20} />Lo que el radar ha aprendido <span className="i-ej">Ejemplo</span></div>
-      <p>Ejemplo de cómo se verá: el radar aún no aplica reglas. Basado en {total} motivos de descarte de muestra.</p>
-      {detectadas.map(([m, c]) => (
-        <div key={m} className="rule">
-          <span className="who">Detectado</span>
-          <b>{REGLA[m][0]}</b><small>{c} {c === 1 ? 'vez' : 'veces'}{ej.reglas[m] === 'si' ? ' · aplicada' : ''}</small>
-          <div className="act">{ej.reglas[m] === 'si'
-            ? <><span className="ok">✓ {REGLA[m][1].replace('Ocultarlas', 'Ocultándolas').replace('Marcarlas', 'Marcándolas').replace('Avisadme antes', 'Avisando antes')}</span><button onClick={() => set(m, undefined)}>Quitar</button></>
-            : <><button className="p" onClick={() => set(m, 'si')}>{REGLA[m][1]}</button><button onClick={() => set(m, 'no')}>No</button></>}</div>
-        </div>
-      ))}
-      {ej.propias.map(r => (
-        <div key={r.id} className="rule mine">
-          <span className="who me">Añadida por vosotros</span>
-          <b>{r.texto}</b><small>{r.autor} · {r.fecha}</small>
-          <div className="act"><button onClick={() => editar(r)}>Editar</button><button onClick={() => setEj(s => ({ ...s, propias: s.propias.filter(x => x.id !== r.id) }))}>Quitar</button></div>
-        </div>
-      ))}
-      <button className="addr" onClick={nueva}><Icon n="plus" s={17} w={2.4} />Añadir una regla</button>
-    </aside>
   )
 }
 
@@ -194,31 +172,44 @@ export function Descarte({ a, cerrar, guardar }) {
   )
 }
 
-function Preparando({ lista, ir, volverARevisar }) {
+// En proceso: las que habéis elegido presentar. Se quedan aquí hasta que las presentéis
+// («Ya la he presentado» las pasa a Presentado) o las descartéis.
+function Preparando({ lista, ir, seg, setDescartando, cambiarEstado }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-      <h2 style={{ fontSize: 26 }}>Las que vais a presentar</h2>
-      {lista.length === 0 && <div className="i-card i-empty">Nada en preparación. Las que marquéis «Vamos a presentarla» aparecerán aquí.</div>}
-      {[...lista].sort((a, b) => (a.plazo || '9999').localeCompare(b.plazo || '9999')).map(a => (
-        <div key={a.id} className="i-card i-fila">
-          <Svg html={plant(1)} />
-          <div><b style={{ fontSize: 20 }}>{a.titulo}</b>
-            <div style={{ color: 'var(--mut)', fontSize: 15 }}>{a.organo}{a.plazo ? ` · plazo el ${fechaCorta(a.plazo)}${a.dias >= 0 ? ` · quedan ${a.dias} días` : ' · cerrado'}` : ''}</div>
-            {a.sol?.actualizado_por && <div className="i-stp"><span className="now">Marcada por {a.sol.actualizado_por}</span></div>}</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
-            <button className="i-btn p sm" onClick={() => ir('presentar', a.id)}><Icon n="doc" s={17} />Preparar papeles</button>
-            <button className="i-link" onClick={() => volverARevisar(a)}><Icon n="undo" s={14} w={2.4} />Volver a revisar</button>
+    <div className="i-lista">
+      <div className="i-head" style={{ alignItems: 'flex-end' }}>
+        <div><h2>En proceso</h2><p className="i-sub" style={{ margin: '4px 0 0' }}>Las que habéis elegido presentar. Cuando las presentéis, pasan a Presentado.</p></div>
+        <span className="i-tag">Por plazo</span>
+      </div>
+      {lista.length === 0 && <div className="i-card i-empty">Nada en proceso. Las que marquéis «Presentar» aparecerán aquí.</div>}
+      {[...lista].sort((a, b) => (a.plazo || '9999').localeCompare(b.plazo || '9999')).map(a => {
+        const s = segDe(seg, a.id)
+        return (
+          <div key={a.id} className="i-card i-proc">
+            <div className="tags"><span className="i-tag">{a.organo}</span><span className="i-tag">BDNS {a.codigo}</span><span className="i-tag">Pendiente</span></div>
+            <h3>{a.titulo}</h3>
+            <div className="facts">
+              <div><span>Importe</span><b className={a.importe ? '' : 'i-ni'}>{a.importe || 'No indicado'}</b></div>
+              <div className="hot"><span>Plazo</span><b>{plazoTxt(a)}</b>{a.plazo && <small>{fechaCorta(a.plazo)}</small>}</div>
+              <div><span>Siguiente paso</span><b className="paso">{s?.siguiente_paso || 'Presentar la solicitud'}</b>{a.sol?.actualizado_por && <small>Elegida por {a.sol.actualizado_por}</small>}</div>
+            </div>
+            <div className="acc">
+              <button className="i-link" onClick={() => ir('presentar', a.id)}><Icon n="doc" s={16} />Ver papeles</button>
+              <span style={{ flex: 1 }} />
+              <button className="i-btn sm" onClick={() => setDescartando(a)}>Descartar</button>
+              <button className="i-btn p sm" onClick={() => cambiarEstado(a, 'presentada')}>Ya la he presentado</button>
+            </div>
           </div>
-        </div>
-      ))}
+        )
+      })}
     </div>
   )
 }
 
-// Seguimiento por estados reales de la API: presentada → concedida → plantar → justificar → terminada
+// Presentado: estados reales de la API: presentada → concedida → plantar → justificar → terminada
 // (y subsanar / denegada). Ruta: PUT /api/solicitudes/convocatoria/:codigo {estado}.
-// TODO backend: seguimiento por pasos con fechas, responsable y avisos (la API ya guarda
-// responsable, siguiente_paso y fecha_paso, pero aún no tienen pantalla ni avisos).
+// Cada solicitud muestra su siguiente paso con la cuenta atrás de GET /api/seguimiento
+// (por defecto, al presentarla: «Mirar si ha salido la resolución» a los 60 días).
 const PASOS_TXT = ['Presentada', 'Concedida', 'Plantar', 'Justificar']
 const PASO_DE = { presentada: 0, subsanar: 0, denegada: 0, concedida: 1, plantar: 2, justificar: 3, terminada: 4 }
 const SIGUIENTE = {
@@ -234,36 +225,54 @@ const MENSAJE = {
   concedida: '¡Os la han concedido! Toca plantar.', plantar: 'Ahora toca plantar.', justificar: 'Último paso: justificar el gasto.',
   denegada: 'No ha sido concedida.', terminada: 'Terminada. ¡Un árbol más en la isla!',
 }
-function Seguimiento({ lista, cambiarEstado }) {
-  const [seg, setSeg] = useState('marcha')
+function Presentado({ lista, cambiarEstado, cambiarPaso, seg, perfil, ir }) {
+  const [vista, setVista] = useState('marcha')
   const fin = a => a.estado === 'terminada' || a.estado === 'denegada'
-  const enMarcha = lista.filter(a => !fin(a)), term = lista.filter(fin)
-  const ver = seg === 'marcha' ? enMarcha : term
+  const enMarcha = lista.filter(a => !fin(a)).sort((a, b) => (segDe(seg, a.id)?.dias ?? 9999) - (segDe(seg, b.id)?.dias ?? 9999)), term = lista.filter(fin)
+  const ver = vista === 'marcha' ? enMarcha : term
+  const avisos = (seg?.avisos || []).filter(x => x.tipo === 'convocatoria')
   return (
-    <>
-      <div className="i-head"><h2 style={{ fontSize: 26 }}>¿Cómo van vuestras solicitudes?</h2><div className="i-seg"><button className={seg === 'marcha' ? 'on' : ''} onClick={() => setSeg('marcha')}>En marcha · {enMarcha.length}</button><button className={seg === 'term' ? 'on' : ''} onClick={() => setSeg('term')}>Terminadas · {term.length}</button></div></div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
-        {ver.length === 0 && <div className="i-card i-empty">{seg === 'marcha' ? 'No hay solicitudes en marcha.' : 'Aún no hay solicitudes terminadas.'}</div>}
-        {ver.map(a => {
-          const p = PASO_DE[a.estado], aviso = a.estado === 'subsanar' || a.estado === 'denegada'
-          const sig = SIGUIENTE[a.estado] || []
-          return (
-            <div key={a.id} className="i-card i-fila">
-              <Svg html={plant(Math.min(3, p + 1))} />
-              <div>
-                <b style={{ fontSize: 20 }}>{a.titulo}</b>
-                <div style={{ color: 'var(--mut)', fontSize: 15 }}>{a.organo}{a.sol?.actualizado ? ` · actualizada el ${fechaCorta(a.sol.actualizado)}${a.sol.actualizado_por ? ` por ${a.sol.actualizado_por}` : ''}` : ''}</div>
-                <div className="i-stp">{PASOS_TXT.map((s, i) => <span key={s} className={i < p ? 'd' : i === p ? 'now' : ''}>{i < p && <Icon n="check" s={13} w={3} />}{s}</span>)}</div>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
-                <div className="i-msg" style={{ background: aviso ? 'var(--co-l)' : 'var(--soft)', color: aviso ? '#B2432A' : 'var(--nv)' }}>{MENSAJE[a.estado]}</div>
-                {sig.map(([e, t], i) => <button key={e} className="i-link" style={i ? { color: 'var(--mut)' } : null} onClick={() => cambiarEstado(a, e)}>{i === 0 ? `${t} →` : t}</button>)}
-              </div>
-            </div>
-          )
-        })}
+    <div className="i-lista">
+      <div className="i-head" style={{ alignItems: 'flex-end' }}>
+        <div><h2>Presentado</h2><p className="i-sub" style={{ margin: '4px 0 0' }}>Ya enviadas. Os avisamos cuando se acerque cada paso.</p></div>
+        <div className="i-seg"><button className={vista === 'marcha' ? 'on' : ''} onClick={() => setVista('marcha')}>En marcha · {enMarcha.length}</button><button className={vista === 'term' ? 'on' : ''} onClick={() => setVista('term')}>Terminadas · {term.length}</button></div>
       </div>
-    </>
+      {avisos.length > 0 && vista === 'marcha' && (
+        <div className="i-avisos" role="status">{avisos.map(x => <div key={`${x.tipo}${x.id}`} className={x.nivel}><Icon n="bell" s={16} />{x.texto}</div>)}</div>
+      )}
+      {ver.length === 0 && <div className="i-card i-empty">{vista === 'marcha' ? 'No hay solicitudes en marcha.' : 'Aún no hay solicitudes terminadas.'}</div>}
+      {ver.map(a => {
+        const p = PASO_DE[a.estado], s = segDe(seg, a.id), sig = SIGUIENTE[a.estado] || []
+        const alerta = a.estado === 'subsanar' || a.estado === 'denegada'
+        return (
+          <div key={a.id} className="i-card i-proc">
+            <div className="tags"><span className="i-tag">{a.organo}</span><span className="i-tag">BDNS {a.codigo}</span><span className="i-tag">{a.estado === 'subsanar' ? 'Por subsanar' : a.estado === 'denegada' ? 'Denegada' : a.estado === 'terminada' ? 'Terminada' : PASOS_TXT[p]}</span></div>
+            <h3>{a.titulo}</h3>
+            <div className="facts">
+              <div><span>Importe</span><b className={a.importe ? '' : 'i-ni'}>{a.importe || 'No indicado'}</b></div>
+              <div className={`cuenta ${s?.nivel || 'sin_fecha'}`}>
+                <span>{s?.siguiente_paso || (fin(a) ? 'Cerrada' : 'Siguiente paso')}</span>
+                <b>{fin(a) ? '—' : cuenta(s?.dias)}</b>
+                <small>{s?.fecha_paso ? `Previsto el ${fechaCorta(s.fecha_paso)}` : fin(a) ? '' : 'Sin fecha: poned una'}</small>
+              </div>
+              <div><span>Última actualización</span><b className="paso">{a.sol?.actualizado ? fechaCorta(a.sol.actualizado) : '—'}</b>{a.sol?.actualizado_por && <small>por {a.sol.actualizado_por}</small>}</div>
+            </div>
+            <div className="i-stp">{PASOS_TXT.map((t, i) => <span key={t} className={i < p ? 'd' : i === p ? 'now' : ''}>{i < p && <Icon n="check" s={13} w={3} />}{t}</span>)}</div>
+            <div className="i-msg" style={{ marginTop: 12, maxWidth: 'none', background: alerta ? 'var(--co-l)' : 'var(--soft)', color: alerta ? 'var(--co-d)' : 'var(--nv)' }}>{MENSAJE[a.estado]}</div>
+            <div className="acc">
+              {!fin(a) && (
+                <label className="i-fecha">Cambiar la fecha
+                  <input type="date" className="i-in" value={s?.fecha_paso?.slice(0, 10) || ''} onChange={e => e.target.value && cambiarPaso(a, { fecha_paso: e.target.value })} />
+                </label>
+              )}
+              <span style={{ flex: 1 }} />
+              {sig.map(([e, t], i) => <button key={e} className={i === 0 ? 'i-btn p sm' : 'i-link'} style={i ? { color: 'var(--mut)' } : null} onClick={() => cambiarEstado(a, e)}>{i === 0 ? `${t} →` : t}</button>)}
+            </div>
+          </div>
+        )
+      })}
+      <p className="i-sub" style={{ margin: '4px 0 0' }}><Icon n="bell" s={15} /> {AVISOS_TXT[perfil?.avisos] || AVISOS_TXT.cada_manana}. <button className="i-link" onClick={() => ir('perfil')}>Cambiar en Perfil</button></p>
+    </div>
   )
 }
 
@@ -298,4 +307,3 @@ function Descartadas({ lista, recuperar }) {
     </>
   )
 }
-

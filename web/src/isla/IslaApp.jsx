@@ -10,15 +10,16 @@ import Perfil from './Perfil.jsx'
 import { ErrorSesion, api, nombreGuardado } from '../api.js'
 import { etapaDe, etapaEmpresa, ordenarRuta } from '../datos.js'
 import { useRadar } from '../radar.js'
-import { useReglasEjemplo } from '../data/ejemplos.js'
 
 // App del equipo de Reforesta (solo se muestra con la contraseña del equipo, ver App.jsx).
 // Convocatorias y Empresas leen los JSON del radar (/data/*.json) y sus estados de /api/solicitudes.
+// El siguiente paso de cada solicitud, su fecha y los avisos salen de GET /api/seguimiento.
 const ETAPAS = ['revisar', 'preparando', 'presentadas', 'descartadas']
+const pend = x => x.estado === 'por_revisar' || x.estado === 'mas_tarde'
 
 export default function IslaApp({ salir }) {
   const radar = useRadar(salir)
-  const [ej, setEj] = useReglasEjemplo()          // ejemplo: reglas aprendidas (sin backend)
+  const [seg, setSeg] = useState(null)             // GET /api/seguimiento: {en_marcha, avisos, resumen}
   const [perfil, setPerfil] = useState(null)
   const [vista, setVista] = useState('conv')
   const [etapa, setEtapa] = useState('revisar')
@@ -39,13 +40,18 @@ export default function IslaApp({ salir }) {
     return nuevo
   }
 
+  const cargarSeg = useCallback(() => api('/seguimiento').then(setSeg).catch(e => { if (e instanceof ErrorSesion) salir() }), [salir])
+  useEffect(() => { if (radar.cargado) cargarSeg() }, [radar.cargado, cargarSeg])
+
   // Ejecuta una acción de la API: si falla, avisa (los cambios de estado ya se revierten solos).
+  // Tras cada cambio se recalculan los siguientes pasos y los avisos.
   const intentar = async (accion, alExito) => {
     try { await accion() } catch (e) {
       if (!(e instanceof ErrorSesion)) setToast({ texto: `No se pudo guardar: ${e.message}` })
       return false
     }
     alExito?.()
+    cargarSeg()
     return true
   }
   const marcar = id => setTocadas(t => (t.includes(id) ? t : [...t, id]))
@@ -60,18 +66,18 @@ export default function IslaApp({ salir }) {
   const ruta = visibles.filter(a => etapaDe(a) === 'revisar' || tocadas.includes(a.id)).sort(ordenarRuta)
   const siguienteDe = a => {
     const i = ruta.findIndex(x => x.id === a.id)
-    const n = [...ruta.slice(i + 1), ...ruta.slice(0, i)].find(x => x.estado === 'por_revisar' && x.id !== a.id)
+    const n = [...ruta.slice(i + 1), ...ruta.slice(0, i)].find(x => pend(x) && x.id !== a.id)
     return n ? n.id : -1
   }
 
   // --- acciones sobre convocatorias (PUT /api/solicitudes/convocatoria/:codigo)
+  // Presentar = pasa a «En proceso» (estado «preparando»); desde ahí se presenta o se descarta.
   const decidir = (a, estado) => {
     const sig = siguienteDe(a)
     marcar(a.id); setCurId(sig)
-    const texto = estado === 'mas_tarde' ? 'Guardada para más tarde' : 'Movida a Preparando'
     intentar(() => radar.guardar('convocatoria', a.id, { estado }), () => setToast({
-      texto, undo: () => deshacer('convocatoria', a.id, () => setCurId(a.id)),
-      go: estado === 'preparando' ? ['Preparar papeles', () => ir('presentar', a.id)] : null,
+      texto: 'Movida a En proceso', undo: () => deshacer('convocatoria', a.id, () => setCurId(a.id)),
+      go: ['Ver papeles', () => ir('presentar', a.id)],
     })).then(ok => { if (!ok) setCurId(a.id) })
   }
   const guardarDescarte = async (a, motivos, extra) => {
@@ -85,17 +91,17 @@ export default function IslaApp({ salir }) {
     })
     if (!ok) return
     marcar(a.id); setDescartando(null); setCurId(sig)
-    // Ejemplo (reglas aprendidas, sin backend): el motivo suma al historial de muestra.
-    setEj(s => ({ ...s, historial: [...s.historial, ...motivos] }))
+    // Las reglas aprendidas se recalculan en el servidor (GET /api/reglas) con cada motivo nuevo.
     setToast({ texto: `${a.titulo.slice(0, 38)}…, descartada`, undo: () => deshacer('convocatoria', a.id, () => setCurId(a.id)) })
   }
   const cambiarEstado = (a, estado) => intentar(() => radar.guardar('convocatoria', a.id, { estado }),
-    () => setToast({ texto: `Actualizada: ${estado === 'presentada' ? 'ya presentada' : estado}`, undo: () => deshacer('convocatoria', a.id) }))
+    () => setToast({ texto: estado === 'presentada' ? 'Movida a Presentado' : `Actualizada: ${estado}`, undo: () => deshacer('convocatoria', a.id) }))
+  // Cambia el siguiente paso o su fecha sin tocar el estado (PUT con siguiente_paso / fecha_paso).
+  const cambiarPaso = (a, cambios) => intentar(() => radar.guardar('convocatoria', a.id, cambios),
+    () => setToast({ texto: 'Fecha actualizada', undo: () => deshacer('convocatoria', a.id) }))
   const recuperar = a => intentar(() => radar.guardar('convocatoria', a.id, { estado: 'por_revisar' }), () => {
-    setToast({ texto: 'Recuperada: vuelve a «Por revisar»', undo: () => deshacer('convocatoria', a.id), go: ['Verla', () => { setCurId(a.id); ir('revisar') }] })
+    setToast({ texto: 'Recuperada: vuelve al Radar', undo: () => deshacer('convocatoria', a.id), go: ['Verla', () => { setCurId(a.id); ir('revisar') }] })
   })
-  const volverARevisar = a => intentar(() => radar.guardar('convocatoria', a.id, { estado: 'por_revisar' }),
-    () => setToast({ texto: 'Vuelve a «Por revisar»', undo: () => deshacer('convocatoria', a.id) }))
   const presentar = a => intentar(() => radar.guardar('convocatoria', a.id, { estado: 'presentada' }), () => {
     setToast({ texto: `¡Presentada! Habéis plantado el árbol n.º ${radar.etapas.presentadas + 1}`, undo: () => deshacer('convocatoria', a.id) })
     ir('presentadas')
@@ -104,7 +110,8 @@ export default function IslaApp({ salir }) {
   const cambiarEstadoEmpresa = (e, estado, texto) => intentar(() => radar.guardar('empresa', e.id, { estado }),
     () => setToast({ texto, undo: () => deshacer('empresa', e.id) }))
 
-  const nPorRevisar = items.filter(a => etapaDe(a) === 'revisar' && a.estado === 'por_revisar').length
+  const nPorRevisar = items.filter(a => etapaDe(a) === 'revisar' && pend(a)).length
+  const nAvisos = seg?.avisos?.length || 0
   const nEmpresas = radar.empresas.filter(e => etapaEmpresa(e) === 'nueva').length
   const nav = [['conv', 'inbox', 'Convocatorias', nPorRevisar], ['empresas', 'building', 'Empresas', nEmpresas], ['propuestas', 'leaf', 'Propuestas', 0], ['mapa', 'map', 'Mapa', 0]]
   const top = (k, ejemplo = false) => (
@@ -112,8 +119,8 @@ export default function IslaApp({ salir }) {
       <div className="i-k">{k}{ejemplo && <> · <span className="i-ej">Ejemplo</span></>}</div>
       <div style={{ display: 'flex', gap: 10 }}>
         <label className="i-srch"><Icon n="search" s={18} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar…" aria-label="Buscar" /></label>
-        {/* TODO backend: avisos por email (el perfil guarda la preferencia, pero aún no se envía nada). */}
-        <button className="i-round" aria-label="Avisos" title="Avisos por email" onClick={() => setToast({ texto: 'Los avisos por email aún no están activos' })}><Icon n="bell" s={19} /></button>
+        {/* Avisos: los pasos que vencen (GET /api/seguimiento). Se pueden recibir también por correo (Perfil). */}
+        <button className="i-round i-campana" aria-label={nAvisos ? `${nAvisos} avisos` : 'Avisos'} title={nAvisos ? seg.avisos.map(x => x.texto).join('\n') : 'Sin avisos. Podéis activarlos por correo en Perfil'} onClick={() => (nAvisos ? ir('presentadas') : ir('perfil'))}><Icon n="bell" s={19} />{nAvisos > 0 && <span className="cnt">{nAvisos}</span>}</button>
       </div>
     </div>
   )
@@ -123,10 +130,10 @@ export default function IslaApp({ salir }) {
   let page
   if (radar.error) page = <div className="i-card i-empty" role="alert">No se pudieron cargar los datos: {radar.error}<br /><button className="i-btn p sm" style={{ margin: '14px auto 0' }} onClick={radar.reintentar}>Reintentar</button></div>
   else if (!radar.cargado) page = <div className="i-card i-empty">Cargando convocatorias…</div>
-  else if (vista === 'conv') page = <Convocatorias {...{ radar, visibles, ruta, etapa, ir, top, curId, setCurId, decidir, setDescartando, ej, setEj, volverARevisar, cambiarEstado, recuperar }} />
+  else if (vista === 'conv') page = <Convocatorias {...{ radar, visibles, ruta, etapa, ir, top, curId, setCurId, decidir, setDescartando, cambiarEstado, cambiarPaso, recuperar, seg, perfil }} />
   else if (vista === 'presentar') page = <Presentar a={items.find(a => a.id === selId)} {...{ top, ir, presentar, perfil, objetivo }} presentadas={radar.etapas.presentadas} />
   else if (vista === 'empresas') page = <Empresas {...{ top, radar, q }} cambiarEstado={cambiarEstadoEmpresa} />
-  else if (vista === 'mapa') page = <Mapa {...{ top }} />
+  else if (vista === 'mapa') page = <Mapa {...{ top, salir }} />
   else if (vista === 'perfil') page = perfil ? <Perfil {...{ perfil, guardarPerfil, top, setToast, salir }} presentadas={radar.etapas.presentadas} /> : <div className="i-card i-empty">Cargando perfil…</div>
   // Propuestas no depende del radar: se muestra aunque los datos del radar fallen.
   if (vista === 'propuestas') page = <Propuestas {...{ top, setToast, salir }} />

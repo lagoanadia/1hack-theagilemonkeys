@@ -70,6 +70,15 @@ export async function api(ruta, { metodo = "GET", datos, token = sesionGuardada(
   return cuerpo;
 }
 
+// Respuestas que no son JSON (la vista previa del correo: GET /api/avisos/correo?html=1).
+export async function apiTexto(ruta) {
+  const token = sesionGuardada();
+  const r = await fetch(`/api${ruta}`, { headers: token ? { "x-clave-equipo": token } : {} });
+  if (r.status === 401 || r.status === 403) throw new ErrorSesion("Sesión no válida");
+  if (!r.ok) throw new Error(`Error ${r.status}`);
+  return r.text();
+}
+
 // Subir un archivo a la biblioteca de documentos (multipart). Devuelve { ok, id }.
 export async function subirDocumento({ archivo, nombre, tipo, emitido, caduca }) {
   const form = new FormData();
