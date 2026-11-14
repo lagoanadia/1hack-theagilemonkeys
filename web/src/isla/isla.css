@@ -971,3 +971,13 @@ html,body{margin:0}
 .mp-pop.izq{transform:translate(calc(-100% + 26px),calc(-100% - 26px))}
 .mp-pop.izq:after{left:auto;right:18px}
 .mp-pop.abajo.izq{transform:translate(calc(-100% + 26px),30px)}
+/* Mapa: tarjeta de cifras en tres columnas iguales */
+.mp-kpi{width:auto;padding:14px 18px 16px}
+.mp-kpi .cab{display:block;font-size:12px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--mut);margin-bottom:10px}
+.mp-kpi .tres{display:grid;grid-template-columns:repeat(3,auto);gap:0}
+.mp-kpi .tres div{display:flex;flex-direction:column;gap:2px;padding:0 20px;border-left:1px solid var(--ln)}
+.mp-kpi .tres div:first-child{padding-left:0;border-left:0}
+.mp-kpi .tres i{width:34px;height:34px;border-radius:11px;display:grid;place-items:center;margin-bottom:6px}
+.mp-kpi .tres i.gr{background:var(--gr-l);color:var(--gr-d)}.mp-kpi .tres i.am{background:var(--am-l);color:#8A5300}.mp-kpi .tres i.co{background:var(--co-l);color:var(--co-d)}
+.mp-kpi .tres b{font-size:30px;font-weight:700;letter-spacing:-.02em;line-height:1}
+.mp-kpi .tres span{font-size:13px;color:var(--mut)}

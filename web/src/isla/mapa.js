@@ -37,7 +37,7 @@ export function madridMap(SITES, selId, opc = {}){
   if(id===selId) s+=`<circle cx="${x}" cy="${y}" r="${r+7}" fill="none" stroke="#1B2742" stroke-width="2.5" stroke-dasharray="5 5" pointer-events="none"/>`;});
  if(opc.pin){const [x,y]=P(opc.pin);
   s+=`<ellipse cx="${x}" cy="${y+4}" rx="26" ry="9" fill="#1B2742" opacity=".18"/><circle cx="${x}" cy="${y}" r="46" fill="#EE6A4A" fill-opacity=".18"/><path d="M${x} ${y} C ${x-10} ${y-26} ${x-30} ${y-40} ${x-30} ${y-62} A 30 30 0 1 1 ${x+30} ${y-62} C ${x+30} ${y-40} ${x+10} ${y-26} ${x} ${y}Z" fill="#EE6A4A" stroke="#fff" stroke-width="5"/><circle cx="${x}" cy="${y-62}" r="11" fill="#fff"/>`}
- if(!opc.mini) s+=`<g transform="translate(660 60)"><circle r="22" fill="#fff"/><path d="M0 -14 L6 4 L0 0 L-6 4Z" fill="#1B2742"/><text y="17" text-anchor="middle" font-family="Instrument Sans" font-size="10" font-weight="700" fill="#1B2742">N</text></g>`;
+ if(!opc.mini && opc.brujula !== false) s+=`<g transform="translate(660 60)"><circle r="22" fill="#fff"/><path d="M0 -14 L6 4 L0 0 L-6 4Z" fill="#1B2742"/><text y="17" text-anchor="middle" font-family="Instrument Sans" font-size="10" font-weight="700" fill="#1B2742">N</text></g>`;
  if(opc.mini){const mx=Math.min(...xs)-14,my=Math.min(...ys)-80,w=Math.max(...xs)-mx+14,h=Math.max(...ys)+30-my;return `<svg viewBox="${mx.toFixed(0)} ${my.toFixed(0)} ${w.toFixed(0)} ${h.toFixed(0)}" width="100%" style="display:block">${s}</svg>`}
  return `<svg viewBox="0 0 ${W} ${H+30}" width="100%" style="display:block;max-height:640px">${s}</svg>`;
 }

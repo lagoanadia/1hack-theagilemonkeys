@@ -33,7 +33,7 @@ export default function Mapa({ top, salir }) {
   const sitios = useMemo(() => delAnio.filter(enMadrid), [delAnio])
   const fuera = delAnio.filter(a => !enMadrid(a))
   const sel = sitios.find(a => a.id === selId) || null
-  const svg = useMemo(() => madridMap(sitios, sel?.id), [sitios, sel?.id])
+  const svg = useMemo(() => madridMap(sitios, sel?.id, { brujula: false }), [sitios, sel?.id])
   const ha = sitios.reduce((s, a) => s + (a.ha || 0), 0)
   const estimados = sitios.some(a => a.arboles == null)
   const arboles = sitios.reduce((s, a) => s + (a.arboles ?? Math.round((a.ha || 0) * ARBOLES_HA)), 0)
@@ -87,9 +87,12 @@ export default function Mapa({ top, salir }) {
             )}
           </div>
           <div className="mp-fl mp-kpi">
-            <div className="big">{fmt(ha)} ha</div>
-            <p>restauradas en Madrid{anio === 'Todo' ? '' : <> <b>{anio === String(anios[0]) ? `en ${anio}` : `hasta ${anio}`}</b></>}</p>
-            <div className="row"><div><b>{sitios.length}</b><span>sitios</span></div><div><b>{estimados ? '≈ ' : ''}{fmt(arboles)}</b><span>árboles</span></div></div>
+            <span className="cab">Plantado en Madrid · {anio === 'Todo' ? 'desde el principio' : anio === String(anios[0]) ? `en ${anio}` : `hasta ${anio}`}</span>
+            <div className="tres">
+              <div><i className="gr"><Icon n="leaf" s={18} /></i><b>{fmt(ha)}</b><span>hectáreas</span></div>
+              <div><i className="am"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round" aria-hidden="true"><path d="M12 3 6 12h3l-4 6h14l-4-6h3z" /><path d="M12 18v3" /></svg></i><b>{estimados ? '≈' : ''}{fmt(arboles)}</b><span>árboles</span></div>
+              <div><i className="co"><Icon n="pin" s={18} /></i><b>{sitios.length}</b><span>{sitios.length === 1 ? 'sitio' : 'sitios'}</span></div>
+            </div>
           </div>
           <div className="mp-fl mp-ley">
             <h4>Qué es cada círculo</h4>
@@ -102,7 +105,6 @@ export default function Mapa({ top, salir }) {
               {porZona.map(([n, , , h]) => <div key={n} className="z">{n}<span>{fmt(h)} ha</span><i><u style={{ width: `${(h / porZona[0][3]) * 100}%` }} /></i></div>)}
             </div>
           )}
-          {!sel && <p className="mp-pista">Pulsad un círculo para ver el sitio</p>}
         </div>
       )}
     </>
