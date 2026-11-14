@@ -59,6 +59,8 @@ def texto() -> str:
         p.get("descripcion", ""),
         _lineas("Líneas de trabajo:", p.get("lineas") or []),
         _lineas("Lo que NO le sirve:", p.get("no_sirve") or []),
+        _lineas("Requisitos de la entidad (úsalos para decidir si cumple cada requisito):",
+                p.get("requisitos_entidad") or []),
     ]
     if p.get("ampliar_espana"):
         partes.append("Puede presentarse a convocatorias de cualquier comunidad autónoma de España.")
@@ -89,6 +91,13 @@ def regiones_bdns() -> str | None:
     from . import bdns  # aquí para no crear importaciones circulares
     extra = bdns.ids_de_regiones(p["comunidades_extra"])
     return ",".join([REGIONES_BDNS] + [str(i) for i in extra])
+
+
+def criterios() -> dict:
+    """Criterios con número del perfil (None = sin límite). No cambian la huella: se aplican sin IA."""
+    p = remoto() or {}
+    c = p.get("criterios") or {}
+    return {k: c.get(k) for k in ("importe_minimo", "cofinanciacion_maxima", "dias_minimos")}
 
 
 def huella() -> str:

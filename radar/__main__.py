@@ -19,7 +19,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from . import bdns
-from . import perfil
+from . import criterios, perfil
 from .config import DIAS_POR_DEFECTO, UMBRAL_RELEVANCIA
 from .filtros import descartar_por_detalle, descartar_por_titulo, es_ambiental, motivo_corto
 from .puntuador import Puntuador, texto_para_analizar, version_actual
@@ -147,6 +147,12 @@ def main() -> None:
         print(f"  [{evaluacion['puntuacion']:3}] {codigo} {det.get('descripcion', '')[:80]}")
 
     # 4. GUARDAR
+    # Criterios de búsqueda del perfil (sin IA): ajustan el veredicto y explican por qué.
+    crit = perfil.criterios()
+    resultado = [criterios.aplicar(c, crit, hoy) for c in resultado]
+    if any(crit.values()):
+        print(f"Criterios aplicados: {crit}")
+
     descartadas = sum(descartes.values())
     resultado.sort(key=lambda c: (-c["puntuacion"], c.get("fin") or "9999"))
     SALIDA.parent.mkdir(parents=True, exist_ok=True)

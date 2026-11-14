@@ -138,6 +138,11 @@ radar basta con ponerla en `por_revisar`.
 `lineas`, `no_sirve`, `objetivo_anual`, `documentos` y `avisos`. El PUT reemplaza cada campo que se
 envía (las listas, enteras). Cada mañana el radar lo lee (`radar/perfil.py`) y lo usa en las
 instrucciones de Groq y en el filtro geográfico; si el perfil cambia, se reevalúa lo guardado.
+**Criterios de búsqueda** (`criterios` en el perfil, sin IA, `radar/criterios.py`):
+`importe_minimo` (por debajo → *descarta*), `cofinanciacion_maxima` en % (si hay que poner más →
+como mucho *mira*) y `dias_minimos` para preparar (si quedan menos → como mucho *mira*). Nunca
+ocultan nada: el radar guarda el veredicto de la IA en `veredicto_ia` y explica el cambio en
+`avisos_criterios`. Los **requisitos de la entidad** (`requisitos_entidad`, texto libre) van a la IA.
 Para activarlo en GitHub: variable `RADAR_API_URL` (la dirección de la web) y secreto
 `CLAVE_EQUIPO` (la misma contraseña que en Cloudflare). Sin ellos, se usa `radar/config.py`.
 

@@ -98,6 +98,7 @@ function Revisar({ ruta, curId, setCurId, decidir, setDescartando, ir, ej, setEj
                 {a.requisitos.map(r => <li key={r.texto} className={r.estado}><i>{r.estado === 'cumple' ? '✓' : r.estado === 'no' ? '✗' : '?'}</i>{r.texto}</li>)}
               </ul>
             )}
+            {a.avisos.length > 0 && <div className="i-cita" style={{ background: '#FBF1DC', borderColor: '#E5B54A' }}>{a.avisos.map(t => <div key={t}><Icon n="info" s={14} /> {t}</div>)}<small>Según vuestros criterios del Perfil</small></div>}
             {a.cita && <div className="i-cita">«…<mark>{a.cita}</mark>…»<small><Icon n="verified" s={14} />Comprobado en el texto oficial</small></div>}
             <div className="acts3">
               <button className={`i-btn ${a.estado === 'descartada' ? 'sel' : ''}`} onClick={() => setDescartando(a)}><Icon n="x" s={19} w={2.4} />No nos interesa</button>

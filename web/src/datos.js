@@ -56,6 +56,8 @@ export function modelo(c, sol) {
     plazo,
     plazoEstimado: !c.fin && Boolean(c.plazo_estimado),
     dias: diasHasta(plazo),
+    // Avisos de vuestros criterios del Perfil (importe mínimo, cofinanciación, días): los pone el radar.
+    avisos: c.avisos_criterios || [],
   };
 }
 

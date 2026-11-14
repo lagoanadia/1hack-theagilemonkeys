@@ -108,6 +108,10 @@ const PERFIL_BASE = {
     "Investigación pura universitaria, patrimonio histórico, turismo u hostelería",
   ],
   objetivo_anual: 10,
+  // Criterios de búsqueda con número (null = sin límite). El radar los aplica sin IA.
+  criterios: { importe_minimo: null, cofinanciacion_maxima: null, dias_minimos: null },
+  // Lo que la entidad cumple o no cumple (lo lee la IA al revisar requisitos).
+  requisitos_entidad: [],
   documentos: [
     { nombre: "Estatutos", tengo: true, caduca: "" },
     { nombre: "CIF", tengo: true, caduca: "" },
@@ -173,9 +177,15 @@ function limpiarPerfil(b) {
   if (b.objetivo_anual !== undefined) p.objetivo_anual = entero(b.objetivo_anual, 1, 200);
   if (b.ampliar_espana !== undefined) p.ampliar_espana = Boolean(b.ampliar_espana);
   if (b.avisos !== undefined && AVISOS.includes(b.avisos)) p.avisos = b.avisos;
-  for (const [campo, n, max] of [["zonas", 12, 60], ["lineas", 8, 300], ["no_sirve", 10, 300]]) {
+  for (const [campo, n, max] of [["zonas", 12, 60], ["lineas", 8, 300], ["no_sirve", 10, 300],
+    ["requisitos_entidad", 12, 200]]) {
     const v = lista(b[campo], n, max);
     if (v) p[campo] = v;
+  }
+  if (b.criterios && typeof b.criterios === "object") {
+    const c = b.criterios, n = (v, min, max) => (v === null || v === "" ? null : entero(v, min, max) ?? null);
+    p.criterios = { importe_minimo: n(c.importe_minimo, 0, 100000000),
+      cofinanciacion_maxima: n(c.cofinanciacion_maxima, 0, 100), dias_minimos: n(c.dias_minimos, 0, 365) };
   }
   if (Array.isArray(b.comunidades_extra)) {
     const validas = COMUNIDADES.map((c) => c.codigo);
