@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
 import { island } from './lp.js'
-import { ErrorSesion, api, subirDocumento } from '../api.js'
+import { ErrorSesion, api, sesionGuardada, subirDocumento } from '../api.js'
 import { fechaCorta } from '../datos.js'
 import { LISTA_GENERAL, clave } from './papeles.js'
 
@@ -45,6 +45,20 @@ function avisoValidez(doc, req, plazo) {
 export default function Presentar({ a, top, ir, presentadas, objetivo, perfil, presentar }) {
   if (!a) return <>{top('Convocatorias · preparar')}<div className="i-card i-empty">Elegid una convocatoria desde Preparando.</div></>
   return <Papeles key={a.id} {...{ a, top, ir, presentadas, objetivo, perfil, presentar }} />
+}
+
+// Descarga el ZIP con los documentos de la solicitud (GET /api/solicitudes/convocatoria/:codigo/zip).
+// Devuelve el nº de documentos que faltan según el servidor (cabecera x-documentos-faltan).
+async function descargarZip(a) {
+  const r = await fetch(`/api/solicitudes/convocatoria/${a.id}/zip`, { headers: { 'x-clave-equipo': sesionGuardada() } })
+  if (!r.ok) throw new Error((await r.json().catch(() => ({}))).error || `No se pudo preparar el ZIP (${r.status})`)
+  const faltan = Number(r.headers.get('x-documentos-faltan') || 0)
+  const nombre = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(r.headers.get('content-disposition') || '')?.[1]
+  const url = URL.createObjectURL(await r.blob())
+  const enlace = Object.assign(document.createElement('a'), { href: url, download: nombre ? decodeURIComponent(nombre) : `solicitud-${a.id}.zip` })
+  document.body.appendChild(enlace); enlace.click(); enlace.remove()
+  setTimeout(() => URL.revokeObjectURL(url), 2000)
+  return faltan
 }
 
 function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
@@ -101,6 +115,19 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
   const obligatorios = filas.filter(f => f.r.obligatorio !== false && f.estado !== 'no_aplica')
   const listos = obligatorios.filter(f => f.estado === 'listo').length
   const faltan = obligatorios.length - listos
+
+  // Presentar: descarga el ZIP con los documentos y, si no falta ninguno, la pasa a Presentado.
+  const [presentando, setPresentando] = useState(false)
+  const presentarConZip = async () => {
+    if (faltan > 0) return setError(`Requisitos incompletos: ${faltan === 1 ? 'falta 1 documento' : `faltan ${faltan} documentos`}. Subidlos o asignadlos antes de presentar.`)
+    setPresentando(true); setError('')
+    try {
+      const f = await descargarZip(a)
+      if (f > 0) setError(`Requisitos incompletos: el servidor dice que ${f === 1 ? 'falta 1 documento' : `faltan ${f} documentos`}. Revisad los papeles antes de presentar.`)
+      else await presentar(a)
+    } catch (e) { setError(e instanceof ErrorSesion ? 'La sesión ha caducado: volved a entrar.' : e.message) }
+    setPresentando(false)
+  }
 
   const soltar = (ev, req) => {
     ev.preventDefault(); setSobre(null)
@@ -163,7 +190,7 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
             {plazo && <p>{a.plazoEstimado ? 'plazo estimado, ' : ''}hasta el {plazo.getDate()} de {MESL[plazo.getMonth()]}</p>}
             <Svg html={island(300, 200, Math.min(presentadas + 1, objetivo), objetivo)} style={{ display: 'block', margin: '6px 0 0' }} />
             <p className="tree">Al presentarla plantáis el árbol n.º {presentadas + 1}</p>
-            <button className="i-btn p" style={{ width: '100%' }} aria-disabled={faltan > 0} onClick={() => (faltan > 0 ? setError(`Requisitos incompletos: ${faltan === 1 ? 'falta 1 documento' : `faltan ${faltan} documentos`}. Subidlos o asignadlos antes de presentar.`) : presentar(a))}><Icon n={faltan > 0 ? 'alert' : 'check'} s={19} w={2.6} />Presentar</button>
+            <button className="i-btn p" style={{ width: '100%' }} aria-disabled={faltan > 0 || presentando} onClick={presentarConZip}><Icon n={faltan > 0 ? 'alert' : 'check'} s={19} w={2.6} />{presentando ? 'Preparando el ZIP…' : 'Presentar'}</button>
             {a.url && <a className="i-link" style={{ marginTop: 10 }} href={a.url} target="_blank" rel="noopener noreferrer">Ver convocatoria en la BDNS ↗</a>}
             {faltan > 0 && <small className="warn">Requisitos incompletos: {faltan === 1 ? 'falta 1 documento' : `faltan ${faltan} documentos`}</small>}
           </div>

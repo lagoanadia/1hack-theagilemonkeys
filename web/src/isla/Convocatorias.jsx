@@ -114,7 +114,7 @@ function Revisar({ ruta, curId, setCurId, decidir, setDescartando, ir, generado 
             {decidida && <div className="i-ya"><Icon n="undo" s={16} w={2.4} />La clasificasteis como «{ETIQ_RUTA[a.estado]}». Elegid otra opción para cambiarla.</div>}
             <div className="i-head" style={{ alignItems: 'center' }}>
               <span className={`i-v ${vc}`}><i><Icon n={vi} s={14} w={3} /></i>{vt}</span>
-              <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}><span className="i-tag">BDNS {a.codigo}</span>{a.url && <a className="i-link" href={a.url} target="_blank" rel="noopener noreferrer">Ver convocatoria ↗</a>}</span>
+              <span style={{ display: 'flex', gap: 8, alignItems: 'center' }}>{a.demo && <span className="i-ej">Ejemplo real</span>}<span className="i-tag">BDNS {a.codigo}</span>{a.url && <a className="i-link" href={a.url} target="_blank" rel="noopener noreferrer">Ver convocatoria ↗</a>}</span>
             </div>
             <h3 className={tituloCorto(a).length > 110 ? 'long' : ''} title={a.titulo}>{tituloCorto(a)}</h3>
             <div style={{ color: 'var(--mut)' }}>{a.organo}</div>
@@ -251,7 +251,7 @@ function Preparando({ lista, ir, seg, setDescartando, cambiarEstado, avisar, tab
         }
         return (
           <article className="tc">
-            <div className="tc-tags"><span className="i-tag" title={a.organo}>{a.organo}</span></div>
+            <div className="tc-tags">{a.demo && <span className="i-ej">Ejemplo real</span>}<span className="i-tag" title={a.organo}>{a.organo}</span></div>
             <h4 title={a.titulo}>{tituloCorto(a)}</h4>
             <div className="tc-cifras">
               <div><span>Importe</span><b className={a.importe ? '' : 'i-ni'}>{a.importe || 'No indicado'}</b></div>
@@ -315,7 +315,7 @@ function Presentado({ lista, cambiarEstado, cambiarPaso, seg, perfil, ir, tab })
           const alerta = a.estado === 'subsanar' || a.estado === 'denegada', cierre = fin(a)
           return (
             <article className="tc">
-              <div className="tc-tags"><span className="i-tag" title={a.organo}>{a.organo}</span>{alerta && <span className="i-tag mal">{a.estado === 'subsanar' ? 'Por subsanar' : 'Denegada'}</span>}</div>
+              <div className="tc-tags">{a.demo && <span className="i-ej">Ejemplo real</span>}<span className="i-tag" title={a.organo}>{a.organo}</span>{alerta && <span className="i-tag mal">{a.estado === 'subsanar' ? 'Por subsanar' : 'Denegada'}</span>}</div>
               <h4 title={a.titulo}>{tituloCorto(a)}</h4>
               <Ruta p={p} estado={a.estado} />
               <div className="tc-cifras">
@@ -372,7 +372,7 @@ function Descartadas({ lista, recuperar, reclasificar, tab }) {
         const motivos = sec.id === 'radar' ? [] : (a.sol?.motivos || []).filter(m => `m:${m}` !== sec.id)
         return (
           <article className="tc">
-            <div className="tc-tags">{sec.id === 'radar' ? <span className="i-tag">El radar</span> : motivos.map(m => <span key={m} className="i-tag">{m}</span>)}{sec.id !== 'radar' && !motivos.length && sec.id === 'sin' && <span className="i-tag">Sin motivo</span>}</div>
+            <div className="tc-tags">{a.demo && <span className="i-ej">Ejemplo real</span>}{sec.id === 'radar' ? <span className="i-tag">El radar</span> : motivos.map(m => <span key={m} className="i-tag">{m}</span>)}{sec.id !== 'radar' && !motivos.length && sec.id === 'sin' && <span className="i-tag">Sin motivo</span>}</div>
             <h4 title={a.titulo}>{tituloCorto(a)}</h4>
             <div className="tc-org">{a.organo}{a.plazo ? ` · plazo ${fechaCorta(a.plazo)}` : ''}</div>
             {sec.id === 'radar' && a.motivo && <p className="i-mot tc-mot">{a.motivo}</p>}
