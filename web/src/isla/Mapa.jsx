@@ -42,8 +42,7 @@ export default function Mapa({ top, salir }) {
   return (
     <>
       {top('Mapa')}
-      <div className="i-head">
-        <h2>Dónde habéis plantado</h2>
+      <div className="i-head" style={{ justifyContent: 'flex-end', marginBottom: 14 }}>
         <div style={{ display: 'flex', gap: 10 }}>
           <div className="i-seg">{['Madrid', 'España'].map(k => <button key={k} className={ambito === k ? 'on' : ''} onClick={() => setAmbito(k)}>{k}</button>)}</div>
           <div className="i-seg">{[...anios.map(String), 'Todo'].map(k => <button key={k} className={anio === k ? 'on' : ''} onClick={() => setAnio(k)}>{k}</button>)}</div>

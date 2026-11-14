@@ -121,7 +121,7 @@ export default function IslaApp({ salir }) {
   const nav = [['conv', 'inbox', 'Convocatorias', nPorRevisar], ['empresas', 'building', 'Empresas', nEmpresas], ['propuestas', 'leaf', 'Propuestas', 0], ['mapa', 'map', 'Mapa', 0]]
   const top = (k, ejemplo = false, extra = null) => (
     <div className="i-top">
-      <div className="i-izq">{k && <div className="i-k">{k}{ejemplo && <> · <span className="i-ej">Ejemplo</span></>}</div>}{extra}</div>
+      <div className="i-izq">{ejemplo && <span className="i-ej">Ejemplo</span>}{extra}</div>
       <div style={{ display: 'flex', gap: 10 }}>
         <label className="i-srch"><Icon n="search" s={18} /><input value={q} onChange={e => setQ(e.target.value)} placeholder="Buscar…" aria-label="Buscar" /></label>
         {/* Avisos: los pasos que vencen (GET /api/seguimiento). Se pueden recibir también por correo (Perfil). */}

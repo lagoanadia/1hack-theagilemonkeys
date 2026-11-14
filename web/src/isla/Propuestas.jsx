@@ -60,8 +60,7 @@ export default function Propuestas({ top, setToast, salir }) {
   return (
     <>
       {top('Propuestas')}
-      <div className="i-head">
-        <div><h2>Lo que ofrecéis a las empresas</h2><p className="i-sub" style={{ margin: '2px 0 0' }}>Publicad propuestas; las empresas las ven en vuestra página y reservan sin compromiso.</p></div>
+      <div className="i-head" style={{ justifyContent: 'flex-end', marginBottom: 14 }}>
         <div style={{ display: 'flex', gap: 10 }}>
           <a className="i-btn sm" href="#/propuestas" target="_blank" rel="noreferrer"><Icon n="ext" s={17} />Ver página pública</a>
           <button className="i-btn p sm" onClick={() => setForm(VACIA)}><Icon n="plus" s={17} w={2.4} />Nueva propuesta</button>

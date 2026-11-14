@@ -238,10 +238,7 @@ export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, pre
   return (
     <>
       {top('Perfil')}
-      <div className="pf-cab">
-        <h2>Lo que el radar sabe de Reforesta</h2>
-        <p className="i-sub" style={{ margin: '4px 0 0' }}>Si algo cambia, editadlo aquí y el radar lo tendrá en cuenta.{perfil.actualizado && <> Última vez: {new Date(perfil.actualizado).toLocaleDateString('es-ES')}{perfil.actualizado_por ? ` · ${perfil.actualizado_por}` : ''}.</>}{!perfil.guardado && ' Todavía es el perfil de partida: guardadlo para que quede como vuestro.'}</p>
-      </div>
+      {!perfil.guardado && <p className="i-sub" style={{ margin: '0 0 12px' }}>Todavía es el perfil de partida: guardadlo para que quede como vuestro.</p>}
       <div className="pf-tabs" role="tablist" aria-label="Apartados del perfil">
         {PESTANAS.map(x => (
           <button key={x[0]} role="tab" aria-selected={tab === x[0]} className={`pf-tab ${tab === x[0] ? 'on' : ''}`} onClick={() => setTab(x[0])}>
