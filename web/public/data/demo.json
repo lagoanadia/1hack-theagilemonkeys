@@ -188,9 +188,41 @@
    "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/921561",
    "url_bases": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2024-19987",
    "sede": "https://fundacion-biodiversidad.es/",
-   "veredicto": "pendiente",
-   "puntuacion": 0,
-   "metodo": "pendiente_ia",
+   "puntuacion": 55,
+   "veredicto": "mira",
+   "encaja": true,
+   "linea": "restauracion",
+   "motivo": "Pueden solicitar entidades sin ánimo de lucro que se integren en agrupaciones con ayuntamientos o diputaciones; ámbito nacional, temática infraestructura verde urbana.",
+   "resumen": "Financia proyectos de infraestructura verde urbana que aumenten biodiversidad y resiliencia climática.",
+   "requisitos": [
+    {
+     "texto": "Ser entidad sin ánimo de lucro que no desarrolle actividad económica",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Integrarse en agrupación con entidad pública coordinadora (ayuntamiento o diputación)",
+     "estado": "duda"
+    },
+    {
+     "texto": "Desarrollar el proyecto en municipios españoles DEGURBA 1 o 2 o colindantes",
+     "estado": "duda"
+    },
+    {
+     "texto": "No generar beneficio mercantil directo para la entidad beneficiaria",
+     "estado": "cumple"
+    }
+   ],
+   "requisitos_clave": "Integrarse en agrupación con entidad pública coordinadora (ayuntamiento o diputación); Desarrollar el proyecto en municipios españoles DEGURBA 1 o 2 o colindantes",
+   "cita": "Podrán asimismo obtener la condición de beneficiarias las siguientes entidades, siempre y cuando se integren en agrupaciones junto con, al menos, una entidad del apartado 1 que deberá, en todos los casos, actuar como coordinadora de la agrupación:",
+   "porcentaje_financiado": null,
+   "importe_max": null,
+   "plazo_estimado": "2026-07-25",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": "2-ec04a1e6",
+   "plantillas": [],
+   "documentos_version": 1,
+   "documentos_requeridos": [],
+   "documentos_fuente": "Resolución y convocatoria - Ciudades 26.pdf",
    "descripcion_reto": "Fundación Biodiversidad · infraestructura verde en ciudades (2026)",
    "filtros": [
     {
@@ -228,9 +260,41 @@
    "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/926034",
    "url_bases": "https://www.boe.es/eli/es/o/2021/07/12/ted818",
    "sede": "https://fundacion-biodiversidad.es/",
-   "veredicto": "pendiente",
-   "puntuacion": 0,
-   "metodo": "pendiente_ia",
+   "puntuacion": 35,
+   "veredicto": "descarta",
+   "encaja": false,
+   "linea": "conservacion",
+   "motivo": "Entidades sin ánimo de lucro con domicilio en España, al menos cinco años de antigüedad, cuyo objetivo sea la defensa del medio ambiente y que cumplan requisitos de registro, utilidad pública y experiencia internacional.",
+   "resumen": "Financia proyectos de investigación y actividades para la defensa del medio ambiente y el cambio climático.",
+   "requisitos": [
+    {
+     "texto": "Al menos cinco años de antigüedad",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Inscripción en registro administrativo y declaración de utilidad pública",
+     "estado": "duda"
+    },
+    {
+     "texto": "Incluirse en el anexo del Real Decreto 2355/2004 (Consejo Asesor)",
+     "estado": "no"
+    },
+    {
+     "texto": "Experiencia internacional acreditada",
+     "estado": "no"
+    },
+    {
+     "texto": "Auditoría externa en los últimos tres años",
+     "estado": "duda"
+    }
+   ],
+   "requisitos_clave": "Inscripción en registro administrativo y declaración de utilidad pública; Incluirse en el anexo del Real Decreto 2355/2004 (Consejo Asesor); Experiencia internacional acreditada; Auditoría externa en los últimos tres años",
+   "cita": "Podrán obtener la condición de beneficiarias las entidades y organizaciones sin ánimo de lucro, apartado 3.1.a) de la Orden TED/818/2021, de 12 de julio, que cumplan los requisitos del artículo 3.2 de la misma y los citados a continuación:",
+   "porcentaje_financiado": 90,
+   "importe_max": 230000,
+   "plazo_estimado": "2026-09-19",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": "2-ec04a1e6",
    "descripcion_reto": "Fundación Biodiversidad · ONG en políticas públicas ambientales (2026)",
    "filtros": [
     {
