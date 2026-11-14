@@ -931,3 +931,20 @@ html,body{margin:0}
 .mp-pista{position:absolute;right:20px;top:20px;background:rgba(255,255,255,.85);border-radius:999px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--mut);z-index:2}
 @media (max-width:1100px){.mp-zonas{display:none}.mp-lienzo{height:auto}.mp-mapa{height:auto;width:100%}}
 .mp-ley .tam span{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}.mp-ley .tam small{margin-left:auto;font-size:12px}
+/* Descartadas: un filtro a la vez */
+.ds-filtros{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
+.ds-grupo{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.ds-lbl{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);min-width:150px}
+.ds-chip{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 8px 0 14px;border-radius:999px;background:#fff;border:1.5px solid var(--ln);font-weight:600;font-size:14.5px;color:var(--nv);transition:background .12s,transform .12s}
+.ds-chip b{min-width:24px;height:24px;border-radius:999px;background:var(--soft);display:grid;place-items:center;font-size:12.5px;padding:0 6px}
+.ds-chip:hover{transform:translateY(-1px)}
+.ds-chip.on{background:var(--nvs);border-color:var(--nvs);color:#fff}.ds-chip.on b{background:rgba(255,255,255,.2)}
+.ds-grupo.radar .ds-chip.on{background:#2F5683;border-color:#2F5683}
+.ds-chip.vacio{border-style:dashed;color:var(--mut)}
+.ds-chip.sobre{background:var(--co-l);border-color:var(--co);color:var(--co-d);transform:scale(1.06)}
+.ds-chip.mas{border-style:dashed;color:var(--mut);padding:0 14px;gap:6px}
+.ds-nuevo{height:38px;border-radius:999px;border:1.5px solid var(--co);padding:0 14px;font:inherit;font-size:14.5px;outline:0;background:#fff}
+.ds-pista{font-size:13.5px;font-weight:600;color:var(--co-d);margin:-6px 0 12px}
+.ds-rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;align-items:start}
+.ds-tc{background:#fff;border-radius:24px;box-shadow:0 1px 0 var(--ln),0 14px 30px -24px rgba(27,39,66,.35)}
+.ds-tc[draggable=true]{cursor:grab}.ds-tc.lev{opacity:.4}
