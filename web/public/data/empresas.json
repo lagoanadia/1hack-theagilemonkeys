@@ -1,0 +1,994 @@
+{
+ "generado": "2026-11-14T00:08",
+ "ventana_dias": 180,
+ "revisadas": 32,
+ "pendientes": 4,
+ "empresas": [
+  {
+   "id": "BOE-A-2026-13276",
+   "fecha": "2026-06-18",
+   "titulo": "Resolución de 29 de mayo de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Planta fotovoltaica Piedras del Alto, de 40,814 MW de potencia instalada, y su infraestructura de evacuación, para su hibridación con el parque eólico existente Piedras del Alto, de 34 MW de potencia instalada, en la provincia de Segovia».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-13276",
+   "promotor": "Corporación Eólica de Valdivia, SL",
+   "proyecto": "Planta Fotovoltaica Piedras del Alto hibridada",
+   "tipo": "hibrido",
+   "ubicacion": "Segovia, Castilla y León",
+   "medidas": [
+    {
+     "texto": "Plantación perimetral de especies autóctonas arbóreas y arbustivas como pantalla visual",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Creación de zonas forestales internas equivalentes al 1 % de la superficie ocupada por los paneles",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Establecimiento y mantenimiento de corredores ecológicos de al menos 10 m de anchura entre cerramientos",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Implementación de medidas agroambientales para la mejora de hábitats de aves esteparias",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Seguimiento y vigilancia de la vegetación y fauna, con actividades de educación ambiental",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": null,
+   "encaje": 85,
+   "accion": "contactar",
+   "resumen": "Corporación Eólica de Valdivia debe implantar plantaciones perimetrales y corredores ecológicos en la planta fotovoltaica Piedras del Alto (Segovia).",
+   "cita": "",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-13448",
+   "fecha": "2026-06-20",
+   "titulo": "Resolución de 29 de mayo de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Parque solar fotovoltaico \"Otero\", de 431,644 MW de potencia instalada, y su infraestructura de evacuación, en la provincia de Segovia».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-13448",
+   "promotor": "Iberenova Promociones, SAU",
+   "proyecto": "Parque solar Otero",
+   "tipo": "solar",
+   "ubicacion": "Segovia, Castilla y León (municipios Anaya, Marazoleja, Marazuela)",
+   "medidas": [
+    {
+     "texto": "Reforestación de formaciones forestales para compensar impactos sobre águila imperial ibérica y milano real",
+     "superficie_ha": 173.74
+    },
+    {
+     "texto": "Creación y gestión de barbechos de calidad en áreas destinadas a cultivos para aves esteparias",
+     "superficie_ha": 756.0
+    },
+    {
+     "texto": "Restauración de hábitats de aves rapaces mediante plantación de especies autóctonas",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Mantenimiento de vegetación espontánea y control mecánico selectivo en parcelas de compensación",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Educación ambiental y seguimiento poblacional de especies protegidas",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": 930.0,
+   "encaje": 85,
+   "accion": "contactar",
+   "resumen": "Iberenova debe restaurar 173.74 ha forestales y crear 756 ha de barbechos para aves en Segovia",
+   "cita": "Las 173,74 ha restantes se asignan a formaciones forestales orientadas a la compensación de impactos sobre águila imperial ibérica y milano real",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-13449",
+   "fecha": "2026-06-20",
+   "titulo": "Resolución de 5 de junio de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Parque solar fotovoltaico FV Aceca, de 347,51 MW potencia instalada, y su infraestructura de evacuación, para su hibridación con la central de generación de ciclo combinado Aceca, en la provincia de Toledo».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-13449",
+   "promotor": "Iberdrola Generación Térmica, SL",
+   "proyecto": "Parque solar FV Aceca",
+   "tipo": "hibrido",
+   "ubicacion": "Toledo, Castilla-La Mancha",
+   "medidas": [
+    {
+     "texto": "construcción de dos primillares (reforestación)",
+     "superficie_ha": null
+    },
+    {
+     "texto": "creación de tres charcas artificiales o puntos de agua",
+     "superficie_ha": null
+    },
+    {
+     "texto": "gestión agroambiental de 80 ha para beneficio de especies esteparias",
+     "superficie_ha": 80
+    },
+    {
+     "texto": "seguimiento de la nidificación de águila imperial durante cinco años",
+     "superficie_ha": null
+    },
+    {
+     "texto": "campañas de localización y salvamento de nidos de aguiluchos cenizo y pálido",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": 80,
+   "encaje": 85,
+   "accion": "contactar",
+   "resumen": "Iberdrola Generación Térmica debe crear dos primillares, tres charcas y gestionar 80 ha agroambientales en Toledo como compensación del parque solar FV Aceca",
+   "cita": "creación de tres charcas artificiales o puntos de agua",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-18893",
+   "fecha": "2026-09-09",
+   "titulo": "Resolución de 28 de agosto de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Parques solares fotovoltaicos Colladillo y Cabeza de Mesá, de 22,05 y 27,3 MW, para hibridación con los parques eólicos Colladillo y Cabeza de Mesá, de 30,6 y 29,6 MW, ubicados en la provincia de Ávila».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-18893",
+   "promotor": "Eólica Sierra de Ávila, SL",
+   "proyecto": "Parques solares Colladillo y Cabeza de Mesá hibridados",
+   "tipo": "hibrido",
+   "ubicacion": "Ávila, Castilla y León",
+   "medidas": [
+    {
+     "texto": "Restauración vegetal de zonas liberadas",
+     "superficie_ha": 17.15
+    },
+    {
+     "texto": "Instalación de refugios para quirópteros",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Instalación de plataformas para lechuza común",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Creación de majanos para conejo",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Apoyo al programa agroambiental de cultivos de secano",
+     "superficie_ha": 44.35
+    }
+   ],
+   "superficie_total_ha": 61.5,
+   "encaje": 85,
+   "accion": "contactar",
+   "resumen": "Eólica Sierra de Ávila debe restaurar 17,15 ha y ejecutar medidas agroambientales en 44,35 ha en Ávila",
+   "cita": "La principal medida consiste en un programa agroambiental sobre 44,35 ha de cultivos de secano, superficie equivalente al hábitat estepario efectivamente ocupado por los proyectos",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-21602",
+   "fecha": "2026-10-16",
+   "titulo": "Resolución de 21 de septiembre de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Módulos de generación eólica \"Parque eólico Elawan Belinchón I, II y III híbridos\", para su hibridación con los parques fotovoltaicos existentes y su infraestructura de evacuación, en la provincia de Cuenca».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-21602",
+   "promotor": "Elawan Fotovoltaica Belinchón 1, SL",
+   "proyecto": "Parque eólico Elawan Belinchón I, II y III híbridos",
+   "tipo": "hibrido",
+   "ubicacion": "Cuenca, Castilla-La Mancha",
+   "medidas": [
+    {
+     "texto": "Restauración mediante hidrosiembra con especies autóctonas en zonas de ocupación temporal",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Plantación de árboles autóctonos donde sea inevitable la corta de vegetación",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Revegetación de taludes con especies autóctonas de rápido crecimiento",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Instalación de dispositivos de detección y parada para reducir mortalidad de águila imperial",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Alimentación suplementaria como medida compensatoria para el águila imperial ibérica",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": null,
+   "encaje": 80,
+   "accion": "contactar",
+   "resumen": "Elawan debe realizar hidrosiembra y plantaciones autóctonas en Cuenca como compensación del parque eólico híbrido",
+   "cita": "Como medidas correctoras, se prevé la restauración mediante hidrosiembra o plantaciones con especies autóctonas en las zonas de ocupación temporal",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-15830",
+   "fecha": "2026-07-20",
+   "titulo": "Resolución de 3 de julio de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Módulos de generación eólica Escuderos I y Escuderos IV, y su infraestructura de evacuación, en la provincia de Cuenca».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-15830",
+   "promotor": "Elawan Fotovoltaica Escuderos 1, SL; Elawan Fotovoltaica Escuderos 4, SL",
+   "proyecto": "Módulos de generación eólica Escuderos I y Escuderos IV",
+   "tipo": "eolico",
+   "ubicacion": "Cuenca, Castilla-La Mancha",
+   "medidas": [
+    {
+     "texto": "Revegetación de vegetación gipsícola ibérica",
+     "superficie_ha": 27.03
+    },
+    {
+     "texto": "Revegetación de matorrales pulvinulares orófilos",
+     "superficie_ha": 44.23
+    },
+    {
+     "texto": "Restauración de pastizales xerofíticos mediterráneos",
+     "superficie_ha": 36.36
+    },
+    {
+     "texto": "Creación o mejora de humedales (laguna de El Hito y alrededores)",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Instalación de estructuras para anidación de aves protegidas",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": 107.62,
+   "encaje": 78,
+   "accion": "contactar",
+   "resumen": "Elawan Fotovoltaica debe compensar 108 ha con revegetación y humedales en Cuenca",
+   "cita": "",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-22987",
+   "fecha": "2026-11-02",
+   "titulo": "Resolución de 22 de octubre de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del «Proyecto Módulo de Generación Eólica \"Las Quinientas\", para su hibridación con el parque fotovoltaico existente \"Las Quinientas\", y para su infraestructura de evacuación, en la provincia de Cádiz».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-22987",
+   "promotor": "BRUC Las Quinientas, SL",
+   "proyecto": "Módulo Eólico‑Híbrido Las Quinientas",
+   "tipo": "hibrido",
+   "ubicacion": "Cádiz, Andalucía",
+   "medidas": [
+    {
+     "texto": "Revegetación con especies autóctonas en áreas degradadas",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Protección y recuperación de rodales de vegetación natural",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Restauración y acondicionamiento de masas de agua y humedales cercanos",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Control de especies exóticas invasoras en matorrales y pastizales",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Programa de vigilancia y seguimiento de fauna y hábitats",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": null,
+   "encaje": 68,
+   "accion": "mira",
+   "resumen": "BRUC Las Quinientas debe ejecutar revegetación y restauración de humedales en Cádiz como compensación del parque eólico‑híbrido",
+   "cita": "",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-22986",
+   "fecha": "2026-11-02",
+   "titulo": "Resolución de 19 de octubre de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Hibridación de la planta solar fotovoltaica PFV Herrera de los Navarros, de 21 MW de potencia instalada, con el parque eólico Herrera de los Navarros existente de 35 MW y su infraestructura de evacuación, en la provincia de Zaragoza».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-22986",
+   "promotor": "Sistemas Energéticos Barandón, SA",
+   "proyecto": "Hibridación planta solar y eólica Herrera de los Navarros",
+   "tipo": "hibrido",
+   "ubicacion": "Zaragoza, Aragón",
+   "medidas": [
+    {
+     "texto": "Creación de bosquetes con especies autóctonas",
+     "superficie_ha": 0.43
+    },
+    {
+     "texto": "Hidrosiembra de leguminosas, crucíferas y compuestas",
+     "superficie_ha": 1.09
+    },
+    {
+     "texto": "Instalación de areneros y hoteles para insectos y refugios de microfauna",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Plantación de setos vivos y rodales de especies leñosas autóctonas en el vallado perimetral",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Mantenimiento de cubierta vegetal sin herbicidas y desbroces mecánicos fuera del periodo reproductivo",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": 1.52,
+   "encaje": 65,
+   "accion": "mira",
+   "resumen": "Sistemas Energéticos Barandón debe crear 1.5 ha de bosques y revegetación en Herrera de los Navarros (Zaragoza)",
+   "cita": "",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-12791",
+   "fecha": "2026-06-12",
+   "titulo": "Resolución de 25 de mayo de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Instalación híbrida fotovoltaica \"FV hibridación parque eólico Cabeza Morena-Dueñas\", y sus infraestructuras de evacuación, en la provincia de Albacete».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-12791",
+   "promotor": "Corporación Acciona Eólica, SLU",
+   "proyecto": "Instalación híbrida fotovoltaica Cabeza Morena-Dueñas",
+   "tipo": "hibrido",
+   "ubicacion": "Albacete, Castilla-La Mancha",
+   "medidas": [
+    {
+     "texto": "Plantación de especies autóctonas arbustivas en la pantalla vegetal exterior del vallado",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Creación de islas de vegetación de más de 100 m² dentro del cerramiento perimetral",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Instalación de una pantalla vegetal de 5 m de anchura con tres filas de arbustos a lo largo del perímetro",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Plantación de bosquetes mayores de 100 m² en áreas libres del proyecto",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Implementación de medidas agroambientales para mejorar el hábitat estepario en la ZEC Lagunas de Ruidera",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": null,
+   "encaje": 60,
+   "accion": "mira",
+   "resumen": "Acciona Eólica debe ejecutar plantaciones de especies autóctonas y crear corredores vegetales en 100,7 ha en Albacete para su proyecto híbrido",
+   "cita": "se incluye una plantación de especies autóctonas arbustivas en la parte exterior del vallado, o pantalla vegetal, que permitirá mejorar la conectividad entre los hábitats",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-15555",
+   "fecha": "2026-07-16",
+   "titulo": "Resolución de 1 de julio de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Plantas solares fotovoltaicas Helena Solar 15, Helena Solar 16 y Helena Solar 17, de 22,8 MW de potencia instalada cada una, y su infraestructura de evacuación, en la provincia de Toledo».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-15555",
+   "promotor": "Solaria Promoción y Desarrollo Fotovoltaico, SLU",
+   "proyecto": "Plantas solares Helena Solar 15-17",
+   "tipo": "solar",
+   "ubicacion": "Maqueda, Santa Olalla, Santo Domingo-Caudilla, Toledo, Castilla-La Mancha",
+   "medidas": [
+    {
+     "texto": "Restauración y mantenimiento del hábitat estepario",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Instalación de cajas nido para águila imperial",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Seguimiento y rescate de crías de aguilucho cenizo y pálido",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Conservación de corredores ribereños para quirópteros",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Implementación de medidas agroambientales en 20% de la superficie",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": null,
+   "encaje": 60,
+   "accion": "mira",
+   "resumen": "Solaria debe restaurar hábitat estepario y colocar cajas nido para águilas en Maqueda, Toledo, como compensación del proyecto solar",
+   "cita": "el promotor propone llevar a cabo medidas agroambientales sobre una superficie equivalente al 20 % de la superficie definitiva de las plantas fotovoltaicas",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-15829",
+   "fecha": "2026-07-20",
+   "titulo": "Resolución de 3 de julio de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Acceso Norte a Oviedo».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-15829",
+   "promotor": "Dirección General de Carreteras del Ministerio de Transportes y Movilidad Sostenible",
+   "proyecto": "Acceso Norte a Oviedo",
+   "tipo": "infraestructura",
+   "ubicacion": "Oviedo, Asturias",
+   "medidas": [
+    {
+     "texto": "Revegetación temprana de superficies denudadas con especies autóctonas",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Protección y revegetación de taludes con especies resistentes a la sequía",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Erradicación de especies exóticas invasoras antes del desbroce",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Plantación de bosquetes autóctonos y restauración de ribera en entornos fluviales",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Limpieza de cauces y vaguadas y plantaciones de mejora en zonas colindantes",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": null,
+   "encaje": 60,
+   "accion": "mira",
+   "resumen": "El proyecto Acceso Norte a Oviedo requiere revegetación y plantación de bosques autóctonos en taludes y cauces en Oviedo, Asturias.",
+   "cita": "la protección de taludes mediante revegetación con especies autóctonas resistentes a la escasez hídrica para evitar la erosión",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-13275",
+   "fecha": "2026-06-18",
+   "titulo": "Resolución de 29 de mayo de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del «Estudio informativo complementario del proyecto de remodelación de la red arterial ferroviaria de Alicante. Variante de Torrellano».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-13275",
+   "promotor": "Dirección General del Sector Ferroviario del Ministerio de Transportes y Movilidad Sostenible",
+   "proyecto": "Remodelación red ferroviaria Alicante Variante Torrellano",
+   "tipo": "infraestructura",
+   "ubicacion": "Alicante, Comunidad Valenciana",
+   "medidas": [
+    {
+     "texto": "Revegetación de taludes y superficies degradadas con especies autóctonas",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Plantación de especies autóctonas en zonas de vertido definidas",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Restauración ecológica del tramo ferroviario costero con revegetación autóctona",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Trasplante y conservación de flora protegida (Limonium furfuraceum, Anabasis articulata)",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Educación ambiental y voluntariado para seguimiento de la restauración",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": null,
+   "encaje": 55,
+   "accion": "mira",
+   "resumen": "ADIF debe ejecutar revegetación y plantaciones autóctonas en taludes y zonas degradadas del proyecto ferroviario Alicante‑Torrellano",
+   "cita": "el promotor asume el compromiso de definir con exactitud su geometría final y de desarrollar pormenorizadamente todas las medidas relativas a la delimitación precisa de las zonas de afección, la protección estricta de la vegetación existente y las restituciones mediante plantaciones con especies autóctonas durante la fase de redacción del proyecto constructivo",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-16824",
+   "fecha": "2026-08-01",
+   "titulo": "Resolución de 14 de julio de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Parque solar fotovoltaico Cristo Bailones, de 35,125 MW de potencia instalada, para su hibridación con el parque eólico existente, Cristo Bailones, de 42 MW, y para una parte de su infraestructura de evacuación, en la provincia de Ciudad Real.»",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-16824",
+   "promotor": "Parques Eólicos Ciudad Real, SL",
+   "proyecto": "Parque solar Cristo Bailones",
+   "tipo": "hibrido",
+   "ubicacion": "Ciudad Real, Castilla-La Mancha",
+   "medidas": [
+    {
+     "texto": "Revegetación con especies autóctonas arbustivas en la parte exterior del vallado (pantalla vegetal)",
+     "superficie_ha": 2.79
+    },
+    {
+     "texto": "Plantación de 2 encinas por cada encina eliminada (aprox. 40‑50 encinas)",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Restauración vegetal y paisajística de los terrenos tras el desmantelamiento del parque",
+     "superficie_ha": 37.4
+    }
+   ],
+   "superficie_total_ha": 40.19,
+   "encaje": 55,
+   "accion": "mira",
+   "resumen": "Parques Eólicos Ciudad Real, SL debe revegetar 2,79 ha y plantar 40‑50 encinas tras su parque solar‑eólico en Ciudad Real",
+   "cita": "Revegetación con especies autóctonas arbustivas en la parte exterior del vallado, conformando una pantalla vegetal, de 5 m de anchura, que ocupará una superficie de unas 2,79 ha",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-18976",
+   "fecha": "2026-09-10",
+   "titulo": "Resolución de 31 de agosto de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Parques fotovoltaicos Breña, Cerroblanco, Torviscal y Majales para su hibridación con los parques eólicos existentes Breña, Cerroblanco, Torviscal y Majales, en la provincia de Albacete».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-18976",
+   "promotor": "Acciona Eólica de Castilla-La Mancha, SL",
+   "proyecto": "Parques fotovoltaicos Breña, Cerroblanco, Torviscal y Majales",
+   "tipo": "hibrido",
+   "ubicacion": "Albacete, Castilla-La Mancha",
+   "medidas": [
+    {
+     "texto": "Instalación de pantallas vegetales perimetrales",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Creación de islas de vegetación arbustiva dentro del recinto",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Restauración paisajística de zonas alteradas tras obras",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Mejora y creación de hábitats esteparios para aves",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Instalación de primillares, palomares y vivares para conejo",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": 265,
+   "encaje": 55,
+   "accion": "mira",
+   "resumen": "Acciona Eólica debe crear 265 ha de hábitats esteparios y vegetación arbustiva en Albacete como compensación de su parque híbrido",
+   "cita": "Se incorporará un programa específico del seguimiento de las medidas compensatorias implementadas para la mejora del hábitat de aves esteparias, con una memoria anual que acredite su ejecución",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-22067",
+   "fecha": "2026-10-22",
+   "titulo": "Resolución de 2 de octubre de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Ampliación de los parques eólicos Coll del Moro, de 11 MW de potencia instalada, y Torre Madrina, de 11 MW de potencia instalada, y su infraestructura de evacuación, en la provincia de Tarragona».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-22067",
+   "promotor": "Parque eólico de Coll del Moro, SLU y Parque eólico Torre Madrina, SLU",
+   "proyecto": "Ampliación parques eólicos Coll del Moro y Torre Madrina",
+   "tipo": "eolico",
+   "ubicacion": "Tarragona, Cataluña",
+   "medidas": [
+    {
+     "texto": "Revegetación con especies autóctonas mediante hidrosiembra",
+     "superficie_ha": 6.68
+    },
+    {
+     "texto": "Creación de una balsa permanente con vegetación acuática",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Instalación de tres hoteles de insectos en puntos estratégicos",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Acumulación de madera muerta y piedras para refugios de fauna",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Seguimiento y control periódico de la restauración vegetal y hábitats",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": 6.68,
+   "encaje": 55,
+   "accion": "mira",
+   "resumen": "Parque eólico Coll del Moro y Torre Madrina debe restaurar 6.68 ha y crear una balsa en Tarragona",
+   "cita": "El plan de restauración contempla la retirada selectiva de la tierra vegetal, su conservación y su utilización en las acciones de revegetación con especies autóctonas",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-23246",
+   "fecha": "2026-11-05",
+   "titulo": "Resolución de 20 de octubre de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Parques eólicos \"Agromaces\", de 60,67 MW, \"Ventoburgo\", de 59,85 MW, \"Sistesas\", de 55,92 MW, \"Xestiloi\", de 58,31 MW y \"Agratina\", de 56,24 MW, así como sus infraestructuras de evacuación asociadas, en las provincias de Lugo, Pontevedra y Ourense».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-23246",
+   "promotor": "Cercis Wind, SL",
+   "proyecto": "Parques eólicos Agromaces, Ventoburgo, Sistesas, Xestiloi y Agratina",
+   "tipo": "eolico",
+   "ubicacion": "Lugo, Pontevedra, Ourense, Galicia",
+   "medidas": [
+    {
+     "texto": "Reforestación de áreas de pastizales y matorrales con especies autóctonas",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Siembra de especies pratenses en desmontes y terraplenes",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Restauración de vegetación ribereña en cauces afectados",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Instalación de refugios para fauna (quirópteros y rapaces)",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Campañas de educación ambiental y divulgación sobre biodiversidad",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": null,
+   "encaje": 55,
+   "accion": "mira",
+   "resumen": "Cercis Wind debe reforestar y restaurar ribera en 32 ha en Lugo, Pontevedra y Ourense por sus parques eólicos",
+   "cita": "",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-19403",
+   "fecha": "2026-09-17",
+   "titulo": "Resolución de 3 de septiembre de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto “Proyectos básicos de filtros verdes y humedales seminaturales en el entorno del Mar Menor”.",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-19403",
+   "promotor": "Dirección General de Biodiversidad, Bosques y Desertificación del Ministerio para la Transición Ecológica y el Reto Demográfico (MITECO)",
+   "proyecto": "Filtros verdes y humedales seminaturales en el entorno del Mar Menor",
+   "tipo": "infraestructura",
+   "ubicacion": "Cartagena, Los Alcázares, Región de Murcia",
+   "medidas": [
+    {
+     "texto": "Plantación de Typha latifolia en los humedales seminaturales",
+     "superficie_ha": 83.59
+    },
+    {
+     "texto": "Restauración de suelos y hábitats afectados tras obras",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Creación y mantenimiento de humedales para fauna anfibia",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Seguimiento y control de fauna protegida y especies invasoras",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Programas de educación ambiental y voluntariado para el seguimiento de revegetación",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": 83.59,
+   "encaje": 50,
+   "accion": "mira",
+   "resumen": "MITECO debe crear y restaurar 84 ha de humedales seminaturales en el Mar Menor",
+   "cita": "creación de cinco filtros verdes y humedales seminaturales",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-12860",
+   "fecha": "2026-06-13",
+   "titulo": "Resolución de 25 de mayo de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Estudio informativo de la red ferroviaria en la comarca de Pamplona».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-12860",
+   "promotor": "Dirección General del Sector Ferroviario del Ministerio de Transportes y Movilidad Sostenible",
+   "proyecto": "Red ferroviaria Comarca de Pamplona",
+   "tipo": "infraestructura",
+   "ubicacion": "Pamplona (Navarra)",
+   "medidas": [
+    {
+     "texto": "Revegetación ribereña con especies autóctonas 300 m a cada lado de cruces de cauces",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Restauración del perfil original de cauces y márgenes ribereños",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Reforestación de superficie equivalente a la forestal ocupada por el proyecto",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Instalación de cajas nido y refugio para aves y quirópteros",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Creación de reservas locales para conservación del galápago europeo",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": null,
+   "encaje": 45,
+   "accion": "mira",
+   "resumen": "El proyecto ferroviario en Pamplona requiere revegetar ribera y reforestar áreas equivalentes, además de instalar cajas nido y reservas para fauna",
+   "cita": "como medida compensatoria, la revegetación con especies autóctonas de ribera en una longitud de 300 m a cada lado de los puntos de cruce del trazado con la red de arroyos",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-13864",
+   "fecha": "2026-06-25",
+   "titulo": "Resolución de 8 de junio de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Parque solar fotovoltaico Alhambra, de 24,718 MW de potencia instalada, para su hibridación con el parque eólico existente Alhambra, de 34 MW, y parte de su infraestructura de evacuación, en la provincia de Ciudad Real».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-13864",
+   "promotor": "Parques Eólicos Ciudad Real, S.L.",
+   "proyecto": "Parque solar fotovoltaico Alhambra hibridado con eólico",
+   "tipo": "hibrido",
+   "ubicacion": "Ciudad Real, Castilla-La Mancha",
+   "medidas": [
+    {
+     "texto": "Mejora de hábitat para aves esteparias mediante arrendamiento de terrenos y compatibilización con cultivos herbáceos de secano",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Instalación de cinco cajas nido para aves y quirópteros",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Restauración de un primillar mediante la instalación de 12 cajas nido",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Estudio específico de fauna durante 5 años",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": null,
+   "encaje": 45,
+   "accion": "mira",
+   "resumen": "Parques Eólicos Ciudad Real debe compensar el 100 % del área vallada con mejora de hábitat y cajas nido para aves esteparias en Ciudad Real",
+   "cita": "la mejora de hábitat para aves esteparias mediante el arrendamiento de terrenos equivalente al 100 % de la superficie incluida en el interior del vallado perimetral",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-16531",
+   "fecha": "2026-07-29",
+   "titulo": "Resolución de 6 de julio de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Mejora de capacidad de las autovías A­67 y S-10. Tramo: Santander-aeropuerto».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-16531",
+   "promotor": "Dirección General de Carreteras del Ministerio de Transportes y Movilidad Sostenible",
+   "proyecto": "Mejora capacidad autovías A-67 y S-10 Santander-aeropuerto",
+   "tipo": "infraestructura",
+   "ubicacion": "Santander (Cantabria)",
+   "medidas": [
+    {
+     "texto": "Plantación de vegetación autóctona en taludes y terraplenes",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Ejecución de hidrosiembras en taludes para estabilización y control de especies invasoras",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Restauración y revegetación de márgenes de ramales en las marismas de Alday",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Monitoreo y prospección de fauna (aves, quirópteros, anfibios) con gestión de hallazgos",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Educación ambiental y sensibilización sobre restauración y especies invasoras",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": 2.1,
+   "encaje": 45,
+   "accion": "mira",
+   "resumen": "El proyecto de mejora de la A-67 y S-10 en Santander requiere plantación de vegetación autóctona y revegetación de taludes y marismas.",
+   "cita": "se resolverán con taludes naturales y plantación de vegetación autóctona para mejorar su integración paisajística",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-18894",
+   "fecha": "2026-09-09",
+   "titulo": "Resolución de 31 de agosto de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Desaladora de Valdelentisco. Planta solar fotovoltaica, en Cartagena-Mazarrón (Murcia)».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-18894",
+   "promotor": "Aguas de las Cuencas Mediterráneas, S.M.E., SA (ACUAMED)",
+   "proyecto": "Desaladora de Valdelentisco Planta solar fotovoltaica",
+   "tipo": "solar",
+   "ubicacion": "Cartagena, Mazarrón, Región de Murcia",
+   "medidas": [
+    {
+     "texto": "Reforestación de 2 ha de elevación interior y 1,3 ha de franja como corredores de fauna",
+     "superficie_ha": 3.3
+    },
+    {
+     "texto": "Revegetación de 2 ha en zonas de amortiguación, incluyendo charcas para anfibios",
+     "superficie_ha": 2
+    },
+    {
+     "texto": "Creación de 31 refugios de herpetofauna, charcas y 30 islas de biodiversidad en 2,54 ha",
+     "superficie_ha": 2.54
+    },
+    {
+     "texto": "Instalación de franjas vegetales de 2 m de ancho en cunetas de drenaje",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Creación de 11 pasillos vegetados de 10 m de ancho como corredores de fauna",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": 7.84,
+   "encaje": 45,
+   "accion": "mira",
+   "resumen": "ACUAMED debe ejecutar reforestación y creación de hábitats en ~8 ha en la zona de la planta solar de Valdelentisco (Murcia)",
+   "cita": "excluir de la implantación de seguidores una pequeña elevación interior de unas 2 ha y una franja de terreno de 1,3 ha cubierta en la actualidad con plantaciones de la palmera Washingtonia filifera, las cuales servirán de corredores de fauna y hábitat adecuado para gran variedad de especies",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-21225",
+   "fecha": "2026-10-12",
+   "titulo": "Resolución de 18 de septiembre de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Parque eólico \"Alamoceiros\", parque eólico \"Chamarrapio\" y parque eólico \"Xubrintas\", y parte de su infraestructura de evacuación, en la provincia de Pontevedra».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-21225",
+   "promotor": "Galveosaurus Invest, SL; Fukuiraptor Invest, SL; Dakotaraptor Invest, SL",
+   "proyecto": "Parque eólico Alamoceiros, Chamarrapio y Xubrintas",
+   "tipo": "eolico",
+   "ubicacion": "Pontevedra, Galicia",
+   "medidas": [
+    {
+     "texto": "Revegetación de áreas temporales con especies autóctonas",
+     "superficie_ha": 16.9
+    },
+    {
+     "texto": "Restauración de bosques de pinos y eucaliptos con especies autóctonas",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Gestión y eliminación de biomasa y residuos para prevenir incendios",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Control y delimitación de zonas de obra para proteger hábitats",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Creación o mejora de humedales en zonas afectadas",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": 16.9,
+   "encaje": 45,
+   "accion": "mira",
+   "resumen": "Los promotores deben revegetar ~17 ha de bosques plantados en Pontevedra tras la construcción de los parques eólicos Alamoceiros, Chamarrapio y Xubrintas.",
+   "cita": "las áreas alteradas de forma temporal serán restauradas con reutilización de la tierra vegetal y revegetación con especies autóctonas, sin empleo de productos químicos ni fuego",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-22599",
+   "fecha": "2026-10-28",
+   "titulo": "Resolución de 7 de octubre de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Línea eléctrica de 400 KV, simple circuito, de conexión entre la actual subestación eléctrica de Almazán y la nueva subestación eléctrica Coscurita, en Coscurita (Soria)».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-22599",
+   "promotor": "Red Eléctrica de España, SAU",
+   "proyecto": "Línea eléctrica 400 kV Almazán‑Coscurita",
+   "tipo": "linea_electrica",
+   "ubicacion": "Coscurita, Almazán, Soria, Castilla y León",
+   "medidas": [
+    {
+     "texto": "Revegetación de superficies temporales afectadas tras la obra",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": null,
+   "encaje": 45,
+   "accion": "mira",
+   "resumen": "Red Eléctrica de España debe revegetar áreas temporales tras la línea eléctrica en Soria",
+   "cita": "las superficies de ocupación temporal se podrán recuperar tras las obras, bien de forma natural o mediante el arado",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-17822",
+   "fecha": "2026-08-15",
+   "titulo": "Resolución de 22 de julio de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Parques eólicos \"Agrupación Maira Delta\" y \"Agrupación Maira Gamma\", y su infraestructura de evacuación, para su hibridación con las instalaciones fotovoltaicas \"Agrupación Maira Delta\" y \"Agrupación Maira Gamma\", en la provincia de Burgos».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-17822",
+   "promotor": "Solaria Promoción y Desarrollo Fotovoltaico SLU",
+   "proyecto": "Parques eólicos Agrupación Maira Delta y Gamma",
+   "tipo": "hibrido",
+   "ubicacion": "Burgos, Castilla y León",
+   "medidas": [
+    {
+     "texto": "Restauración de vías pecuarias con plantación de encina, quejigo, serbal común y pino piñonero",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": null,
+   "encaje": 40,
+   "accion": "mira",
+   "resumen": "Solaria debe restaurar vías pecuarias con plantaciones de encina y otras especies en Burgos como medida compensatoria del parque eólico híbrido.",
+   "cita": "",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-21224",
+   "fecha": "2026-10-12",
+   "titulo": "Resolución de 16 de septiembre de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Parque eólico \"Muracais\", de 52,8 MW de potencia instalada, y su infraestructura de evacuación, en la provincia de Lugo».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-21224",
+   "promotor": "Antila Solar, SL",
+   "proyecto": "Parque eólico Muracais",
+   "tipo": "eolico",
+   "ubicacion": "A Fonsagrada, Lugo, Galicia",
+   "medidas": [
+    {
+     "texto": "Reforestación 1:1 de los pies arbóreos eliminados",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Restauración y compensación de hábitats de interés comunitario (HIC)",
+     "superficie_ha": 2.63
+    }
+   ],
+   "superficie_total_ha": 2.63,
+   "encaje": 40,
+   "accion": "mira",
+   "resumen": "Antila Solar debe reforestar y restaurar 2,63 ha de hábitats en A Fonsagrada (Lugo) por su parque eólico",
+   "cita": "el promotor contempla la realización de prospecciones previas al inicio de las obras para detectar flora de interés y la ejecución de un plan de restauración ambiental. Asimismo, propone la reforestación en una proporción 1:1 de los pies arbóreos eliminados y la compensación de 2,63 ha de HIC",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-14868",
+   "fecha": "2026-07-08",
+   "titulo": "Resolución de 22 de junio de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Plataforma de investigación en energías marinas de Cataluña-PLEMCAT, de 30 MW, y su infraestructura de evacuación, frente a la costa de la bahía de Roses, en la provincia de Girona».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-14868",
+   "promotor": "Institut de Recerca en Energia de Catalunya",
+   "proyecto": "Plataforma de investigación en energías marinas PLEMCAT",
+   "tipo": "otro",
+   "ubicacion": "Roses, Girona, Cataluña",
+   "medidas": [
+    {
+     "texto": "Instalación de cajas‑nido en comunidades arbóreas lineales para páridos, agateador común y rapaces nocturnas",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Restauración de la zona afectada de la pradera de Cymodocea nodosa si no se recupera",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Seguimiento de la población de cormorán moñudo mediante marcaje con GPS",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": null,
+   "encaje": 38,
+   "accion": "descarta",
+   "resumen": "IREC debe instalar cajas nido y restaurar hábitats en la zona de la plataforma PLEMCAT en Roses (Girona)",
+   "cita": "Como medidas compensatorias, se prevé la instalación de cajas-nido en las comunidades arbóreas lineales para páridos, agateador común y rapaces nocturnas",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-20722",
+   "fecha": "2026-10-05",
+   "titulo": "Resolución de 22 de septiembre de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se corrigen errores en la de 7 de marzo de 2022, por la que se formula declaración de impacto ambiental del proyecto «Planta fotovoltaica Valle Solar de 300 MW en Jarafuel, Zarra y Ayora (Valencia)».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-20722",
+   "promotor": "",
+   "proyecto": "Planta fotovoltaica Valle Solar 300 MW",
+   "tipo": "solar",
+   "ubicacion": "Jarafuel, Zarra, Ayora, Comunidad Valenciana",
+   "medidas": [],
+   "superficie_total_ha": null,
+   "encaje": 10,
+   "accion": "descarta",
+   "resumen": "No se identifican medidas de reforestación, revegetación o restauración en la declaración de impacto ambiental del proyecto solar en Valencia",
+   "cita": "",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  },
+  {
+   "id": "BOE-A-2026-13196",
+   "fecha": "2026-06-17",
+   "titulo": "Resolución de 27 de mayo de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Ampliación exterior del puerto de Melilla».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-13196",
+   "promotor": "Autoridad Portuaria de Melilla",
+   "proyecto": "Ampliación exterior del puerto de Melilla",
+   "tipo": "infraestructura",
+   "ubicacion": "Melilla, Ciudad Autónoma de Melilla",
+   "medidas": [],
+   "superficie_total_ha": null,
+   "encaje": 0,
+   "accion": "descarta",
+   "resumen": "Autoridad Portuaria de Melilla no presenta medidas de reforestación o restauración aplicables",
+   "cita": "",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": 1
+  }
+ ]
+}
