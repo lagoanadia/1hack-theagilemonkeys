@@ -17,41 +17,158 @@
    "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/923290",
    "url_bases": "https://www.boe.es/boe/dias/2023/07/31/pdfs/BOE-A-2023-17623.pdf",
    "sede": "https://sede.miteco.gob.es/portal/site/seMITECO",
-   "puntuacion": 75,
-   "veredicto": "presenta",
+   "puntuacion": 65,
+   "veredicto": "mira",
    "encaja": true,
-   "linea": "conservacion",
-   "motivo": "Pueden solicitarla asociaciones, fundaciones y ONG del Tercer Sector a nivel estatal, enfocadas en investigación y protección ambiental.",
-   "resumen": "Financia proyectos de investigación y desarrollo para la protección del medio ambiente.",
+   "linea": "restauracion",
+   "motivo": "Pueden solicitarla asociaciones, fundaciones y ONG del Tercer Sector a nivel estatal; la temática debe ser investigación medioambiental.",
+   "resumen": "Financia proyectos de investigación y desarrollo para la protección y restauración del medio ambiente.",
    "requisitos": [
     {
-     "texto": "Ser entidad del Tercer Sector (asociación sin ánimo de lucro)",
+     "texto": "Ser entidad del Tercer Sector u organización no gubernamental",
      "estado": "cumple"
     },
     {
-     "texto": "Tener actividad en España (ámbito estatal)",
+     "texto": "Presentar proyecto de investigación en materia de medio ambiente",
      "estado": "cumple"
     },
     {
-     "texto": "Ser colaboradora de la Administración General del Estado",
+     "texto": "Cumplir los requisitos fijados en el artículo 3.3 a) de la orden de bases",
      "estado": "duda"
     },
     {
-     "texto": "Cumplir los requisitos del artículo 3.3 a) de la orden de bases reguladoras",
-     "estado": "duda"
+     "texto": "Presentar la solicitud electrónicamente a través de la sede del Ministerio",
+     "estado": "cumple"
     },
     {
-     "texto": "Presentar proyecto de investigación en medio ambiente",
-     "estado": "cumple"
+     "texto": "Estar al corriente de obligaciones tributarias y con la Seguridad Social",
+     "estado": "duda"
     }
    ],
-   "requisitos_clave": "Ser colaboradora de la Administración General del Estado; Cumplir los requisitos del artículo 3.3 a) de la orden de bases reguladoras",
+   "requisitos_clave": "Cumplir los requisitos fijados en el artículo 3.3 a) de la orden de bases; Estar al corriente de obligaciones tributarias y con la Seguridad Social",
    "cita": "destinadas a entidades del Tercer Sector u organizaciones no gubernamentales de ámbito estatal colaboradoras en el ámbito de la Administración General del Estado",
    "porcentaje_financiado": null,
    "importe_max": null,
-   "plazo_estimado": "2026-08-24",
+   "plazo_estimado": "2026-08-18",
    "metodo": "groq:openai/gpt-oss-120b",
-   "version": 2,
+   "version": "2-ec04a1e6",
+   "plantillas": [],
+   "documentos_version": 1,
+   "documentos_requeridos": [
+    {
+     "nombre": "Poder o documento de representación",
+     "tipo": "representante_legal",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Copia del poder o documento bastante en derecho para actuar en nombre y representación de la persona jurídica solicitante"
+    },
+    {
+     "nombre": "Tarjeta de identificación fiscal",
+     "tipo": "cif",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Copia de la tarjeta de identificación fiscal"
+    },
+    {
+     "nombre": "Estatutos vigentes",
+     "tipo": "estatutos",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Copia de los estatutos vigentes, debidamente legalizados"
+    },
+    {
+     "nombre": "Certificación de registro de la entidad",
+     "tipo": "registro_entidad",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Certificación expedida en el año de la publicación de esta convocatoria por el registro en el que se haya inscrita la entidad"
+    },
+    {
+     "nombre": "Certificado de presentación de cuentas anuales 2023‑2024",
+     "tipo": "cuentas_anuales",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Certificado de haber presentado las cuentas anuales de los dos últimos ejercicios cerrados, años 2023 y 2024"
+    },
+    {
+     "nombre": "Certificación del auditor externo 2024‑2025",
+     "tipo": "otro",
+     "obligatorio": false,
+     "condicion": "si la normativa lo exige",
+     "antiguedad_max_meses": null,
+     "cita": "Certificación del auditor de cuentas externo correspondiente a los ejercicios 2024 y 2025, siempre que la normativa de aplicación lo exija"
+    },
+    {
+     "nombre": "Certificado de estar al corriente de obligaciones tributarias",
+     "tipo": "cert_hacienda",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Certificación de hallarse al corriente de sus obligaciones tributarias y de la Seguridad Social"
+    },
+    {
+     "nombre": "Certificado de estar al corriente de la Seguridad Social",
+     "tipo": "cert_seg_social",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Certificación de hallarse al corriente de sus obligaciones tributarias y de la Seguridad Social"
+    },
+    {
+     "nombre": "Declaración responsable del representante legal",
+     "tipo": "declaracion_responsable",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Declaración responsable de quien ostente la representación legal de la entidad solicitante"
+    },
+    {
+     "nombre": "Declaración responsable de otras subvenciones",
+     "tipo": "declaracion_responsable",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Declaración responsable de la entidad solicitante en la que conste si se han percibido o solicitado otras subvenciones"
+    },
+    {
+     "nombre": "Informe de procedimientos acordados",
+     "tipo": "anexo",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Informe de procedimientos acordados suscrito por auditor, conforme el artículo 3.3.a)"
+    },
+    {
+     "nombre": "Documentación sobre igualdad de género",
+     "tipo": "declaracion_responsable",
+     "obligatorio": false,
+     "condicion": "si se estima pertinente",
+     "antiguedad_max_meses": null,
+     "cita": "Documentación justificativa o, en su caso, declaración responsable relativa al compromiso con la igualdad efectiva entre hombres y mujeres"
+    },
+    {
+     "nombre": "Documentación sobre sistemas de evaluación de calidad",
+     "tipo": "declaracion_responsable",
+     "obligatorio": false,
+     "condicion": "si se estima pertinente",
+     "antiguedad_max_meses": null,
+     "cita": "Documentación justificativa o, en su caso, declaración responsable relativa a la existencia de sistemas de evaluación de calidad"
+    },
+    {
+     "nombre": "Solicitud",
+     "tipo": "solicitud",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "La solicitud constará de:"
+    }
+   ],
+   "documentos_fuente": "report_CONVOCATORIA 2026.pdf",
    "descripcion_reto": "MITECO · ayudas a actividades de interés general para la protección del medio ambiente (2026)",
    "filtros": [
     {
@@ -89,19 +206,15 @@
    "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/904719",
    "url_bases": "https://www.bocm.es/boletin/CM_Orden_BOCM/2024/07/26/BOCM-20240726-20.PDF",
    "sede": "",
-   "puntuacion": 88,
+   "puntuacion": 80,
    "veredicto": "presenta",
    "encaja": true,
    "linea": "restauracion",
-   "motivo": "Entidades sin ánimo de lucro legalmente constituidas pueden solicitarla. La ayuda financia proyectos de conservación y restauración ambiental en la Comunidad de Madrid.",
-   "resumen": "Financia proyectos ambientales que restauren y conserven ecosistemas, biodiversidad y hábitats naturales en la Comunidad de Madrid.",
+   "motivo": "Pueden solicitarla asociaciones sin ánimo de lucro con sede y actuación en la Comunidad de Madrid que desarrollen actividades medioambientales.",
+   "resumen": "Financia proyectos ambientales que restauren y conserven ecosistemas en la Comunidad de Madrid.",
    "requisitos": [
     {
-     "texto": "Ser entidad sin ánimo de lucro legalmente constituida",
-     "estado": "cumple"
-    },
-    {
-     "texto": "Estar debidamente inscrita en los registros oficiales",
+     "texto": "Estar debidamente inscritas en los registros oficiales",
      "estado": "cumple"
     },
     {
@@ -109,21 +222,163 @@
      "estado": "cumple"
     },
     {
-     "texto": "Los fines estatutarios incluyan actividades subvencionables",
+     "texto": "Los fines estatutarios incluyan la actividad subvencionable",
      "estado": "cumple"
     },
     {
-     "texto": "Acreditar experiencia en proyectos medioambientales relacionados",
+     "texto": "Acreditar experiencia en proyectos medioambientales",
      "estado": "cumple"
+    },
+    {
+     "texto": "No estar excluida por las circunstancias del artículo 13 de la Ley 38/2003",
+     "estado": "duda"
     }
    ],
-   "requisitos_clave": "",
+   "requisitos_clave": "No estar excluida por las circunstancias del artículo 13 de la Ley 38/2003",
    "cita": "Podrán ser beneficiarios de estas subvenciones las entidades sin ánimo de lucro legalmente constituidas que cumplan los siguientes requisitos:",
    "porcentaje_financiado": 100,
    "importe_max": 60000,
    "plazo_estimado": null,
    "metodo": "groq:openai/gpt-oss-120b",
-   "version": 2,
+   "version": "2-ec04a1e6",
+   "plantillas": [
+    {
+     "nombre": "Modelo de Solicitud",
+     "archivo": "Modelo de Solicitud.pdf",
+     "url": "https://www.infosubvenciones.es/bdnstrans/api/convocatorias/documentos?idDocumento=1460854"
+    },
+    {
+     "nombre": "Anexos Anexo III",
+     "archivo": "Anexos  Anexo III.pdf",
+     "url": "https://www.infosubvenciones.es/bdnstrans/api/convocatorias/documentos?idDocumento=1460856"
+    },
+    {
+     "nombre": "Anexos Anexo Relación gastos",
+     "archivo": "Anexos  Anexo Relación gastos.pdf",
+     "url": "https://www.infosubvenciones.es/bdnstrans/api/convocatorias/documentos?idDocumento=1460857"
+    },
+    {
+     "nombre": "Anexos Anexo II",
+     "archivo": "Anexos  Anexo II.pdf",
+     "url": "https://www.infosubvenciones.es/bdnstrans/api/convocatorias/documentos?idDocumento=1460855"
+    }
+   ],
+   "documentos_version": 1,
+   "documentos_requeridos": [
+    {
+     "nombre": "Estatutos sociales",
+     "tipo": "estatutos",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Copia de los estatutos sociales, debidamente inscritos en el registro oficial correspondiente"
+    },
+    {
+     "nombre": "Certificado de inscripción en registro oficial",
+     "tipo": "registro_entidad",
+     "obligatorio": false,
+     "condicion": "si la copia de los estatutos no incluye la diligencia o sello de inscripción",
+     "antiguedad_max_meses": null,
+     "cita": "copia auténtica del certificado de inscripción en tal registro, expedido por el encargado del mismo"
+    },
+    {
+     "nombre": "Poder de representación y NIF/NIE del representante",
+     "tipo": "representante_legal",
+     "obligatorio": false,
+     "condicion": "de no contar el representante con el certificado electrónico de representación",
+     "antiguedad_max_meses": null,
+     "cita": "De no contar el representante con el certificado electrónico de representación de la entidad, deberá aportar su NIF/NIE, junto con el poder acreditativo de su representación"
+    },
+    {
+     "nombre": "Tarjeta de identificación fiscal de la entidad",
+     "tipo": "cif",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Copia de la tarjeta de identificación fiscal de la entidad"
+    },
+    {
+     "nombre": "Certificado de estar al corriente con la Seguridad Social",
+     "tipo": "cert_seg_social",
+     "obligatorio": false,
+     "condicion": "si hay oposición expresa a su consulta por la Administración",
+     "antiguedad_max_meses": null,
+     "cita": "Certificado de estar al corriente en el cumplimiento de las obligaciones frente a la Seguridad Social, si hay oposición expresa a su consulta por la Administración"
+    },
+    {
+     "nombre": "Certificado de estar al corriente con la Hacienda",
+     "tipo": "cert_hacienda",
+     "obligatorio": false,
+     "condicion": "salvo autorización expresa del interesado a la Administración para realizar la consulta",
+     "antiguedad_max_meses": null,
+     "cita": "Certificado acreditativo de estar al corriente en el cumplimiento de las obligaciones tributarias con el Estado, salvo autorización expresa del interesado a la Administración para realizar la consulta"
+    },
+    {
+     "nombre": "Recibo del IAE o certificado de exención",
+     "tipo": "otro",
+     "obligatorio": false,
+     "condicion": "cuando legalmente sea exigible",
+     "antiguedad_max_meses": null,
+     "cita": "Alta y último recibo del impuesto de actividades económicas, cuando legalmente sea exigible, o certificado de exención o declaración responsable del representante legal"
+    },
+    {
+     "nombre": "Certificado bancario de titularidad y datos de la cuenta",
+     "tipo": "titularidad_bancaria",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Certificado actualizado, emitido por la entidad bancaria en la que se solicite el ingreso de la ayuda, en el que conste el código de la cuenta corriente, con mención de sucursal y dirección, y del titular de la misma"
+    },
+    {
+     "nombre": "Declaración responsable de otras subvenciones",
+     "tipo": "declaracion_responsable",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Declaración responsable sobre solicitud de otras subvenciones para la misma finalidad"
+    },
+    {
+     "nombre": "Declaración responsable de no estar incurso en prohibiciones",
+     "tipo": "declaracion_responsable",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Declaración responsable de no encontrarse incurso en ninguna de las prohibiciones para ser persona beneficiaria"
+    },
+    {
+     "nombre": "Declaración responsable de fecha de inicio de ejecución",
+     "tipo": "declaracion_responsable",
+     "obligatorio": false,
+     "condicion": "en el caso de actuaciones iniciadas con anterioridad a la publicación de la orden de convocatoria",
+     "antiguedad_max_meses": null,
+     "cita": "Declaración responsable de la fecha de inicio de la ejecución de la actuación subvencionable"
+    },
+    {
+     "nombre": "Declaración responsable de necesidad de pago anticipado",
+     "tipo": "declaracion_responsable",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Declaración sobre imposibilidad de realizar la ejecución de la actividad o proyecto inherente a la subvención sin la entrega de fondos públicos como financiación previa"
+    },
+    {
+     "nombre": "Memoria técnica del proyecto",
+     "tipo": "memoria_proyecto",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Memoria técnica, explicativa y justificativa del proyecto o actuación para cuya realización se solicita la subvención"
+    },
+    {
+     "nombre": "Solicitud firmada por el representante legal",
+     "tipo": "solicitud",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "junto con la solicitud firmada por el representante legal de la entidad solicitante"
+    }
+   ],
+   "documentos_fuente": "Texto Convocatoria BDNS.pdf",
    "descripcion_reto": "Comunidad de Madrid · Orden 1689/2026, proyectos ambientales de entidades sin ánimo de lucro",
    "filtros": [
     {
