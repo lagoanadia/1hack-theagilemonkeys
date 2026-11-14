@@ -1,0 +1,25 @@
+# Carga o quita los datos de prueba de la web publicada (POST/DELETE /api/demo/datos).
+# Usa la contraseña guardada en Secrets (CLAVE_EQUIPO) y la dirección de RADAR_API_URL.
+name: Datos de prueba
+on:
+  workflow_dispatch:
+    inputs:
+      accion:
+        description: "cargar o quitar"
+        required: true
+        default: cargar
+        type: choice
+        options: [cargar, quitar]
+jobs:
+  datos:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Llamar a la web
+        env:
+          API: ${{ vars.RADAR_API_URL }}
+          CLAVE: ${{ secrets.CLAVE_EQUIPO }}
+          ACCION: ${{ inputs.accion }}
+        run: |
+          metodo=POST; [ "$ACCION" = "quitar" ] && metodo=DELETE
+          curl -sS -X "$metodo" -H "x-clave-equipo: $CLAVE" "${API%/}/api/demo/datos" -w "\nHTTP %{http_code}\n" | tee salida.txt
+          grep -qE "HTTP (200|201|409)" salida.txt
