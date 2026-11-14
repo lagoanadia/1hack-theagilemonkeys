@@ -277,3 +277,22 @@ html,body{margin:0}
   .i-pub .i-grid3{grid-template-columns:1fr}
   .i-pub .nums{flex-wrap:wrap;gap:18px}
 }
+
+/* Preparar papeles: vista dividida con arrastrar y soltar */
+.i-split{display:grid;grid-template-columns:1fr 380px;gap:18px;align-items:start}
+.i-hueco{transition:background .15s,box-shadow .15s}
+.i-hueco.compatible{background:#F3F8EF}
+.i-hueco.sobre{background:#E7F2E0;box-shadow:inset 0 0 0 2px var(--gr)}
+.i-hueco .txt em.sug{color:var(--gr-d)}
+.i-hueco .txt em.cita{color:var(--mut);font-weight:500;font-style:italic}
+.i-hueco .acts{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+.i-hueco select.i-up{max-width:150px}
+.i-opc{font-weight:500;color:var(--mut);font-size:14px}
+.i-plant{padding:14px 18px 10px;border-top:1px solid var(--ln);display:flex;flex-direction:column;gap:6px}
+.i-plant a{display:inline-flex;gap:6px;align-items:center;color:var(--nv);font-weight:600;font-size:14.5px}
+.i-biblio{padding:16px 16px 12px}
+.i-bdoc{display:grid;grid-template-columns:22px 1fr auto;gap:10px;align-items:center;padding:10px 12px;border:1.5px solid var(--ln);border-radius:14px;margin-top:8px;background:#fff;cursor:grab}
+.i-bdoc:active{cursor:grabbing}
+.i-bdoc b{display:block;font-size:15px}
+.i-bdoc small{color:var(--mut);font-size:13px}
+@media (max-width:1100px){.i-split{grid-template-columns:1fr}}

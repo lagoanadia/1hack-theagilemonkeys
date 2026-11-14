@@ -69,3 +69,26 @@ export async function api(ruta, { metodo = "GET", datos, token = sesionGuardada(
   if (!r.ok) throw new Error(cuerpo.error || `Error ${r.status}`);
   return cuerpo;
 }
+
+// Subir un archivo a la biblioteca de documentos (multipart). Devuelve { ok, id }.
+export async function subirDocumento({ archivo, nombre, tipo, emitido, caduca }) {
+  const form = new FormData();
+  form.append("archivo", archivo);
+  form.append("nombre", nombre || archivo.name);
+  form.append("tipo", tipo || "otro");
+  if (emitido) form.append("emitido", emitido);
+  if (caduca) form.append("caduca", caduca);
+  const token = sesionGuardada();
+  const r = await fetch("/api/documentos", {
+    method: "POST",
+    headers: {
+      ...(token ? { "x-clave-equipo": token } : {}),
+      ...(nombreGuardado() ? { "x-autor": encodeURIComponent(nombreGuardado()) } : {}),
+    },
+    body: form,
+  });
+  const cuerpo = await r.json().catch(() => ({}));
+  if (r.status === 401 || r.status === 403) throw new ErrorSesion(cuerpo.error || "Sesión no válida");
+  if (!r.ok) throw new Error(cuerpo.error || `Error ${r.status}`);
+  return cuerpo;
+}

@@ -1,40 +1,55 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
 import { island } from './lp.js'
-import { validarCif } from './cif.js'
+import { ErrorSesion, api, sesionGuardada, subirDocumento } from '../api.js'
 import { fechaCorta } from '../datos.js'
 
-// Pantalla «Preparar papeles». Real: la convocatoria, sus requisitos y el botón «Ya la hemos presentado»
-// (PUT estado: "presentada"). Los documentos salen de la lista del perfil (GET /api/perfil → documentos).
-// TODO backend: documentos que pide CADA convocatoria (el radar aún no los extrae), subida y
-// verificación de archivos. Hoy la comprobación se hace en el navegador y no se guarda ningún archivo.
-const quitarTildes = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-const VACIAS = ['de', 'del', 'la', 'el', 'los', 'las', 'y', 'en', 'al', 'para', 'por']
-async function verificar(file, doc) {
-  const checks = [], ext = file.name.split('.').pop().toLowerCase()
-  const firmas = { pdf: '%PDF', png: '\x89PNG', jpg: '\xff\xd8', jpeg: '\xff\xd8', docx: 'PK' }
-  if (!firmas[ext]) return { estado: 'error', checks: [['no', 'Formato no admitido. Subid PDF, JPG, PNG o Word (.docx).']] }
-  checks.push(['ok', `Formato ${ext.toUpperCase()}`])
-  if (file.size < 1024) return { estado: 'error', checks: [...checks, ['no', 'El archivo está vacío o casi vacío.']] }
-  if (file.size > 10 * 1024 * 1024) return { estado: 'error', checks: [...checks, ['no', 'Pesa más de 10 MB: la mayoría de sedes no lo aceptan.']] }
-  checks.push(['ok', `Tamaño correcto (${file.size < 1048576 ? Math.round(file.size / 1024) + ' KB' : (file.size / 1048576).toFixed(1) + ' MB'})`])
-  const bytes = new Uint8Array(await file.slice(0, 300000).arrayBuffer())
-  const texto = Array.from(bytes, b => String.fromCharCode(b)).join('')
-  if (!texto.startsWith(firmas[ext])) return { estado: 'error', checks: [...checks, ['no', 'El archivo está dañado o no es lo que dice su extensión.']] }
-  checks.push(['ok', 'Se puede abrir'])
-  const claves = quitarTildes(doc).split(/\s+/).filter(w => w.length > 3 && !VACIAS.includes(w))
-  const donde = quitarTildes(file.name + ' ' + (ext === 'pdf' ? texto : ''))
-  const hallada = claves.find(k => donde.includes(k.slice(0, 6)))
-  if (hallada) { checks.push(['ok', `Parece «${doc}»`]); return { estado: 'ok', checks } }
-  checks.push(['duda', `No encontramos «${claves[0] || doc}» en el archivo. Comprobad que es el documento correcto.`])
-  return { estado: 'duda', checks }
-}
+// Pantalla «Preparar papeles», con vista dividida:
+//  · Izquierda: lo que pide ESTA convocatoria (el radar lo saca del PDF oficial: a.documentos_requeridos),
+//    con la frase de donde sale y los modelos oficiales (a.plantillas).
+//  · Derecha: la biblioteca de Reforesta (GET /api/documentos), lo que siempre se pide.
+//  · Arrastrar un documento de la derecha a un hueco de la izquierda lo asigna
+//    (PUT /api/solicitudes/convocatoria/:id/documentos/:hueco). También se puede soltar un archivo
+//    del ordenador en un hueco, o usar el selector «Asignar» (accesible con teclado).
+// Si el radar no encontró la lista en el PDF, se usa una lista general y se avisa.
 
-// Documentos de ejemplo de esta solicitud: se guardan solo en este navegador.
-const claveDocs = id => `radar-ejemplo-docs-${id}`
-function leerDocs(id, perfil) {
-  try { const g = JSON.parse(localStorage.getItem(claveDocs(id))); if (Array.isArray(g)) return g } catch { /* usar los del perfil */ }
-  return (perfil?.documentos || []).map(d => [d.nombre, d.tengo ? (d.caduca ? `Válido hasta ${fechaCorta(d.caduca)}` : 'Guardado en vuestro perfil') : 'Pendiente de conseguir', Boolean(d.tengo)])
+const LISTA_GENERAL = [
+  { nombre: 'Estatutos inscritos', tipo: 'estatutos', obligatorio: true },
+  { nombre: 'CIF de la entidad', tipo: 'cif', obligatorio: true },
+  { nombre: 'Acreditación del representante legal', tipo: 'representante_legal', obligatorio: true },
+  { nombre: 'Certificado de estar al corriente con Hacienda', tipo: 'cert_hacienda', obligatorio: true },
+  { nombre: 'Certificado de estar al corriente con la Seguridad Social', tipo: 'cert_seg_social', obligatorio: true },
+  { nombre: 'Memoria del proyecto', tipo: 'memoria_proyecto', obligatorio: true },
+  { nombre: 'Presupuesto del proyecto', tipo: 'presupuesto', obligatorio: true },
+]
+const TIPO_NOMBRE = {
+  estatutos: 'Estatutos', registro_entidad: 'Inscripción en registro', cif: 'CIF', representante_legal: 'Representante legal',
+  cert_hacienda: 'Certificado de Hacienda', cert_seg_social: 'Certificado de la Seg. Social', declaracion_responsable: 'Declaración responsable',
+  memoria_actividades: 'Memoria de actividades', memoria_proyecto: 'Memoria del proyecto', presupuesto: 'Presupuesto',
+  cuentas_anuales: 'Cuentas anuales', titularidad_bancaria: 'Titularidad bancaria', permiso_propietario: 'Permiso del propietario',
+  solicitud: 'Solicitud', anexo: 'Anexo', otro: 'Otro',
+}
+// Documentos propios de cada solicitud: no tienen sentido en la biblioteca general.
+const PROPIOS = ['memoria_proyecto', 'presupuesto', 'permiso_propietario', 'solicitud', 'anexo']
+const quitarTildes = t => t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
+const clave = r => `${r.tipo}-${quitarTildes(r.nombre).replace(/[^a-z0-9]+/g, '-')}`.slice(0, 80).replace(/-+$/, '')
+const MESL = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+
+// ¿Sirve este documento para esta convocatoria? Caducidad y antigüedad máxima.
+function avisoValidez(doc, req, plazo) {
+  if (!doc) return null
+  const hoy = new Date(new Date().toDateString())
+  if (doc.caduca) {
+    const c = new Date(`${doc.caduca}T00:00:00`)
+    if (c < hoy) return `Caducó el ${fechaCorta(doc.caduca)}: pedid uno nuevo`
+    if (plazo && c < plazo) return `Caduca el ${fechaCorta(doc.caduca)}, antes del cierre`
+  }
+  if (req.antiguedad_max_meses && doc.emitido) {
+    const limite = new Date(`${doc.emitido}T00:00:00`)
+    limite.setMonth(limite.getMonth() + req.antiguedad_max_meses)
+    if (limite < (plazo || hoy)) return `Debe tener menos de ${req.antiguedad_max_meses} meses (es del ${fechaCorta(doc.emitido)})`
+  }
+  return null
 }
 
 export default function Presentar({ a, top, ir, presentadas, objetivo, perfil, presentar }) {
@@ -42,70 +57,135 @@ export default function Presentar({ a, top, ir, presentadas, objetivo, perfil, p
   return <Papeles key={a.id} {...{ a, top, ir, presentadas, objetivo, perfil, presentar }} />
 }
 
-function Papeles({ a, top, ir, presentadas, objetivo, perfil, presentar }) {
-  const [docs, setDocsState] = useState(() => leerDocs(a.id, perfil))
-  const [revisando, setRevisando] = useState(null)
-  const [abierto, setAbierto] = useState(null)
-  const setDocs = d => { setDocsState(d); try { localStorage.setItem(claveDocs(a.id), JSON.stringify(d)) } catch { /* sin almacenamiento */ } }
-  const toggle = i => setDocs(docs.map((d, j) => (j === i ? [d[0], d[1], !d[2]] : d)))
-  const tiene = docs.map((d, i) => [d, i]).filter(([d]) => d[2]), falta = docs.map((d, i) => [d, i]).filter(([d]) => !d[2])
-  const subir = async (i, file) => {
-    if (!file) return
-    setRevisando(i)
-    const r = await verificar(file, docs[i][0])
-    setRevisando(null)
-    setDocs(docs.map((d, j) => (j === i ? [d[0], d[1], r.estado !== 'error', { nombre: file.name, ...r }] : d)))
-  }
-  const MESL = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
-  const estadoDoc = d => (!d[2] ? 'falta' : d[3]?.estado === 'duda' ? 'revisar' : 'listo')
-  const orden = { falta: 0, revisar: 1, listo: 2 }
-  const lista = docs.map((d, i) => [d, i]).sort((x, y) => orden[estadoDoc(x[0])] - orden[estadoDoc(y[0])])
-  const setDoc = (i, cambios) => setDocs(docs.map((d, j) => (j === i ? Object.assign([...d], cambios) : d)))
-  const Doc = ([d, i]) => {
-    const f = d[3], e = revisando === i ? 'comprobando' : estadoDoc(d)
-    const avisos = f ? f.checks.filter(c => c[0] !== 'ok') : []
-    const etiqueta = { falta: 'Falta', revisar: 'Revisadlo', listo: 'Listo', comprobando: 'Comprobando…' }[e]
-    return (
-      <div key={i} className={`i-doc ${e}`}>
-        <button className="ico" title="Marcar a mano" onClick={() => toggle(i)}>{e === 'listo' ? <Icon n="check" s={16} w={3} /> : e === 'revisar' ? '!' : null}</button>
-        <div className="txt">
-          <b>{d[0]}</b>
-          <small>{f ? <><Icon n="doc" s={13} /> {f.nombre}{e === 'listo' && ' · verificado'}</> : d[1]}{d[4]?.ok && ' · revisado por vosotros'}</small>
-          {e !== 'comprobando' && avisos.map(([k, t]) => <em key={t} className={k}>{t}</em>)}
-        </div>
-        <span className="st">{etiqueta}</span>
-        <div className="acts">{e !== 'falta' && e !== 'comprobando' && <button className={`i-up ${abierto === i ? 'on' : ''}`} onClick={() => setAbierto(abierto === i ? null : i)}><Icon n="eye" s={15} />Revisar</button>}
-          <label className={`i-up ${e === 'falta' ? 'p' : ''}`}><Icon n={f ? 'undo' : 'plus'} s={15} w={2.4} />{f ? 'Cambiar' : 'Subir'}<input type="file" accept=".pdf,.jpg,.jpeg,.png,.docx" hidden onChange={ev => { subir(i, ev.target.files[0]); ev.target.value = '' }} /></label></div>
-        {abierto === i && <Revision d={d} cif={perfil?.cif} cerrar={() => setAbierto(null)} set={c => setDoc(i, c)} />}
-      </div>
-    )
-  }
-  const n = falta.length
-  const dudas = (a.requisitos || []).filter(r => r.estado === 'duda' || r.estado === 'no')
+function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
+  const [biblio, setBiblio] = useState(null)
+  const [almacen, setAlmacen] = useState(false)
+  const [asig, setAsig] = useState({})
+  const [error, setError] = useState('')
+  const [ocupado, setOcupado] = useState(null)
+  const [arrastrando, setArrastrando] = useState(null)   // tipo del documento que se arrastra
+  const [sobre, setSobre] = useState(null)
+
+  const reqs = useMemo(() => (a.documentos_requeridos?.length ? a.documentos_requeridos : LISTA_GENERAL)
+    .map(r => ({ ...r, clave: clave(r) })), [a.documentos_requeridos])
+  const general = !a.documentos_requeridos?.length
   const plazo = a.plazo ? new Date(`${a.plazo}T00:00:00`) : null
+
+  const cargar = useCallback(async () => {
+    try {
+      const [b, s] = await Promise.all([api('/documentos'), api(`/solicitudes/convocatoria/${a.id}/documentos`)])
+      setBiblio(b.documentos); setAlmacen(b.almacen)
+      setAsig(Object.fromEntries(s.map(x => [x.requisito, x])))
+      setError('')
+    } catch (e) { setError(e instanceof ErrorSesion ? 'La sesión ha caducado: volved a entrar.' : e.message) }
+  }, [a.id])
+  useEffect(() => { cargar() }, [cargar])
+
+  const asignar = async (req, documentoId) => {
+    setOcupado(req.clave)
+    try { await api(`/solicitudes/convocatoria/${a.id}/documentos/${req.clave}`, { metodo: 'PUT', datos: { documento_id: documentoId } }); await cargar() }
+    catch (e) { setError(e.message) }
+    setOcupado(null)
+  }
+  // Un archivo del ordenador: va a la biblioteca (con el tipo del hueco) y se asigna al hueco.
+  const subirA = async (req, archivo) => {
+    if (!archivo) return
+    setOcupado(req.clave)
+    try {
+      const r = almacen
+        ? await subirDocumento({ archivo, nombre: req.nombre, tipo: req.tipo })
+        : await api('/documentos', { metodo: 'POST', datos: { nombre: `${req.nombre} (${archivo.name})`, tipo: req.tipo } })
+      await api(`/solicitudes/convocatoria/${a.id}/documentos/${req.clave}`, { metodo: 'PUT', datos: { documento_id: r.id } })
+      await cargar()
+    } catch (e) { setError(e.message) }
+    setOcupado(null)
+  }
+
+  const docDe = id => (biblio || []).find(d => d.id === id)
+  const filas = reqs.map(r => {
+    const s = asig[r.clave], doc = s?.documento_id ? docDe(s.documento_id) : null
+    const sugerido = !doc && !PROPIOS.includes(r.tipo) ? (biblio || []).find(d => d.tipo === r.tipo) : null
+    const aviso = avisoValidez(doc, r, plazo)
+    const estado = s?.estado === 'no_aplica' ? 'no_aplica' : doc ? (aviso ? 'revisar' : 'listo') : 'falta'
+    return { r, s, doc, sugerido, aviso, estado }
+  })
+  const obligatorios = filas.filter(f => f.r.obligatorio !== false && f.estado !== 'no_aplica')
+  const listos = obligatorios.filter(f => f.estado === 'listo').length
+  const faltan = obligatorios.length - listos
+
+  const soltar = (ev, req) => {
+    ev.preventDefault(); setSobre(null)
+    const archivo = ev.dataTransfer.files?.[0]
+    if (archivo) return subirA(req, archivo)
+    const id = Number(ev.dataTransfer.getData('text/documento'))
+    if (id) asignar(req, id)
+  }
+
   return (
     <>
       {top('Convocatorias · preparar')}
       <button className="i-link" style={{ marginBottom: 8, alignSelf: 'flex-start' }} onClick={() => ir('preparando')}><Icon n="back" s={16} w={2.4} />Volver a Preparando</button>
-      <div className="i-two">
-        <div>
-          <h2>¿Qué hace falta para presentarla?</h2>
-          <p className="i-sub">{a.titulo.length > 120 ? `${a.titulo.slice(0, 120)}…` : a.titulo} · {a.organo}</p>
-          <div className="i-card i-docs">
-            <div className="i-docs-h"><b>Tenéis {tiene.length} de {docs.length} documentos</b><span>{docs.length === 0 ? 'Añadid los documentos de la entidad en el Perfil.' : n ? `Os ${n === 1 ? 'falta 1' : `faltan ${n}`}. Subidlos y el radar comprobará que son válidos.` : '¡Lo tenéis todo! Ya podéis presentarla.'} <span className="i-ej">Ejemplo</span></span></div>
-            {lista.map(Doc)}
-            <p className="i-priv"><Icon n="info" s={14} />Lista de documentos de vuestro perfil, no la que pide esta convocatoria (aún no la extrae el radar). Los archivos se comprueban en vuestro ordenador y no se envían a ningún sitio.</p>
+      <h2 style={{ margin: '0 0 2px' }}>¿Qué hace falta para presentarla?</h2>
+      <p className="i-sub">{a.titulo.length > 120 ? `${a.titulo.slice(0, 120)}…` : a.titulo} · {a.organo}</p>
+      {error && <p className="i-err" role="alert">{error} <button className="i-link" onClick={cargar}>Reintentar</button></p>}
+
+      <div className="i-split">
+        {/* IZQUIERDA: lo que pide esta convocatoria */}
+        <div className="i-card i-docs">
+          <div className="i-docs-h">
+            <b>{biblio ? `Tenéis ${listos} de ${obligatorios.length}` : 'Cargando…'}</b>
+            <span>{general
+              ? 'El radar no encontró la lista en el PDF de esta convocatoria: es una lista general. Revisad las bases.'
+              : `Lo que pide esta convocatoria${a.documentos_fuente ? ` (sacado de «${a.documentos_fuente}»)` : ''}. Arrastrad aquí vuestros documentos.`}</span>
           </div>
-          {a.requisitos?.length > 0 && (
-            <div className="i-card" style={{ padding: '16px 22px', marginTop: 14 }}>
-              <b style={{ fontSize: 18 }}>Requisitos de la convocatoria</b>
-              <ul className="i-req" style={{ marginTop: 10 }}>{a.requisitos.map(r => <li key={r.texto} className={r.estado}><i>{r.estado === 'cumple' ? '✓' : r.estado === 'no' ? '✗' : '?'}</i>{r.texto}</li>)}</ul>
+          {filas.map(({ r, doc, sugerido, aviso, estado }) => (
+            <div key={r.clave}
+              className={`i-doc i-hueco ${ocupado === r.clave ? 'comprobando' : estado} ${sobre === r.clave ? 'sobre' : ''} ${arrastrando && arrastrando === r.tipo ? 'compatible' : ''}`}
+              onDragOver={ev => { ev.preventDefault(); setSobre(r.clave) }} onDragLeave={() => setSobre(null)} onDrop={ev => soltar(ev, r)}>
+              <span className="ico" aria-hidden="true">{estado === 'listo' ? <Icon n="check" s={16} w={3} /> : estado === 'revisar' ? '!' : null}</span>
+              <div className="txt">
+                <b>{r.nombre}{r.obligatorio === false && <span className="i-opc"> · opcional</span>}</b>
+                <small>{doc ? <><Icon n="doc" s={13} /> {doc.nombre}{doc.tiene_archivo ? '' : ' (sin archivo)'}</> : r.condicion || TIPO_NOMBRE[r.tipo]}</small>
+                {aviso && <em className="duda">{aviso}</em>}
+                {sugerido && <em className="sug">Tenéis «{sugerido.nombre}» en la biblioteca <button className="i-link" onClick={() => asignar(r, sugerido.id)}>Usarlo</button></em>}
+                {r.cita && <em className="cita">«{r.cita}»</em>}
+              </div>
+              <div className="acts">
+                <select className="i-up" aria-label={`Asignar un documento a ${r.nombre}`} value={doc?.id || ''} onChange={e => asignar(r, e.target.value ? Number(e.target.value) : null)}>
+                  <option value="">{doc ? 'Quitar' : 'Asignar…'}</option>
+                  {(biblio || []).map(d => <option key={d.id} value={d.id}>{d.nombre}</option>)}
+                </select>
+                <label className={`i-up ${estado === 'falta' ? 'p' : ''}`}><Icon n="plus" s={15} w={2.4} />Subir<input type="file" accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx,.odt,.ods" hidden onChange={ev => { subirA(r, ev.target.files[0]); ev.target.value = '' }} /></label>
+              </div>
+            </div>
+          ))}
+          {a.plantillas?.length > 0 && (
+            <div className="i-plant"><b>Modelos oficiales para rellenar</b>
+              {a.plantillas.map(p => <a key={p.url} href={p.url} target="_blank" rel="noopener noreferrer"><Icon n="doc" s={14} /> {p.nombre}</a>)}
             </div>
           )}
-          {dudas.length > 0 && <div className="i-tip"><span className="ic"><Icon n="info" s={20} w={2.2} /></span><div><b>Antes de presentarla, comprobad</b>{dudas.map(r => r.texto).join(' · ')}</div></div>}
-          {a.cita && <div className="i-cita" style={{ marginTop: 14 }}>«…<mark>{a.cita}</mark>…»<small><Icon n="verified" s={14} />Comprobado en el texto oficial</small></div>}
         </div>
+
+        {/* DERECHA: biblioteca de Reforesta */}
         <div className="i-side">
+          <div className="i-card i-biblio">
+            <b>Documentos de Reforesta</b>
+            <p className="i-sub" style={{ margin: '2px 0 10px' }}>Los que se piden siempre. Arrastradlos a la izquierda.</p>
+            {biblio && biblio.length === 0 && <p className="i-sub">Aún no hay ninguno: subid uno en cualquier hueco de la izquierda.</p>}
+            {(biblio || []).map(d => {
+              const caducado = d.caduca && new Date(`${d.caduca}T00:00:00`) < new Date(new Date().toDateString())
+              return (
+                <div key={d.id} className="i-bdoc" draggable
+                  onDragStart={ev => { ev.dataTransfer.setData('text/documento', String(d.id)); setArrastrando(d.tipo) }}
+                  onDragEnd={() => { setArrastrando(null); setSobre(null) }}>
+                  <Icon n="doc" s={18} />
+                  <div><b>{d.nombre}</b><small>{TIPO_NOMBRE[d.tipo]}{d.caduca ? ` · ${caducado ? 'caducó' : 'caduca'} ${fechaCorta(d.caduca)}` : ''}</small></div>
+                  {d.tiene_archivo && <a className="i-link" href={`/api/archivos/${d.id}`} onClick={ev => descargar(ev, d)} aria-label={`Descargar ${d.nombre}`}>↓</a>}
+                </div>
+              )
+            })}
+            {!almacen && <p className="i-priv"><Icon n="info" s={14} />Aún no hay almacén de archivos: se guarda qué documento es y su caducidad, sin el archivo.</p>}
+          </div>
           <div className="i-card i-dl">
             <span className="i-k">Plazo</span>
             <div className="big">{a.dias == null ? 'Sin fecha' : a.dias < 0 ? 'Cerrada' : `${a.dias} días`}</div>
@@ -114,7 +194,7 @@ function Papeles({ a, top, ir, presentadas, objetivo, perfil, presentar }) {
             <p className="tree">Al presentarla plantáis el árbol n.º {presentadas + 1}</p>
             <button className="i-btn p" style={{ width: '100%' }} onClick={() => presentar(a)}><Icon n="check" s={19} w={2.6} />Ya la hemos presentado</button>
             {a.url && <a className="i-link" style={{ marginTop: 10 }} href={a.url} target="_blank" rel="noopener noreferrer">Ver convocatoria en la BDNS ↗</a>}
-            {n > 0 && <small className="warn">Aún os {n === 1 ? 'falta 1 documento' : `faltan ${n} documentos`}</small>}
+            {faltan > 0 && <small className="warn">Aún os {faltan === 1 ? 'falta 1 documento' : `faltan ${faltan} documentos`}</small>}
           </div>
         </div>
       </div>
@@ -122,30 +202,13 @@ function Papeles({ a, top, ir, presentadas, objetivo, perfil, presentar }) {
   )
 }
 
-function Revision({ d, cif: cifPerfil, cerrar, set }) {
-  const esCif = /cif/i.test(d[0]), f = d[3]
-  const [cif, setCif] = useState(d[4]?.valor || cifPerfil || '')
-  const [ok, msg] = validarCif(cif)
-  const confirmar = () => { set({ 2: true, 4: { ok: true, valor: esCif ? cif.toUpperCase() : undefined } }); cerrar() }
-  return (
-    <div className="i-rev">
-      {esCif ? (<>
-        <label className="lab">CIF de la entidad</label>
-        <input className={`i-in ${ok ? 'ok' : 'no'}`} value={cif} onChange={e => setCif(e.target.value)} spellCheck="false" />
-        <p className={ok ? 'okm' : 'nom'}>{ok ? '✓ ' : '✕ '}{msg}</p>
-        <p className="mut">Sale de vuestro perfil. Si lo cambiáis aquí, solo se usa en esta pantalla; para cambiarlo de verdad, editadlo en el Perfil.</p>
-      </>) : f ? (<>
-        <p className="lab">Comprobaciones de «{f.nombre}»</p>
-        {f.checks.map(([k, t]) => <p key={t} className={k === 'ok' ? 'okm' : k === 'duda' ? 'dum' : 'nom'}>{k === 'ok' ? '✓' : k === 'duda' ? '!' : '✕'} {t}</p>)}
-        <p className="mut">El radar comprueba formato, tamaño y que parezca el documento. Revisad vosotros fechas y firmas.</p>
-      </>) : (<>
-        <p className="lab">{d[1]}</p>
-        <p className="mut">Lo tenéis guardado en vuestro perfil. Comprobad que sigue vigente antes de presentarlo.</p>
-      </>)}
-      <div className="row">
-        <button className="i-btn sm p" disabled={esCif && !ok} style={esCif && !ok ? { opacity: .45, cursor: 'not-allowed' } : null} onClick={confirmar}><Icon n="check" s={16} w={2.6} />Es correcto</button>
-        <button className="i-btn sm" onClick={() => { set({ 2: false, 3: undefined, 4: undefined }); cerrar() }}><Icon n="x" s={16} w={2.4} />No lo tenemos</button>
-      </div>
-    </div>
-  )
+// La descarga necesita la contraseña en la cabecera: se pide con fetch y se guarda como archivo.
+async function descargar(ev, d) {
+  ev.preventDefault()
+  const r = await fetch(`/api/archivos/${d.id}`, { headers: { 'x-clave-equipo': sesionGuardada() } })
+  if (!r.ok) return
+  const url = URL.createObjectURL(await r.blob())
+  const enlace = Object.assign(document.createElement('a'), { href: url, download: d.archivo_nombre || d.nombre })
+  enlace.click()
+  setTimeout(() => URL.revokeObjectURL(url), 2000)
 }
