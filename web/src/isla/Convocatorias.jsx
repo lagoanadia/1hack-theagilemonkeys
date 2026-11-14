@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
+import { useRef, Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
 import { plant } from './lp.js'
 import { api } from '../api.js'
@@ -184,7 +184,6 @@ export function Descarte({ a, cerrar, guardar }) {
 // tarjetas compactas que se arrastran de una sección a otra. Las secciones y el orden se guardan
 // en GET/PUT /api/tablero (ver tablero.js).
 const porPlazo = (a, b) => (a.plazo || '9999').localeCompare(b.plazo || '9999')
-const urgente = a => a.dias != null && a.dias >= 0 && a.dias <= 15
 
 // Barra de documentos: subidos / los que pide la convocatoria. Ámbar mientras faltan, verde al completar.
 function Prog({ p }) {
@@ -221,6 +220,48 @@ function Rejilla({ izq, items, card, vacio }) {
   )
 }
 
+// ---------- Tarjetas «el plazo manda» (opción B): franja de color con la cuenta atrás ----------
+// Organismo abreviado para que quepa en la burbuja (el nombre completo sale al pasar el ratón).
+function orgCorto(o) {
+  const t = (o || '').split('·')[0].trim()
+  const n = t.normalize('NFD').replace(/[̀-ͯ]/g, '').toUpperCase()
+  if (/TRANSICION ECOLOGICA/.test(n)) return 'MITECO'
+  if (/^FUNDACION BIODIVERSIDAD/.test(n)) return 'F. Biodiversidad'
+  if (/^COMUNIDAD DE MADRID/.test(n)) return 'C. Madrid'
+  const cap = x => x.toLowerCase().replace(/(^|\s)(\p{L})/gu, (m, a, b) => a + b.toUpperCase()).replace(/\s(De|Del|La|Las|Los|Y|E)\b/g, m => m.toLowerCase())
+  const m = t.match(/^(AYUNTAMIENTO|DIPUTACI[ÓO]N PROVINCIAL|JUNTA|MINISTERIO|CONSEJER[ÍI]A|CONFEDERACI[ÓO]N HIDROGR[ÁA]FICA)\s+(DE(L| LA| LOS)?\s+)?(.+)$/i)
+  const pre = { AYUNTAMIENTO: 'Ayto.', JUNTA: 'Junta', MINISTERIO: 'Min.' }
+  if (m) { const k = m[1].toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); return `${pre[k] || (k.startsWith('DIPUTACION') ? 'Dip.' : k.startsWith('CONSEJERIA') ? 'Cons.' : 'CH')} ${cap(m[4])}`.slice(0, 26) }
+  const c = cap(t)
+  return c.length > 24 ? `${c.slice(0, 23)}…` : c
+}
+const tonoDias = d => (d == null ? 'neutro' : d <= 7 ? 'hot' : d <= 30 ? 'am' : 'ok')
+const importeCorto = n => (n == null ? null : n >= 1e6 ? `${(n / 1e6).toLocaleString('es-ES', { maximumFractionDigits: 1 })} M€` : `${n.toLocaleString('es-ES')} €`)
+
+// Menú ⋯ de la tarjeta: lo secundario (descartar, ver convocatoria, cambiar fecha…).
+function MenuMas({ children }) {
+  const [abierto, setAbierto] = useState(false)
+  const caja = useRef(null)
+  useEffect(() => {
+    if (!abierto) return
+    const fuera = e => { if (!caja.current?.contains(e.target)) setAbierto(false) }
+    const esc = e => { if (e.key === 'Escape') setAbierto(false) }
+    document.addEventListener('pointerdown', fuera); document.addEventListener('keydown', esc)
+    return () => { document.removeEventListener('pointerdown', fuera); document.removeEventListener('keydown', esc) }
+  }, [abierto])
+  return (
+    <div className="tb-menu" ref={caja}>
+      <button className="tb-ib" aria-label="Más opciones" aria-expanded={abierto} onClick={() => setAbierto(!abierto)}><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2" /><circle cx="12" cy="12" r="2" /><circle cx="19" cy="12" r="2" /></svg></button>
+      {abierto && <div className="tb-pop" role="menu" onClick={e => { if (e.target.closest('button,a')) setAbierto(false) }}>{children}</div>}
+    </div>
+  )
+}
+function Segmentos({ hechos, total }) {
+  if (!total) return null
+  if (total > 16) return <div className="tb-barra"><i style={{ width: `${(hechos / total) * 100}%` }} /></div>
+  return <div className="tb-seg" aria-hidden="true">{Array.from({ length: total }, (_, i) => <i key={i} className={i < hechos ? 'on' : ''} />)}</div>
+}
+
 function Mas({ children, texto = 'Más detalles' }) {
   const [abierto, setAbierto] = useState(false)
   return (
@@ -232,38 +273,52 @@ function Mas({ children, texto = 'Más detalles' }) {
 }
 
 // En proceso: las que habéis elegido presentar. «Presentar» las pasa a Presentado.
-function Preparando({ lista, ir, seg, setDescartando, cambiarEstado, avisar }) {
+function Preparando({ lista, ir, setDescartando, cambiarEstado, avisar }) {
   const prog = useProgresoDocs(lista)
   const items = useMemo(() => [...lista].sort(porPlazo), [lista])
   return (
     <Rejilla items={items} vacio="Nada en proceso. Las que marquéis «Presentar» en el Radar aparecerán aquí."
       card={a => {
-        const s = segDe(seg, a.id), p = prog[a.id], listo = Boolean(p) && p.hechos >= p.total
+        const p = prog[a.id], listo = Boolean(p) && p.hechos >= p.total
         // Hasta que no estén todos los documentos no se puede presentar: avisa con «Requisitos incompletos».
         const presentar = () => {
           if (listo) return cambiarEstado(a, 'presentada')
           avisar(p ? `Requisitos incompletos: faltan ${p.total - p.hechos} ${p.total - p.hechos === 1 ? 'documento' : 'documentos'}` : 'Estamos comprobando los papeles. Probad en un momento', ['Ver papeles', () => ir('presentar', a.id)])
         }
+        const total = p?.total || 0, hechos = p?.hechos || 0
         return (
-          <article className="tc">
-            <div className="tc-tags">{a.demo && <span className="i-ej">Ejemplo real</span>}<span className="i-tag" title={a.organo}>{a.organo}</span></div>
-            <h4 title={a.titulo}>{tituloCorto(a)}</h4>
-            <div className="tc-cifras">
-              <div><span>Importe</span><b className={a.importe ? '' : 'i-ni'}>{a.importe || 'No indicado'}</b></div>
-              <div className={urgente(a) ? 'hot' : ''}><span>Plazo</span><b>{plazoTxt(a)}</b>{a.plazo && <small>{fechaCorta(a.plazo)}</small>}</div>
+          <article className="tb">
+            <div className={`tb-franja ${tonoDias(a.dias)}`}>
+              {a.plazo ? <><b className="n">{a.dias < 0 ? '—' : a.dias}</b><small>{a.dias === 1 ? 'día' : 'días'}</small><small className="f">{fechaCorta(a.plazo)}</small></> : <><Icon n="clock" s={24} /><small>Sin fecha</small></>}
             </div>
-            <Prog p={p} />
-            <div className="tc-acc">
-              <button className="i-link" onClick={() => ir('presentar', a.id)}><Icon n="doc" s={16} />Ver papeles</button>
-              <span style={{ flex: 1 }} />
-              <button className={`i-btn sm ${listo ? 'p' : 'bloq'}`} aria-disabled={!listo} title={listo ? 'Tenéis todos los documentos' : 'Faltan documentos: subidlos antes de presentar'} onClick={presentar}>{!listo && <Icon n="alert" s={16} />}Presentar</button>
+            <div className="tb-cuerpo">
+              <div className="tb-top">
+                <span className="tb-org" title={a.organo}><Icon n="building" s={14} />{orgCorto(a.organo)}</span>
+                <span className="tb-sp" />
+                <MenuMas>
+                  <button role="menuitem" onClick={() => ir('presentar', a.id)}><Icon n="doc" s={15} />Ver papeles</button>
+                  {a.url && <a role="menuitem" href={a.url} target="_blank" rel="noopener noreferrer"><Icon n="ext" s={15} />Ver convocatoria</a>}
+                  <span className="tb-dato">BDNS {a.codigo}{a.sol?.actualizado_por ? ` · elegida por ${a.sol.actualizado_por}` : ''}</span>
+                  <button role="menuitem" className="mal" onClick={() => setDescartando(a)}><Icon n="x" s={15} w={2.4} />Descartar</button>
+                </MenuMas>
+              </div>
+              <h4 title={a.titulo}>{tituloCorto(a)}</h4>
+              <div className="tb-fila">
+                <Icon n="euro" s={15} /><b>{importeCorto(a.importe_max ?? a.presupuesto) || 'Importe sin indicar'}</b>
+                <span className="tb-sp" />
+                {!p ? <span className="tb-mut">Contando papeles…</span>
+                  : listo ? <span className="tb-chip ok"><Icon n="check" s={13} w={3} />Papeles listos</span>
+                    : <span className="tb-mut"><b className="am">{hechos}</b>/{total} papeles</span>}
+              </div>
+              <Segmentos hechos={hechos} total={total} />
+              <div className="tb-acc">
+                {listo
+                  ? <><button className="tb-btn ico" title="Ver papeles" aria-label="Ver papeles" onClick={() => ir('presentar', a.id)}><Icon n="doc" s={17} /></button>
+                    <button className="tb-btn p" onClick={presentar}><Icon n="send" s={16} />Presentar</button></>
+                  : <><button className="tb-btn" onClick={() => ir('presentar', a.id)}><Icon n="doc" s={16} />Papeles</button>
+                    <button className="tb-btn off" aria-disabled="true" title="Faltan documentos: subidlos antes de presentar" onClick={presentar}><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><rect x="5" y="11" width="14" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>Presentar</button></>}
+              </div>
             </div>
-            <Mas>
-              <p><b>Siguiente paso:</b> {s?.siguiente_paso || 'Presentar la solicitud'}</p>
-              {a.sol?.actualizado_por && <p>Elegida por {a.sol.actualizado_por}</p>}
-              <p><span className="i-tag">BDNS {a.codigo}</span></p>
-              <div className="tc-acc"><button className="i-link" onClick={() => setDescartando(a)}><Icon n="x" s={15} w={2.4} />Descartar</button>{a.url && <a className="i-link" href={a.url} target="_blank" rel="noopener noreferrer">Ver convocatoria ↗</a>}</div>
-            </Mas>
           </article>
         )
       }} />
@@ -275,6 +330,10 @@ function Preparando({ lista, ir, seg, setDescartando, cambiarEstado, avisar }) {
 // Cada solicitud muestra su siguiente paso con la cuenta atrás de GET /api/seguimiento
 // (por defecto, al presentarla: «Mirar si ha salido la resolución» a los 60 días).
 const PASOS_TXT = ['Presentada', 'Concedida', 'Plantar', 'Justificar']
+// Texto corto del botón principal de cada tarjeta presentada (cabe en una línea).
+const BOTON_CORTO = { concedida: 'Concedida', presentada: 'Ya subsanada', plantar: 'A plantar', justificar: 'A justificar', terminada: 'Terminada' }
+// Fase de cada estado: texto corto e icono de la franja.
+const FASE = { presentada: ['Presentada', 'send'], subsanar: ['Subsanar', 'alert'], concedida: ['Concedida', 'verified'], plantar: ['Plantar', 'leaf'], justificar: ['Justificar', 'doc'], terminada: ['Terminada', 'check'], denegada: ['Denegada', 'x'] }
 const PASO_DE = { presentada: 0, subsanar: 0, denegada: 0, concedida: 1, plantar: 2, justificar: 3, terminada: 4 }
 const SIGUIENTE = {
   presentada: [['concedida', 'Concedida'], ['subsanar', 'Piden subsanar'], ['denegada', 'Denegada']],
@@ -304,23 +363,37 @@ function Presentado({ lista, cambiarEstado, cambiarPaso, seg, perfil, ir }) {
         card={a => {
           const p = PASO_DE[a.estado], s = segDe(seg, a.id), sig = SIGUIENTE[a.estado] || []
           const alerta = a.estado === 'subsanar' || a.estado === 'denegada', cierre = fin(a)
+          const fase = FASE[a.estado] || FASE.presentada
+          const tono = cierre ? (a.estado === 'terminada' ? 'ok' : 'neutro') : alerta ? 'hot' : s?.nivel === 'urgente' || s?.nivel === 'vencido' ? 'hot' : s?.nivel === 'pronto' ? 'am' : 'ok'
           return (
-            <article className="tc">
-              <div className="tc-tags">{a.demo && <span className="i-ej">Ejemplo real</span>}<span className="i-tag" title={a.organo}>{a.organo}</span>{alerta && <span className="i-tag mal">{a.estado === 'subsanar' ? 'Por subsanar' : 'Denegada'}</span>}</div>
-              <h4 title={a.titulo}>{tituloCorto(a)}</h4>
-              <Ruta p={p} estado={a.estado} />
-              <div className="tc-cifras">
-                <div><span>Importe</span><b className={a.importe ? '' : 'i-ni'}>{a.importe || 'No indicado'}</b></div>
-                {cierre ? <div><span>Estado</span><b>{a.estado === 'terminada' ? 'Terminada' : 'Denegada'}</b></div>
-                  : <div className={`cuenta ${s?.nivel || 'sin_fecha'}`}><span title={s?.siguiente_paso}>{s?.siguiente_paso || 'Siguiente paso'}</span><b>{cuenta(s?.dias)}</b>{s?.fecha_paso ? <small>{fechaCorta(s.fecha_paso)}</small> : <small>Sin fecha</small>}</div>}
+            <article className="tb">
+              <div className={`tb-franja ${tono}`}>
+                <Icon n={fase[1]} s={26} />
+                <small>{fase[0]}</small>
+                {!cierre && <span className="tb-pasos" aria-label={`Paso ${Math.min(p + 1, 4)} de 4`}>{[0, 1, 2, 3].map(k => <i key={k} className={k < p ? 'd' : k === p ? 'now' : ''} />)}</span>}
               </div>
-              <div className="i-msg tc-msg" style={{ background: alerta ? 'var(--co-l)' : 'var(--soft)', color: alerta ? 'var(--co-d)' : 'var(--nv)' }}>{MENSAJE[a.estado]}</div>
-              {sig.length > 0 && <div className="tc-acc"><button className={`i-btn sm ${alerta || ['urgente', 'vencido', 'pronto'].includes(s?.nivel) ? 'p' : ''}`} style={{ flex: 1 }} onClick={() => cambiarEstado(a, sig[0][0])}>{sig[0][1]} →</button></div>}
-              <Mas>
-                {!cierre && <label className="i-fecha">Cambiar la fecha<input type="date" className="i-in" value={s?.fecha_paso?.slice(0, 10) || ''} onChange={e => e.target.value && cambiarPaso(a, { fecha_paso: e.target.value })} /></label>}
-                <p><b>Última actualización:</b> {a.sol?.actualizado ? fechaCorta(a.sol.actualizado) : '—'}{a.sol?.actualizado_por ? ` · ${a.sol.actualizado_por}` : ''}</p>
-                <div className="tc-acc">{sig.slice(1).map(([e, tx]) => <button key={e} className="i-link" style={{ color: 'var(--mut)' }} onClick={() => cambiarEstado(a, e)}>{tx}</button>)}{a.url && <a className="i-link" href={a.url} target="_blank" rel="noopener noreferrer">Ver convocatoria ↗</a>}</div>
-              </Mas>
+              <div className="tb-cuerpo">
+                <div className="tb-top">
+                  <span className="tb-org" title={a.organo}><Icon n="building" s={14} />{orgCorto(a.organo)}</span>
+                  <span className="tb-sp" />
+                  <MenuMas>
+                    {sig.slice(1).map(([e, tx]) => <button key={e} role="menuitem" onClick={() => cambiarEstado(a, e)}><Icon n="flag" s={15} />{tx}</button>)}
+                    {a.url && <a role="menuitem" href={a.url} target="_blank" rel="noopener noreferrer"><Icon n="ext" s={15} />Ver convocatoria</a>}
+                    <span className="tb-dato">{importeCorto(a.importe_max ?? a.presupuesto) || 'Importe sin indicar'} · actualizada {a.sol?.actualizado ? fechaCorta(a.sol.actualizado) : '—'}{a.sol?.actualizado_por ? ` por ${a.sol.actualizado_por}` : ''}</span>
+                  </MenuMas>
+                </div>
+                <h4 title={a.titulo}>{tituloCorto(a)}</h4>
+                <div className="tb-fila" title={MENSAJE[a.estado]}>
+                  {cierre ? <span className="tb-mut">{MENSAJE[a.estado]}</span>
+                    : <><Icon n={alerta ? 'clock' : 'cal'} s={15} /><span className="tb-paso"><b>{s?.siguiente_paso || 'Siguiente paso'}</b> <span className={`tb-mut ${tono === 'hot' ? 'mal' : ''}`}>· {cuenta(s?.dias)}{s?.fecha_paso ? ` · ${fechaCorta(s.fecha_paso)}` : ''}</span></span></>}
+                </div>
+                {!cierre && (
+                  <div className="tb-acc">
+                    <label className="tb-btn ico" title="Cambiar la fecha del siguiente paso"><Icon n="cal" s={17} /><input type="date" aria-label="Cambiar la fecha del siguiente paso" value={s?.fecha_paso?.slice(0, 10) || ''} onChange={e => e.target.value && cambiarPaso(a, { fecha_paso: e.target.value })} /></label>
+                    {sig[0] && <button className={`tb-btn ${tono === 'hot' || tono === 'am' ? 'p' : ''}`} onClick={() => cambiarEstado(a, sig[0][0])}><Icon n="check" s={15} w={3} />{BOTON_CORTO[sig[0][0]] || sig[0][1]}</button>}
+                  </div>
+                )}
+              </div>
             </article>
           )
         }} />
