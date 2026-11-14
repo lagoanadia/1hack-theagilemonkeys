@@ -361,7 +361,8 @@ export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, pre
                 <input className="i-in" type="email" maxLength={120} placeholder="correo@reforesta.org" value={d.email_avisos} onChange={e => set('email_avisos', e.target.value)} />
               </div>
               <CorreoAvisos setToast={setToast} cambiado={d.email_avisos !== perfil.email_avisos} /></div>
-          </div></div>
+          </div>
+          <Reiniciar setToast={setToast} /></div>
         </div>
       )}
 
@@ -374,5 +375,29 @@ export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, pre
         </div>
       )}
     </>
+  )
+}
+
+// Empezar de cero: todas las convocatorias vuelven a «por revisar» y las empresas a «nuevas», como el primer día
+// (POST /api/reiniciar). Se conservan el perfil, la biblioteca, las propuestas y el mapa.
+function Reiniciar({ setToast }) {
+  const [seguro, setSeguro] = useState(false)
+  const [haciendo, setHaciendo] = useState(false)
+  const reiniciar = async () => {
+    setHaciendo(true)
+    try { await api('/reiniciar', { metodo: 'POST' }); setToast({ texto: 'Listo: empezáis de cero. Recargando…' }); setTimeout(() => location.reload(), 900) }
+    catch (e) { setToast({ texto: `No se pudo reiniciar: ${e.message}` }); setHaciendo(false) }
+  }
+  return (
+    <div className="i-card i-perfil pf-reset">
+      <div className="i-field wide"><span>Empezar de cero</span>
+        <p className="mut">Todas las convocatorias vuelven al Radar sin revisar y las empresas a «Nuevas», como el primer día. Se borran los estados, el historial y las reglas aprendidas. Se conservan el perfil, la biblioteca de documentos, las propuestas y el mapa.</p>
+        {!seguro
+          ? <button className="i-btn sm" onClick={() => setSeguro(true)}><Icon n="undo" s={16} w={2.4} />Empezar de cero</button>
+          : <div className="pf-reset-conf"><b>¿Seguro? No se puede deshacer.</b>
+              <button className="i-btn sm p" disabled={haciendo} onClick={reiniciar}>{haciendo ? 'Reiniciando…' : 'Sí, empezar de cero'}</button>
+              <button className="i-btn sm" onClick={() => setSeguro(false)}>Cancelar</button></div>}
+      </div>
+    </div>
   )
 }

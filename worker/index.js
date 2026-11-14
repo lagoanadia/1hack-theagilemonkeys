@@ -29,6 +29,7 @@
 //   GET    /api/avisos/correo               vista previa del correo de avisos         (equipo)
 //   POST   /api/avisos/correo               enviarlo ahora (prueba)                    (equipo)
 //   GET    /api/demo/datos · POST · DELETE  datos de prueba en la base de datos (cargar / quitar) (equipo)
+//   POST   /api/reiniciar                   empezar de cero: todo vuelve a «por revisar» (equipo)
 //   GET    /api/demo · PUT {activo}         modo demo: convocatorias reales cerradas como si estuvieran abiertas (equipo)
 //   GET    /api/seguimiento                 lo que está en marcha, con su siguiente paso y avisos (equipo)
 //   GET    /api/reglas                      reglas del equipo + sugerencias detectadas (equipo)
@@ -1387,6 +1388,21 @@ async function api(request, env, ruta) {
   }
 
   // --- modo demo
+  // --- empezar de cero: todas las convocatorias y empresas vuelven a «por revisar» / «nuevas», como el primer día.
+  // Se conservan el perfil, la biblioteca de documentos, las propuestas, las reservas y el mapa.
+  // El modo demo no vuelve a sembrar estados (queda marcado como sembrado y vacío).
+  if (ruta === "/api/reiniciar" && metodo === "POST") {
+    if (!equipo) return soloEquipo();
+    await db.batch([
+      db.prepare("DELETE FROM solicitudes"), db.prepare("DELETE FROM historial"), db.prepare("DELETE FROM solicitud_documentos"),
+      db.prepare("DELETE FROM reglas"),
+      db.prepare("DELETE FROM ajustes WHERE clave IN ('tablero', 'ultimo_correo', 'datos_demo')"),
+      db.prepare(`INSERT INTO ajustes (clave, valor, actualizado, actualizado_por) VALUES ('demo_sembrado', '{"reiniciado":true}', ?, ?)
+        ON CONFLICT (clave) DO UPDATE SET valor = excluded.valor, actualizado = excluded.actualizado, actualizado_por = excluded.actualizado_por`).bind(ahora(), autor),
+    ]);
+    return json({ ok: true });
+  }
+
   if (ruta === "/api/demo") {
     if (!equipo) return soloEquipo();
     if (metodo === "PUT") {
