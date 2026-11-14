@@ -142,7 +142,7 @@
 .i-in.ok{border-color:#9ED3AF}.i-in.no{border-color:#F0A894}
 .i-rev .row{display:flex;gap:10px;margin-top:14px}
 /* menú */
-.i-rail button.it{width:90px;font-size:11.5px}
+.i-rail button.it{width:calc(100% - 16px);font-size:11px;letter-spacing:-.01em}
 /* tarjeta grande */
 .i-hero{padding:22px 26px}
 .i-hero h3{font-size:30px;font-weight:700;letter-spacing:-.03em;line-height:1.12;margin:12px 0 2px}
