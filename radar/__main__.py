@@ -19,7 +19,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from . import bdns
-from . import criterios, perfil
+from . import criterios, documentos, perfil
 from .config import DIAS_POR_DEFECTO, UMBRAL_RELEVANCIA
 from .filtros import descartar_por_detalle, descartar_por_titulo, es_ambiental, motivo_corto
 from .puntuador import Puntuador, texto_para_analizar, version_actual
@@ -147,6 +147,21 @@ def main() -> None:
         print(f"  [{evaluacion['puntuacion']:3}] {codigo} {det.get('descripcion', '')[:80]}")
 
     # 4. GUARDAR
+    # Documentos que pide cada convocatoria interesante (lee el PDF oficial; una vez por convocatoria).
+    preparando = perfil.en_estado("preparando", "presentada", "subsanar")
+    hechas = 0
+    for c in resultado:
+        interesa = (c.get("veredicto_ia") or c.get("veredicto")) in ("presenta", "mira") or c["codigo"] in preparando
+        if not interesa or c.get("documentos_version") == documentos.VERSION_DOCS or args.sin_ia:
+            continue
+        if hechas >= documentos.MAX_POR_EJECUCION:
+            break
+        extra = documentos.requeridos(puntuador, bdns.detalle(c["codigo"]))
+        if extra:
+            c.update(extra)
+            hechas += 1
+            print(f"  Documentos de {c['codigo']}: {len(extra['documentos_requeridos'])} ({extra['documentos_fuente']})")
+
     # Criterios de búsqueda del perfil (sin IA): ajustan el veredicto y explican por qué.
     crit = perfil.criterios()
     resultado = [criterios.aplicar(c, crit, hoy) for c in resultado]

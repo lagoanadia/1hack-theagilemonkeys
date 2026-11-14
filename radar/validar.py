@@ -9,7 +9,7 @@ Solo llama a Groq si la convocatoria no está ya validada con las instrucciones 
 import json
 from datetime import date
 
-from . import bdns
+from . import bdns, documentos
 from .__main__ import RAIZ, ficha
 from .config import CONVOCATORIAS_VALIDACION, UMBRAL_RELEVANCIA
 from .filtros import descartar_por_detalle, descartar_por_titulo, es_ambiental
@@ -44,8 +44,11 @@ def main() -> None:
         previo = anteriores.get(codigo)
         if previo and previo.get("version") == version_actual() \
                 and previo.get("metodo", "").startswith("groq"):
+            if previo.get("documentos_version") != documentos.VERSION_DOCS and puntuador.cliente:
+                previo.update(documentos.requeridos(puntuador, bdns.detalle(codigo)))
             casos.append(previo)
-            print(f"  {codigo}: ya validada ({previo['veredicto']})")
+            print(f"  {codigo}: ya validada ({previo['veredicto']}), "
+                  f"{len(previo.get('documentos_requeridos') or [])} documentos")
             continue
 
         det = bdns.detalle(codigo)
@@ -60,7 +63,8 @@ def main() -> None:
             print(f"  {codigo}: sin Groq disponible; se queda pendiente")
             evaluacion = {"veredicto": "pendiente", "puntuacion": 0, "metodo": "pendiente_ia"}
 
-        caso = {**ficha(det, evaluacion), "descripcion_reto": descripcion,
+        extra = documentos.requeridos(puntuador, det) if puntuador.cliente else {}
+        caso = {**ficha(det, evaluacion), **extra, "descripcion_reto": descripcion,
                 "filtros": filtros, "encontrada": all(f["ok"] for f in filtros)}
         casos.append(caso)
         print(f"  {codigo}: encontrada={caso['encontrada']} veredicto={caso['veredicto']} "

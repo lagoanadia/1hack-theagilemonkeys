@@ -133,6 +133,19 @@ def regiones_bdns() -> str | None:
     return ",".join([REGIONES_BDNS] + [str(i) for i in extra])
 
 
+def en_estado(*estados: str) -> set[str]:
+    """Códigos de convocatorias que el equipo tiene en esos estados (vacío si no hay backend)."""
+    if not API or not CLAVE:
+        return set()
+    try:
+        r = requests.get(f"{API}/api/solicitudes", params={"tipo": "convocatoria"},
+                         headers={"x-clave-equipo": CLAVE}, timeout=20)
+        r.raise_for_status()
+        return {s["id"] for s in r.json() if s.get("estado") in estados}
+    except (requests.RequestException, ValueError):
+        return set()
+
+
 def criterios() -> dict:
     """Criterios con número del perfil (None = sin límite). No cambian la huella: se aplican sin IA."""
     p = remoto() or {}
