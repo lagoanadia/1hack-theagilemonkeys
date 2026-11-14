@@ -21,6 +21,7 @@
 //   GET    /api/archivos/:id                descargar el archivo                      (equipo)
 //   GET    /api/solicitudes/convocatoria/:codigo/documentos        qué documento va en cada hueco (equipo)
 //   PUT    /api/solicitudes/convocatoria/:codigo/documentos/:req   {documento_id, estado, responsable} (equipo)
+//   GET    /api/seguimiento                 lo que está en marcha, con su siguiente paso y avisos (equipo)
 //   GET    /api/reglas                      reglas del equipo + sugerencias detectadas (equipo)
 //   POST   /api/reglas                      {motivo, accion: aceptar|ignorar} o {texto} (equipo)
 //   PUT    /api/reglas/:id                  {texto}                                   (equipo)
@@ -318,6 +319,65 @@ function valorRegla(campo, descartadas, convocatorias) {
   return null;
 }
 
+// Siguiente paso que se propone al entrar en cada estado (si el equipo no escribe otro).
+// dias: plazo orientativo desde hoy; "plazo" = la fecha fin de solicitud de la convocatoria.
+// Subsanar: 10 días hábiles (art. 68 Ley 39/2015) ≈ 14 naturales.
+const PASO_POR_ESTADO = {
+  convocatoria: {
+    preparando: { paso: "Presentar la solicitud", dias: "plazo" },
+    presentada: { paso: "Mirar si ha salido la resolución", dias: 60 },
+    subsanar: { paso: "Entregar lo que piden subsanar", dias: 14 },
+    concedida: { paso: "Aceptar la concesión y planificar la plantación", dias: 15 },
+    plantar: { paso: "Plantar y guardar fotos y facturas", dias: 120 },
+    justificar: { paso: "Entregar la justificación del gasto", dias: 90 },
+  },
+  empresa: {
+    contactada: { paso: "Volver a escribir si no contestan", dias: 10 },
+    reunion: { paso: "Preparar la propuesta para la reunión", dias: 7 },
+    acuerdo: { paso: "Firmar el acuerdo y fijar fecha de plantación", dias: 21 },
+  },
+};
+const ESTADOS_FINALES = ["por_revisar", "mas_tarde", "descartada", "denegada", "terminada", "nueva", "cerrada"];
+const masDias = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
+
+// Datos del radar (convocatorias.json / empresas.json) indexados por código; {} si no hay.
+async function datosRadar(env, request, archivo) {
+  try {
+    const r = await env.ASSETS.fetch(new Request(new URL(`/data/${archivo}.json`, request.url)));
+    const d = await r.json();
+    return Object.fromEntries((d.convocatorias || d.empresas || []).map((c) => [c.codigo || c.id, c]));
+  } catch {
+    return {};
+  }
+}
+
+// Lo que está en marcha, con días hasta su siguiente paso y nivel de aviso. Lo usan la API y el correo.
+async function seguimiento(db, env, request) {
+  const [convs, emps] = await Promise.all([datosRadar(env, request, "convocatorias"), datosRadar(env, request, "empresas")]);
+  const { results } = await db.prepare(
+    `SELECT s.*, (SELECT MAX(creado) FROM historial h WHERE h.tipo = s.tipo AND h.ref = s.id) AS desde
+     FROM solicitudes s WHERE s.estado NOT IN (${ESTADOS_FINALES.map(() => "?").join(",")})`,
+  ).bind(...ESTADOS_FINALES).all();
+  const hoy = new Date(new Date().toISOString().slice(0, 10));
+  const lista = results.map((f) => {
+    const s = filaSolicitud(f);
+    const datos = s.tipo === "convocatoria" ? convs[s.id] : emps[s.id];
+    const fechaPaso = s.fecha_paso || (s.estado === "preparando" ? datos?.fin || datos?.plazo_estimado || "" : "");
+    const dias = /^\d{4}-\d{2}-\d{2}/.test(fechaPaso) ? Math.round((new Date(fechaPaso.slice(0, 10)) - hoy) / 86400000) : null;
+    const nivel = dias === null ? "sin_fecha" : dias < 0 ? "vencido" : dias <= 3 ? "urgente" : dias <= 14 ? "pronto" : "ok";
+    return { ...s, titulo: datos?.titulo || datos?.proyecto || s.id, organo: datos?.organo || datos?.promotor || "",
+      url: datos?.url || "", fecha_paso: fechaPaso, dias, nivel, desde: f.desde || s.actualizado };
+  });
+  const orden = { vencido: 0, urgente: 1, pronto: 2, ok: 3, sin_fecha: 4 };
+  lista.sort((a, b) => orden[a.nivel] - orden[b.nivel] || (a.dias ?? 9999) - (b.dias ?? 9999));
+  const avisos = lista.filter((x) => ["vencido", "urgente", "pronto"].includes(x.nivel)).map((x) => ({
+    tipo: x.tipo, id: x.id, nivel: x.nivel, dias: x.dias,
+    texto: `${x.siguiente_paso || "Siguiente paso"}: ${x.titulo.slice(0, 80)} · ${
+      x.dias < 0 ? `venció hace ${-x.dias} días` : x.dias === 0 ? "hoy" : `quedan ${x.dias} días`}`,
+  }));
+  return { en_marcha: lista, avisos, resumen: Object.fromEntries(Object.keys(orden).map((n) => [n, lista.filter((x) => x.nivel === n).length])) };
+}
+
 // Compatibilidad con la web actual (Me interesa / No interesa).
 const DE_ANTIGUO = { interesa: "preparando", descarta: "descartada" };
 const A_ANTIGUO = { preparando: "interesa", descartada: "descarta" };
@@ -523,8 +583,17 @@ async function api(request, env, ruta) {
       for (const campo of ["nota", "responsable", "siguiente_paso", "fecha_paso"]) {
         if (b[campo] !== undefined) cambios[campo] = texto(b[campo], campo === "nota" ? 1000 : 120);
       }
-      const existe = await db.prepare("SELECT 1 FROM solicitudes WHERE tipo = ? AND id = ?").bind(tipo, id).first();
+      const existe = await db.prepare("SELECT estado FROM solicitudes WHERE tipo = ? AND id = ?").bind(tipo, id).first();
       if (!existe && !cambios.estado) return error("La primera vez hay que indicar el estado");
+      // Al cambiar de estado se propone el siguiente paso y su fecha, salvo que el equipo los mande.
+      if (cambios.estado && cambios.estado !== existe?.estado) {
+        const def = PASO_POR_ESTADO[tipo][cambios.estado];
+        if (b.siguiente_paso === undefined) cambios.siguiente_paso = def?.paso || "";
+        if (b.fecha_paso === undefined) {
+          cambios.fecha_paso = def && def.dias !== "plazo" ? masDias(def.dias) : "";  // "plazo": se toma de la convocatoria
+        }
+      }
+      if (cambios.fecha_paso && !/^\d{4}-\d{2}-\d{2}$/.test(cambios.fecha_paso)) return error("fecha_paso: AAAA-MM-DD");
       return json({ ok: true, solicitud: await cambiarSolicitud(db, tipo, id, cambios, autor) });
     }
     if (accion === "/deshacer" && metodo === "POST") {
@@ -658,6 +727,12 @@ async function api(request, env, ruta) {
     }
   }
 
+  // --- seguimiento: qué toca hacer y cuándo
+  if (ruta === "/api/seguimiento" && metodo === "GET") {
+    if (!equipo) return soloEquipo();
+    return json(await seguimiento(db, env, request));
+  }
+
   // --- reglas aprendidas
   if (ruta === "/api/reglas") {
     if (!equipo) return soloEquipo();
@@ -666,11 +741,7 @@ async function api(request, env, ruta) {
         "SELECT id, motivos, nota FROM solicitudes WHERE tipo = 'convocatoria' AND estado = 'descartada'").all();
       const { results: hechas } = await db.prepare("SELECT motivo FROM reglas WHERE motivo != ''").all();
       const yaTratados = new Set(hechas.map((r) => r.motivo));
-      let convocatorias = {};
-      try {
-        const r = await env.ASSETS.fetch(new Request(new URL("/data/convocatorias.json", request.url)));
-        convocatorias = Object.fromEntries((await r.json()).convocatorias.map((c) => [c.codigo, c]));
-      } catch { /* sin datos del radar: valores por defecto */ }
+      const convocatorias = await datosRadar(env, request, "convocatorias");
       const porMotivo = {};
       for (const d of desc) for (const m of JSON.parse(d.motivos || "[]")) (porMotivo[m] ||= []).push(d);
       return Object.entries(porMotivo)

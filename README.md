@@ -142,6 +142,14 @@ radar basta con ponerla en `por_revisar`.
   `PUT .../documentos/:requisito` con `{documento_id, estado, responsable}` (el arrastrar y soltar).
 - Archivos en Cloudflare R2 (privados, solo equipo): ver `wrangler.jsonc` para activarlo.
 
+### Seguimiento
+
+Al cambiar de estado, la solicitud recibe un **siguiente paso con fecha** propuesto (subsanar: 14 días;
+justificar: 90; preparando: el fin de plazo de la convocatoria). El equipo puede cambiarlo con
+`siguiente_paso` / `fecha_paso` (AAAA-MM-DD). `GET /api/seguimiento` devuelve lo que está en marcha,
+ordenado por urgencia (`vencido`, `urgente` ≤3 días, `pronto` ≤14, `ok`, `sin_fecha`) y los `avisos`
+en texto (los mismos que irán por correo).
+
 ### Reglas aprendidas
 
 Cuando un motivo de descarte se repite 3 veces, `GET /api/reglas` lo devuelve como **sugerencia**
