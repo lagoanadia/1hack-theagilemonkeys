@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Icon from './Icon.jsx'
 import { nombreGuardado } from '../api.js'
 import { etapaEmpresa, hectareas } from '../datos.js'
-import { COLORES, COLOR_NOMBRE } from '../tablero.js'
 
 // Pantalla «Empresas»: datos de empresas.json (declaraciones de impacto ambiental del BOE) y su estado
 // de contacto con PUT /api/solicitudes/empresa/:id (nueva, contactada, reunion, acuerdo, cerrada, descartada).
@@ -22,13 +21,6 @@ const nivel = n => (n >= 75 ? 'alto' : n >= 50 ? 'medio' : 'bajo')
 const hoyISO = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}` }
 const diasDesde = f => Math.round((new Date(new Date().toDateString()) - new Date(`${f}T00:00:00`)) / 864e5)
 const fechaLarga = f => new Date(`${String(f).slice(0, 10)}T00:00:00`).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
-const norm = t => String(t || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
-// Una etiqueta recoge las empresas que contienen alguna de sus palabras clave (por defecto, su nombre) en la ubicación, el proyecto,
-// el promotor, el resumen, el sector o las medidas. Vale para lugares («Madrid») y para temas («eólico», «humedales»).
-const palabrasDe = t => (t.palabras || '').split(/[,\n]/).map(x => norm(x.trim())).filter(Boolean).concat(t.palabras?.trim() ? [] : [norm(t.nombre)])
-const textoDe = e => norm([e.ubicacion, e.proyecto, e.promotor, e.titulo, e.resumen, SECTOR[e.tipo], ...(e.medidas || []).map(m => m.texto)].join(' '))
-const coincide = (e, t) => { const txt = textoDe(e); return palabrasDe(t).some(w => txt.includes(w)) }
-const COMUNIDADES = ['Andalucía', 'Aragón', 'Asturias', 'Baleares', 'Canarias', 'Cantabria', 'Castilla y León', 'Castilla-La Mancha', 'Cataluña', 'Extremadura', 'Galicia', 'Madrid', 'Murcia', 'Navarra', 'La Rioja', 'País Vasco', 'Valencia']
 const porEncaje = (a, b) => (b.encaje ?? 0) - (a.encaje ?? 0) || (b.fecha || '').localeCompare(a.fecha || '')
 
 // Fase de contacto (segunda fase): una fila por empresa y una celda por fase. Contactadas y Recordatorio llevan plantilla.
@@ -77,9 +69,6 @@ const rellenar = (t, e) => t
 export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
   const [seg, setSeg] = useState('nueva')
   const [borrador, setBorrador] = useState(null)   // {e, plantilla}
-  const [etiq, setEtiq] = useState(null)           // id de la etiqueta activa (null = todas)
-  const etiquetas = tab.datos.etiquetas || []
-  const activa = etiquetas.find(t => t.id === etiq) || null
   const todas = radar.empresas
   const hoy = hoyISO()
   const vistas = tab.datos.vistas
@@ -94,10 +83,10 @@ export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
     tab.cambiarRaiz(d => ({ ...d, vistas: { ...d.vistas, ...Object.fromEntries(faltan.map(e => [e.id, primera && !(e.fecha && diasDesde(e.fecha) <= 14) ? 'antes' : hoy])) } }))
   }, [tab.listo, radar.emp, todas.length]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const cuenta = k => todas.filter(e => etapaEmpresa(e) === k && (!activa || coincide(e, activa))).length
-  const filtro = e => (!q || `${e.promotor} ${e.proyecto} ${e.ubicacion}`.toLowerCase().includes(q.toLowerCase())) && (!activa || coincide(e, activa))
-  const nuevas = useMemo(() => todas.filter(e => etapaEmpresa(e) === 'nueva' && filtro(e)).sort(porEncaje), [todas, q, activa]) // eslint-disable-line react-hooks/exhaustive-deps
-  const otras = useMemo(() => todas.filter(e => etapaEmpresa(e) === seg && filtro(e)).sort(porEncaje), [todas, seg, q, activa]) // eslint-disable-line react-hooks/exhaustive-deps
+  const cuenta = k => todas.filter(e => etapaEmpresa(e) === k).length
+  const filtro = e => (!q || `${e.promotor} ${e.proyecto} ${e.ubicacion}`.toLowerCase().includes(q.toLowerCase()))
+  const nuevas = useMemo(() => todas.filter(e => etapaEmpresa(e) === 'nueva' && filtro(e)).sort(porEncaje), [todas, q]) // eslint-disable-line react-hooks/exhaustive-deps
+  const otras = useMemo(() => todas.filter(e => etapaEmpresa(e) === seg && filtro(e)).sort(porEncaje), [todas, seg, q]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // «Añadir a En contacto» las pasa a la segunda fase (y se puede escribir el primer mensaje desde el aviso).
   const anadir = e => {
@@ -118,13 +107,12 @@ export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
         <div className="i-head" style={{ alignItems: 'center', marginBottom: 6 }}>
           <div className="i-seg" role="group" aria-label="Fase">{SEGS.map(([k, l]) => <button key={k} aria-pressed={seg === k} className={seg === k ? 'on' : ''} onClick={() => setSeg(k)}>{l} · {cuenta(k)}</button>)}</div>
         </div>
-        {radar.emp != null && <Etiquetas {...{ etiquetas, etiq, setEtiq, tab, todas, seg }} />}
         {radar.emp == null && <div className="i-card i-empty">Todavía no hay datos de empresas. El radar los genera cada mañana.</div>}
 
         {radar.emp != null && seg === 'nueva' && (
           nuevas.length === 0
-            ? <div className="i-card i-empty">{activa ? `Ninguna empresa nueva con la etiqueta «${activa.nombre}».` : 'Nada nuevo por ahora. El radar vuelve a mirar el BOE mañana.'}</div>
-            : <Rejilla lista={nuevas} {...{ etiquetas, etiq }} g4 render={e => <Ficha key={e.id} e={e} nueva={vistas[e.id] === hoy} etiquetas={etiquetas.filter(t => coincide(e, t))} pie={acciones(e)} />} />
+            ? <div className="i-card i-empty">Nada nuevo por ahora. El radar vuelve a mirar el BOE mañana.</div>
+            : <div className="em-grid em-g4">{nuevas.map(e => <Ficha key={e.id} e={e} nueva={vistas[e.id] === hoy} pie={acciones(e)} />)}</div>
         )}
 
         {radar.emp != null && seg === 'contactada' && <Contacto lista={otras} {...{ tab, cambiarEstado, setBorrador }} />}
@@ -132,7 +120,7 @@ export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
         {radar.emp != null && (seg === 'cerrada' || seg === 'descartada') && (
           otras.length === 0
             ? <div className="i-card i-empty">Nada en esta pestaña.</div>
-            : <Rejilla lista={otras} {...{ etiquetas, etiq }} g4 render={e => <Ficha key={e.id} e={e} etiquetas={etiquetas.filter(t => coincide(e, t))} pie={<div className="em-acc"><button className="i-btn sm" onClick={() => cambiarEstado(e, 'nueva', 'Vuelve a nuevas')}><Icon n="undo" s={17} />Reabrir</button></div>} />} />
+            : <div className="em-grid em-g4">{otras.map(e => <Ficha key={e.id} e={e} pie={<div className="em-acc"><button className="i-btn sm" onClick={() => cambiarEstado(e, 'nueva', 'Vuelve a nuevas')}><Icon n="undo" s={17} />Reabrir</button></div>} />)}</div>
         )}
       </div>
       {borrador && <Borrador {...borrador} cerrar={() => setBorrador(null)} tab={tab} />}
@@ -140,82 +128,8 @@ export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
   )
 }
 
-// Rejilla de fichas. Con etiquetas y «Todas» elegido, cada etiqueta es una sección (plegable): la empresa va a la primera
-// que encaja y las que no encajan con ninguna van a «Sin etiqueta». Con una etiqueta elegida, solo esa sección.
-function Rejilla({ lista, etiquetas, etiq, render, g4 }) {
-  const [plegadas, setPlegadas] = useState({})
-  const grid = items => <div className={`em-grid ${g4 ? 'em-g4' : ''}`}>{items.map(render)}</div>
-  if (!etiquetas.length || etiq) return grid(lista)
-  const usadas = new Set()
-  const secs = etiquetas.map(t => ({ ...t, items: lista.filter(e => !usadas.has(e.id) && coincide(e, t) && usadas.add(e.id)) }))
-  const resto = lista.filter(e => !usadas.has(e.id))
-  const todas = [...secs, ...(resto.length ? [{ id: 'sin', nombre: 'Sin etiqueta', color: 'gris', items: resto }] : [])].filter(s => s.items.length)
-  return (
-    <div className="em-secs">
-      {todas.map(sec => (
-        <section key={sec.id} className={`i-sec c-${sec.color || 'gris'}`} aria-label={sec.nombre}>
-          <header className="i-sec-h">
-            <button className="i-sec-ch" aria-expanded={!plegadas[sec.id]} aria-label={`${plegadas[sec.id] ? 'Desplegar' : 'Plegar'} ${sec.nombre}`} onClick={() => setPlegadas({ ...plegadas, [sec.id]: !plegadas[sec.id] })}><Icon n="keyD" s={16} w={2.6} /></button>
-            <i className="dot" aria-hidden="true" /><h3 className="nm">{sec.nombre}</h3><span className="n">{sec.items.length}</span>
-          </header>
-          {!plegadas[sec.id] && <div style={{ paddingTop: 14 }}>{grid(sec.items)}</div>}
-        </section>
-      ))}
-    </div>
-  )
-}
-
-// Etiquetas propias para clasificar empresas (Madrid, Castilla y León…). Cada una es una sección: al elegirla solo salen
-// las empresas que encajan con sus palabras. Se guardan con el resto de tableros (GET/PUT /api/tablero).
-function Etiquetas({ etiquetas, etiq, setEtiq, tab, todas, seg }) {
-  const [editor, setEditor] = useState(null)   // {id?, nombre, palabras, color}
-  const guardar = lista => tab.cambiarRaiz(d => ({ ...d, etiquetas: lista }))
-  const cuentaDe = t => todas.filter(e => etapaEmpresa(e) === seg && coincide(e, t)).length
-  const sugeridas = useMemo(() => {
-    const txt = todas.map(e => norm(e.ubicacion)).join(' | ')
-    return COMUNIDADES.map(c => [c, txt.split(norm(c)).length - 1]).filter(([c, n]) => n > 0 && !etiquetas.some(t => norm(t.nombre) === norm(c))).sort((a, b) => b[1] - a[1]).slice(0, 4).map(x => x[0])
-  }, [todas, etiquetas])
-  const nueva = nombre => { const t = { id: `e${Date.now().toString(36)}`, nombre, palabras: '', color: COLORES[(etiquetas.length + 1) % COLORES.length] }; guardar([...etiquetas, t]); setEtiq(t.id) }
-  const enviar = ev => {
-    ev.preventDefault()
-    const nombre = editor.nombre.trim()
-    if (!nombre) return
-    const t = { id: editor.id || `e${Date.now().toString(36)}`, nombre, palabras: editor.palabras.trim(), color: editor.color }
-    guardar(editor.id ? etiquetas.map(x => (x.id === t.id ? t : x)) : [...etiquetas, t])
-    if (!editor.id) setEtiq(t.id)
-    setEditor(null)
-  }
-  return (
-    <div className="et-bar">
-      <div className="et-fila" role="group" aria-label="Etiquetas">
-        <button className={`et-chip ${etiq === null ? 'on' : ''}`} aria-pressed={etiq === null} onClick={() => setEtiq(null)}>Todas</button>
-        {etiquetas.map(t => (
-          <span key={t.id} className={`et-chip et-${t.color || 'gris'} ${etiq === t.id ? 'on' : ''}`}>
-            <button className="et-main" aria-pressed={etiq === t.id} onClick={() => setEtiq(etiq === t.id ? null : t.id)}><i />{t.nombre}<b>{cuentaDe(t)}</b></button>
-            <button className="et-ed" aria-label={`Editar la etiqueta ${t.nombre}`} title="Editar" onClick={() => setEditor({ id: t.id, nombre: t.nombre, palabras: t.palabras || '', color: t.color || 'gris' })}><Icon n="dot3" s={18} w={3} /></button>
-          </span>
-        ))}
-        {!editor && <button className="et-chip et-nueva" onClick={() => setEditor({ nombre: '', palabras: '', color: COLORES[(etiquetas.length + 1) % COLORES.length] })}><Icon n="plus" s={15} w={2.8} />Nueva etiqueta</button>}
-        {sugeridas.length > 0 && !editor && <span className="et-sug">Probad: {sugeridas.map(c => <button key={c} onClick={() => nueva(c)}>+ {c}</button>)}</span>}
-      </div>
-      {editor && (
-        <form className="et-form" onSubmit={enviar}>
-          <label>Nombre<input className="i-in" autoFocus maxLength={30} placeholder="Madrid, Eólico, Humedales…" value={editor.nombre} onChange={e => setEditor({ ...editor, nombre: e.target.value })} /></label>
-          <label>Palabras clave<input className="i-in" maxLength={160} placeholder={editor.nombre || 'eólico, aerogenerador, parque'} value={editor.palabras} onChange={e => setEditor({ ...editor, palabras: e.target.value })} /><small>Separadas por comas: lugares o temas. Se buscan en la ubicación, el proyecto, el promotor, el resumen y las medidas. Si lo dejáis vacío se usa el nombre.</small></label>
-          <div className="cols" role="group" aria-label="Color">{COLORES.map(c => <button type="button" key={c} className={`sw et-${c} ${editor.color === c ? 'on' : ''}`} aria-label={COLOR_NOMBRE[c]} aria-pressed={editor.color === c} onClick={() => setEditor({ ...editor, color: c })} />)}</div>
-          <div className="acc">
-            <button className="i-btn p sm" type="submit" disabled={!editor.nombre.trim()}>{editor.id ? 'Guardar' : 'Crear etiqueta'}</button>
-            <button type="button" className="i-btn sm" onClick={() => setEditor(null)}>Cancelar</button>
-            {editor.id && <button type="button" className="i-link" style={{ color: 'var(--co-d)' }} onClick={() => { guardar(etiquetas.filter(t => t.id !== editor.id)); if (etiq === editor.id) setEtiq(null); setEditor(null) }}>Borrar etiqueta</button>}
-          </div>
-        </form>
-      )}
-    </div>
-  )
-}
-
 // Tarjeta de empresa en bloques: identidad · qué tienen que hacer · datos clave · medidas · acción.
-function Ficha({ e, puesto, grande, nueva, pie, etiquetas = [] }) {
+function Ficha({ e, puesto, grande, nueva, pie }) {
   const [ver, setVer] = useState(false)
   const ha = e.superficie_total_ha || e.impacto?.hectareas, tam = mw(e), n = e.encaje ?? 0, viaje = e.impacto?.viaje
   return (
@@ -236,7 +150,6 @@ function Ficha({ e, puesto, grande, nueva, pie, etiquetas = [] }) {
         <span className="i-tag" style={{ background: 'var(--soft)' }}>{ACCION[e.accion] || ACCION.descarta}</span>
         {nPlantacion(e) > 0 && <span className="i-tag" style={{ background: 'var(--gr-l)', color: 'var(--gr-d)' }}>{nPlantacion(e)} {nPlantacion(e) === 1 ? 'medida' : 'medidas'} de plantación</span>}
         {ha > 0 && <span className="i-tag">{hectareas(ha)} a plantar</span>}
-        {etiquetas.map(t => <span key={t.id} className={`i-tag et-tag et-${t.color || 'gris'}`}><i />{t.nombre}</span>)}
         {viaje && <span className="i-tag" style={{ background: 'var(--co-l)', color: 'var(--co-d)' }}>✈️ {viaje.vuelos_anio} vuelos Madrid–{viaje.destino} al año</span>}
       </div>
       <div className="em-links">
