@@ -103,7 +103,7 @@ function Papeles({ a, top, ir, presentadas, objetivo, perfil, presentar }) {
             </div>
           )}
           {dudas.length > 0 && <div className="i-tip"><span className="ic"><Icon n="info" s={20} w={2.2} /></span><div><b>Antes de presentarla, comprobad</b>{dudas.map(r => r.texto).join(' · ')}</div></div>}
-          {a.cita && <div className="i-cita" style={{ marginTop: 14 }}>«…<mark>{a.cita}</mark>…»<small><Icon n="verified" s={14} />Comprobado en las bases</small></div>}
+          {a.cita && <div className="i-cita" style={{ marginTop: 14 }}>«…<mark>{a.cita}</mark>…»<small><Icon n="verified" s={14} />Comprobado en el texto oficial</small></div>}
         </div>
         <div className="i-side">
           <div className="i-card i-dl">

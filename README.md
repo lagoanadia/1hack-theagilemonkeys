@@ -25,7 +25,7 @@ y deja a Reforesta una lista corta con un semáforo:
 | 🔴 **Descarta** | No sirve | El motivo, para fiarse del descarte |
 
 Por cada convocatoria, la IA explica **por qué**. Da los requisitos uno a uno (✓ cumple · ? duda
-· ✗ no) y una **cita literal de las bases**. El radar comprueba que esa cita aparece en el texto
+· ✗ no) y una **cita literal del texto oficial** (el extracto publicado en el boletín). El radar comprueba que esa cita aparece en el texto
 oficial, así que no puede inventársela.
 
 Reforesta no instala nada ni cambia su forma de trabajar: abre una web y ve qué merece la pena
@@ -63,7 +63,7 @@ las que Reforesta se presentó, y el radar **encuentra las dos**:
 Las dos aparecen ahora como cerradas, que es correcto: sus plazos terminaron en 2026. El radar las
 habría avisado el mismo día de su publicación. La web incluye el apartado **"Prueba con
 convocatorias reales de Reforesta"**: por cada una enseña qué filtros pasa y el análisis completo
-de la IA (veredicto, requisitos y cita de las bases), como si siguiera abierta. Lo genera
+de la IA (veredicto, requisitos y cita del texto oficial), como si siguiera abierta. Lo genera
 `python -m radar.validar` y se amplía añadiendo códigos a `CONVOCATORIAS_VALIDACION`.
 
 ## Empresas obligadas a compensar (canal RSC)
@@ -198,7 +198,7 @@ wrangler.jsonc         configuración de Cloudflare
     "linea": "restauracion | conservacion | educacion | agroambiental",
     "resumen": "Una frase sobre qué financia", "motivo": "Por qué esta puntuación",
     "requisitos": [{ "texto": "Entidad sin ánimo de lucro", "estado": "cumple | duda | no" }],
-    "cita": "Texto literal de las bases (comprobado)",
+    "cita": "Texto literal del extracto oficial (comprobado)",
     "porcentaje_financiado": 90, "importe_max": 230000
   }]
 }
@@ -261,6 +261,11 @@ se reevalúe lo ya guardado.
   estatutos y su histórico real la IA afinaría más.
 - La primera ejecución consume buena parte del cupo diario gratuito de Groq. Las siguientes
   apenas gastan.
+
+- **La IA lee el extracto oficial, no las bases completas.** La BDNS publica el extracto del
+  boletín; las bases suelen ir en un PDF aparte. Veredicto y cita se apoyan en el extracto (la cita
+  se comprueba contra él). Leer el PDF de las bases es el siguiente paso (necesario también para la
+  lista de documentos).
 
 ## Siguientes pasos
 

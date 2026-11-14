@@ -51,6 +51,15 @@ Responde SOLO con un objeto JSON con estas claves:
 No inventes datos: si algo no aparece en el texto, usa "", null o []."""
 
 
+def _ha(valor) -> float | None:
+    """Hectáreas como número (la IA a veces devuelve "12 ha" o texto): None si no es un número."""
+    try:
+        n = float(str(valor).replace(",", ".").split()[0]) if valor not in (None, "") else None
+    except (ValueError, IndexError):
+        return None
+    return round(n, 2) if n is not None and 0 < n < 100000 else None
+
+
 def version_empresas():
     h = perfil.huella()
     return f"{VERSION_EMPRESAS}-{h}" if h else VERSION_EMPRESAS
@@ -76,7 +85,7 @@ def analizar(puntuador: Puntuador, dia: dict) -> dict | None:
     else:
         return None
 
-    medidas = [{"texto": str(m.get("texto", "")).strip(), "superficie_ha": m.get("superficie_ha")}
+    medidas = [{"texto": str(m.get("texto", "")).strip(), "superficie_ha": _ha(m.get("superficie_ha"))}
                for m in datos.get("medidas") or [] if isinstance(m, dict) and m.get("texto")][:5]
     encaje = max(0, min(100, _entero(datos.get("encaje")) or 0))
     return {
@@ -89,7 +98,7 @@ def analizar(puntuador: Puntuador, dia: dict) -> dict | None:
         "tipo": str(datos.get("tipo", "otro")),
         "ubicacion": str(datos.get("ubicacion", "")).strip(),
         "medidas": medidas,
-        "superficie_total_ha": datos.get("superficie_total_ha"),
+        "superficie_total_ha": _ha(datos.get("superficie_total_ha")),
         "encaje": encaje,
         "accion": accion(encaje),
         "resumen": str(datos.get("resumen", "")).strip(),

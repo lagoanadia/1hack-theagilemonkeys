@@ -98,7 +98,7 @@ function Revisar({ ruta, curId, setCurId, decidir, setDescartando, ir, ej, setEj
                 {a.requisitos.map(r => <li key={r.texto} className={r.estado}><i>{r.estado === 'cumple' ? '✓' : r.estado === 'no' ? '✗' : '?'}</i>{r.texto}</li>)}
               </ul>
             )}
-            {a.cita && <div className="i-cita">«…<mark>{a.cita}</mark>…»<small><Icon n="verified" s={14} />Comprobado en las bases</small></div>}
+            {a.cita && <div className="i-cita">«…<mark>{a.cita}</mark>…»<small><Icon n="verified" s={14} />Comprobado en el texto oficial</small></div>}
             <div className="acts3">
               <button className={`i-btn ${a.estado === 'descartada' ? 'sel' : ''}`} onClick={() => setDescartando(a)}><Icon n="x" s={19} w={2.4} />No nos interesa</button>
               <button className={`i-btn ${a.estado === 'mas_tarde' ? 'sel' : ''}`} onClick={() => decidir(a, 'mas_tarde')}><Icon n="later" s={19} />Más tarde</button>
@@ -289,7 +289,7 @@ function Descartadas({ lista, recuperar }) {
             <div style={{ color: 'var(--mut)', fontSize: 14.5 }}>{a.organo}{a.plazo ? ` · plazo ${fechaCorta(a.plazo)}` : ''}</div>
             {seg === 'radar' && a.motivo && <p className="i-mot">{a.motivo}</p>}
             {seg === 'equipo' && a.sol?.nota && <p className="i-mot">{a.sol.nota}</p>}
-            {a.cita && <div className="i-cita" style={{ marginTop: 10, fontSize: 15, padding: '10px 14px' }}>«{a.cita}»<small style={{ color: 'var(--mut)' }}><Icon n="verified" s={13} />Frase de las bases</small></div>}
+            {a.cita && <div className="i-cita" style={{ marginTop: 10, fontSize: 15, padding: '10px 14px' }}>«{a.cita}»<small style={{ color: 'var(--mut)' }}><Icon n="verified" s={13} />Frase del texto oficial</small></div>}
           </div>
         ))}
       </div>

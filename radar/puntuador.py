@@ -8,6 +8,7 @@ Modo palabras clave: respaldo gratuito si no hay GROQ_API_KEY o se agota el cupo
 Todos los modos devuelven el mismo diccionario.
 """
 import json
+import re
 import os
 import time
 
@@ -183,7 +184,18 @@ def cita_verificada(cita: str, texto: str) -> str:
     cita = (cita or "").strip().strip("«»\"'… .")
     if len(cita) < 15:
         return ""
-    return cita if normalizar(cita) in normalizar(texto) else ""
+    # Una cita con "…" en medio vale si TODOS sus trozos están, en orden, en el texto oficial.
+    trozos = [normalizar(t).strip(" .,;:") for t in re.split(r"…|\.\.\.", cita)]
+    trozos = [t for t in trozos if len(t) >= 8]
+    if not trozos:
+        return ""
+    hueco, pos = normalizar(texto), 0
+    for t in trozos:
+        pos = hueco.find(t, pos)
+        if pos < 0:
+            return ""
+        pos += len(t)
+    return cita
 
 
 class Puntuador:
