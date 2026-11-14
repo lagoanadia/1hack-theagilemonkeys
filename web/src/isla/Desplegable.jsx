@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 // Desplegable con la estética de la web (en vez del <select> del navegador).
 //   valor, onCambio(v), opciones: [{ v, t, extra? }], etiqueta (para lectores de pantalla)
 //   boton: lo que se ve en el botón cerrado; className: clases del botón (p. ej. un color por estado)
-export default function Desplegable({ valor, opciones, onCambio, etiqueta, boton, className = '', alinear = 'izq' }) {
+export default function Desplegable({ valor, opciones, onCambio, etiqueta, boton, className = '', alinear = 'izq', bloque = false }) {
   const [abierto, setAbierto] = useState(false)
   const caja = useRef(null)
   useEffect(() => {
@@ -15,7 +15,7 @@ export default function Desplegable({ valor, opciones, onCambio, etiqueta, boton
   }, [abierto])
   const elegir = v => { setAbierto(false); if (v !== valor) onCambio(v) }
   return (
-    <div className="dsp" ref={caja}>
+    <div className={`dsp ${bloque ? 'bloque' : ''}`} ref={caja}>
       <button type="button" className={`dsp-btn ${className} ${abierto ? 'on' : ''}`} aria-haspopup="listbox" aria-expanded={abierto} aria-label={etiqueta} onClick={() => setAbierto(!abierto)}>
         {boton}
         <svg className="dsp-fl" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg>

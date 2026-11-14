@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
+import Desplegable from './Desplegable.jsx'
 import { island } from './lp.js'
 import { ErrorSesion, api, sesionGuardada, subirDocumento } from '../api.js'
 import { fechaCorta } from '../datos.js'
@@ -167,10 +168,9 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
                 {r.cita && <em className="cita">«{r.cita}»</em>}
               </div>
               <div className="acts">
-                <select className="i-up" aria-label={`Asignar un documento a ${r.nombre}`} value={doc?.id || ''} onChange={e => asignar(r, e.target.value ? Number(e.target.value) : null)}>
-                  <option value="">{doc ? 'Quitar' : 'Asignar…'}</option>
-                  {(biblio || []).map(d => <option key={d.id} value={d.id}>{d.nombre}</option>)}
-                </select>
+                <Desplegable className="i-up" alinear="der" etiqueta={`Asignar un documento a ${r.nombre}`} valor={doc?.id || ''}
+                  onCambio={v => asignar(r, v ? Number(v) : null)} boton={<><Icon n="doc" s={15} />{doc ? 'Cambiar' : 'Asignar'}</>}
+                  opciones={[...(doc ? [{ v: '', t: 'Quitar el documento' }] : []), ...(biblio || []).map(d => ({ v: d.id, t: d.nombre, extra: d.caduca ? `caduca ${d.caduca}` : '' }))]} />
                 <label className={`i-up ${estado === 'falta' ? 'p' : ''}`}><Icon n="plus" s={15} w={2.4} />Subir<input type="file" accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx,.odt,.ods" hidden onChange={ev => { subirA(r, ev.target.files[0]); ev.target.value = '' }} /></label>
               </div>
             </div>

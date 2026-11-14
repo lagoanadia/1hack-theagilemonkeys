@@ -1,5 +1,6 @@
 import { useRef, Fragment, useCallback, useEffect, useMemo, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
+import { Fecha } from './Campos.jsx'
 import { plant } from './lp.js'
 import { api } from '../api.js'
 import { LINEAS, descartadaPor, etapaDe, fechaCorta } from '../datos.js'
@@ -388,7 +389,7 @@ function Presentado({ lista, cambiarEstado, cambiarPaso, seg, perfil, ir }) {
                 </div>
                 {!cierre && (
                   <div className="tb-acc">
-                    <label className="tb-btn ico" title="Cambiar la fecha del siguiente paso"><Icon n="cal" s={17} /><input type="date" aria-label="Cambiar la fecha del siguiente paso" value={s?.fecha_paso?.slice(0, 10) || ''} onChange={e => e.target.value && cambiarPaso(a, { fecha_paso: e.target.value })} /></label>
+                    <Fecha className="tb-btn ico" etiqueta="Cambiar la fecha del siguiente paso" valor={s?.fecha_paso?.slice(0, 10) || ''} onCambio={v => v && cambiarPaso(a, { fecha_paso: v })} boton={<Icon n="cal" s={17} />} />
                     {sig[0] && <button className={`tb-btn ${tono === 'hot' || tono === 'am' ? 'p' : ''}`} onClick={() => cambiarEstado(a, sig[0][0])}><Icon n="check" s={15} w={3} />{BOTON_CORTO[sig[0][0]] || sig[0][1]}</button>}
                   </div>
                 )}

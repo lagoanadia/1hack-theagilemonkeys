@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
+import { AutoTexto, Fecha, ListaLineas } from './Campos.jsx'
+import Desplegable from './Desplegable.jsx'
 import Menu from './Menu.jsx'
 import { island } from './lp.js'
 import { validarCif } from './cif.js'
@@ -93,8 +95,8 @@ function Criterios({ perfil, guardarPerfil, setToast }) {
           <input className="i-in" type="number" min={min} max={max} placeholder={vacio} value={c[k] ?? ''} onChange={e => setC(x => ({ ...x, [k]: aNumero(e.target.value) }))} />
           <small className="mut">{ayuda}</small></label>
       ))}
-      <label className="i-field wide"><span>Otros datos de la entidad que debe tener en cuenta la IA (uno por línea)</span>
-        <textarea className="i-in" rows={3} value={req} onChange={e => setReq(e.target.value)} />
+      <label className="i-field wide"><span>Otros datos de la entidad que debe tener en cuenta la IA</span>
+        <ListaLineas valor={req} onCambio={setReq} placeholder="Escribid un dato y pulsad Intro" />
         <small className="mut">Por ejemplo: «No podemos adelantar el dinero de la actuación».</small></label>
       <div className="i-field wide" style={{ background: 'none', padding: 0, display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
         <button className="i-btn p" disabled={!n || guardando} onClick={guardar}><Icon n="check" s={19} w={2.6} />{guardando ? 'Guardando…' : 'Guardar criterios'}</button>
@@ -251,9 +253,9 @@ export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, pre
             <label className="i-field"><span>Personas en el equipo</span><input className="i-in" type="number" min="1" max="500" value={d.equipo} onChange={e => set('equipo', e.target.value === '' ? '' : Number(e.target.value))} /></label>
             </div>
             <div className="i-card i-perfil">
-            <label className="i-field wide"><span>Descripción: qué hace Reforesta</span><textarea className="i-in" maxLength={1500} value={d.descripcion} onChange={e => set('descripcion', e.target.value)} /></label>
-            <label className="i-field"><span>Líneas de trabajo (una por línea)</span><textarea className="i-in" rows={4} value={lin.lineas} onChange={e => setLin({ ...lin, lineas: e.target.value })} /></label>
-            <label className="i-field"><span>Lo que no os sirve (una por línea)</span><textarea className="i-in" rows={4} value={lin.no_sirve} onChange={e => setLin({ ...lin, no_sirve: e.target.value })} /></label>
+            <label className="i-field wide"><span>Descripción: qué hace Reforesta</span><AutoTexto maxLength={1500} value={d.descripcion} onChange={e => set('descripcion', e.target.value)} /></label>
+            <label className="i-field"><span>Líneas de trabajo</span><ListaLineas valor={lin.lineas} onCambio={v => setLin({ ...lin, lineas: v })} placeholder="Nueva línea de trabajo" /></label>
+            <label className="i-field"><span>Lo que no os sirve</span><ListaLineas valor={lin.no_sirve} onCambio={v => setLin({ ...lin, no_sirve: v })} placeholder="Algo que no os sirve" /></label>
             </div>
           </div>
           <div className="pf-col">
@@ -282,15 +284,16 @@ export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, pre
             <span style={{ fontWeight: 400 }}>Lo que piden las convocatorias para poder presentarse. Lo que no sepáis, dejadlo en «No consta»: el radar lo tratará como una duda, no como un no.</span>
           </div>
             <label className="i-field"><span>Forma jurídica</span>
-              <select className="i-in" value={f.forma_juridica} onChange={e => setFi('forma_juridica', e.target.value)}>{Object.entries(FORMAS).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></label>
+              <Desplegable bloque className="i-in dsp-campo" etiqueta="Forma jurídica" valor={f.forma_juridica} onCambio={v => setFi('forma_juridica', v)}
+                boton={FORMAS[f.forma_juridica] || 'Elegir'} opciones={Object.entries(FORMAS).map(([k, t]) => ({ v: k, t }))} /></label>
             <label className="i-field"><span>Año de constitución</span>
               <input className="i-in" type="number" min="1800" max="2100" placeholder="Año" value={f.anio_constitucion ?? ''} onChange={e => setFi('anio_constitucion', aNumero(e.target.value))} />
               {antiguedad !== null && <small className="mut">Antigüedad: {antiguedad} {antiguedad === 1 ? 'año' : 'años'}</small>}</label>
             <label className="i-field"><span>Sede</span>
               <input className="i-in" maxLength={120} value={f.sede} onChange={e => setFi('sede', e.target.value)} /></label>
             <label className="i-field"><span>Ámbito de actuación</span>
-              <select className="i-in" value={f.ambito_actuacion ?? ''} onChange={e => setFi('ambito_actuacion', e.target.value || null)}>
-                <option value="">No consta</option>{Object.entries(AMBITOS).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select></label>
+              <Desplegable bloque className="i-in dsp-campo" etiqueta="Ámbito de actuación" valor={f.ambito_actuacion ?? ''} onCambio={v => setFi('ambito_actuacion', v || null)}
+                boton={AMBITOS[f.ambito_actuacion] || 'No consta'} opciones={[{ v: '', t: 'No consta' }, ...Object.entries(AMBITOS).map(([k, t]) => ({ v: k, t }))]} /></label>
             <label className="i-field"><span>Presupuesto anual (€)</span>
               <input className="i-in" type="number" min="0" step="any" placeholder="No consta" value={f.presupuesto_anual ?? ''} onChange={e => setFi('presupuesto_anual', aNumero(e.target.value))} /></label>
             <label className="i-field"><span>Voluntarios</span>
@@ -340,7 +343,7 @@ export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, pre
                 <div key={x.nombre} className="i-docrow">
                   <Sw on={x.tengo} label={`Tenemos ${x.nombre}`} onClick={() => set('documentos', d.documentos.map((y, j) => (j === i ? { ...y, tengo: !y.tengo } : y)))} />
                   <b>{x.nombre}</b>
-                  <input className="i-in" type="date" aria-label={`Caduca ${x.nombre}`} value={x.caduca} onChange={e => set('documentos', d.documentos.map((y, j) => (j === i ? { ...y, caduca: e.target.value } : y)))} />
+                  <Fecha etiqueta={`Caduca ${x.nombre}`} placeholder="Caduca…" valor={x.caduca} alinear="der" onCambio={v => set('documentos', d.documentos.map((y, j) => (j === i ? { ...y, caduca: v } : y)))} />
                   <button type="button" className="i-link" onClick={() => set('documentos', d.documentos.filter((_, j) => j !== i))}>Quitar</button>
                 </div>
               ))}
@@ -349,7 +352,8 @@ export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, pre
           <div className="pf-col"><div className="i-card i-perfil">
             <div className="i-field wide"><span>Avisos por correo</span>
               <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-                <select className="i-in" style={{ width: 180 }} value={d.avisos} onChange={e => set('avisos', e.target.value)}>{Object.entries(AVISOS).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select>
+                <Desplegable className="i-in dsp-campo" etiqueta="Avisos por correo" valor={d.avisos} onCambio={v => set('avisos', v)}
+                  boton={AVISOS[d.avisos] || 'Elegir'} opciones={Object.entries(AVISOS).map(([k, t]) => ({ v: k, t }))} />
                 <input className="i-in" type="email" maxLength={120} placeholder="correo@reforesta.org" value={d.email_avisos} onChange={e => set('email_avisos', e.target.value)} />
               </div>
               <CorreoAvisos setToast={setToast} cambiado={d.email_avisos !== perfil.email_avisos} /></div>

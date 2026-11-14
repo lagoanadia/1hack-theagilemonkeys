@@ -73,7 +73,7 @@ export default function Propuestas({ top, setToast, salir }) {
           <input className="i-in" required maxLength={150} placeholder="Título · ej. Plantación de 1 ha" {...campo('titulo')} />
           <input className="i-in" maxLength={150} placeholder="Dónde · ej. Sierra de Guadarrama" {...campo('lugar')} />
           <div style={{ display: 'flex', gap: 10 }}>
-            <select className="i-in" aria-label="Tipo de propuesta" {...campo('tipo')}>{Object.entries(TIPOS).map(([k, t]) => <option key={k} value={k}>{t}</option>)}</select>
+            <Desplegable className="i-in dsp-campo" etiqueta="Tipo de propuesta" valor={form.tipo} onCambio={v => setForm({ ...form, tipo: v })} boton={TIPOS[form.tipo] || 'Tipo'} opciones={Object.entries(TIPOS).map(([k, t]) => ({ v: k, t }))} />
             <input className="i-in" maxLength={300} placeholder="Qué incluye · ej. Plantas, plantación y seguimiento" {...campo('incluye')} />
           </div>
           <input className="i-in" maxLength={2000} placeholder="Descripción (opcional)" {...campo('descripcion')} />

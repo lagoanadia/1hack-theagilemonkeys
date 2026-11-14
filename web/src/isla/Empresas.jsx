@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import Icon from './Icon.jsx'
+import { Fecha } from './Campos.jsx'
 import Menu from './Menu.jsx'
 import Tablero from './Tablero.jsx'
 import { useSecciones } from '../tablero.js'
@@ -290,7 +291,7 @@ function Contacto({ lista, tab, cambiarEstado, setBorrador }) {
                 {ult && <p className="k3-f ok"><Icon n="check" s={13} w={3} />{ult.plantilla === 'rec' ? 'Recordatorio enviado' : 'Mensaje enviado'} el {fechaLarga(ult.fecha)}</p>}
                 <b className={toca ? 'hot' : ''}>{fs.volver ? (toca ? 'Toca volver a escribir' : `Volver a escribir el ${fechaLarga(fs.volver)}`) : 'Poned una fecha para volver a escribir'}</b>
                 {dias !== null && !toca && <span>Faltan {dias} {dias === 1 ? 'día' : 'días'}</span>}
-                <label className="i-fecha">Volver a contactar<input type="date" className="i-in" value={fs.volver || ''} onChange={ev => fecha(e, 'volver', ev.target.value)} /></label>
+                <div className="i-fecha">Volver a contactar<Fecha etiqueta="Volver a contactar" valor={fs.volver || ''} onCambio={v => fecha(e, 'volver', v)} /></div>
                 <div className="k3-acc"><button className={`i-btn sm ${toca ? 'p' : ''}`} onClick={() => setBorrador({ e, plantilla: 'rec' })}><Icon n="send" s={16} />Escribir recordatorio</button>
                   {fs.volver && <Cal e={e} f={fs.volver} titulo="Volver a escribir a" texto="Añadir al calendario" />}
                   <button className="i-btn sm" onClick={() => ir(e, 'reunion')}>Han contestado</button></div>
@@ -300,7 +301,7 @@ function Contacto({ lista, tab, cambiarEstado, setBorrador }) {
               <div className="k3-paso">
                 <b>{fs.reunion ? diaSemana(fs.reunion) : 'Poned la fecha de la reunión'}</b>
                 <span>Preparad: superficie, especies y calendario de plantación.</span>
-                <label className="i-fecha">Fecha de la reunión<input type="date" className="i-in" value={fs.reunion || ''} onChange={ev => fecha(e, 'reunion', ev.target.value)} /></label>
+                <div className="i-fecha">Fecha de la reunión<Fecha etiqueta="Fecha de la reunión" valor={fs.reunion || ''} onCambio={v => fecha(e, 'reunion', v)} /></div>
                 <div className="k3-acc">{fs.reunion && <Cal e={e} f={fs.reunion} titulo="Reunión con" texto="Añadir al calendario" />}
                   <button className="i-btn sm" onClick={() => cambiarEstado(e, 'cerrada', 'Movida a cerradas')}>Hay acuerdo</button></div>
               </div>
