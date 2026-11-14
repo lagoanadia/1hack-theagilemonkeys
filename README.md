@@ -194,6 +194,20 @@ wrangler.jsonc         configuración de Cloudflare
 }
 ```
 
+## Desarrollo del frontend (web/)
+
+```bash
+echo "CLAVE_EQUIPO=prueba-local" > .dev.vars   # contraseña solo para local (no se sube)
+npx wrangler dev                                # backend: API + datos en :8787
+cd web && npm install && npm run dev            # frontend con recarga en caliente (:5173)
+```
+
+`npm run dev` redirige `/api` y `/data` al backend local. Reglas para no romper nada:
+- La app vive en `web/` y se compila a `web/dist` (lo que publica Cloudflare).
+- `web/public/data/*.json` lo escribe el radar cada mañana: no borrarlo ni editarlo a mano.
+- `/api/*` y `/data/*` son rutas del backend: ninguna página del frontend puede usarlas.
+- Los datos solo se piden con la contraseña (cabecera `X-Clave-Equipo`): usad `web/src/api.js`.
+
 ## Uso local
 
 ```bash
