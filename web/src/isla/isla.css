@@ -1065,3 +1065,10 @@ html,body{margin:0}
 .i-docs-h .conv{display:block;font-size:13px;color:var(--mut);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .i-docs-h .det,.i-doc .det{color:var(--gr-d);font-weight:700}
 .i-docs-h .det{font-size:14px}
+.i-dl-aviso{display:inline-flex;align-items:center;gap:6px;margin:8px auto 0;background:var(--co-l);color:var(--co-d);font-weight:700;font-size:14px;padding:6px 14px;border-radius:999px}.i-dl-aviso.ok{background:var(--gr-l);color:var(--gr-d)}
+/* Quitar un documento pulsando el tic */
+.i-doc .ico.quitable{cursor:pointer;border:0;font:inherit}
+.i-doc .ico.quitable .no{display:none}
+.i-doc .ico.quitable:hover,.i-doc .ico.quitable:focus-visible{background:var(--co)!important;color:#fff!important;border-color:var(--co)!important}
+.i-doc .ico.quitable:hover .si,.i-doc .ico.quitable:focus-visible .si{display:none}
+.i-doc .ico.quitable:hover .no,.i-doc .ico.quitable:focus-visible .no{display:inline-flex}

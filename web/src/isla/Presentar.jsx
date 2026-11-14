@@ -169,7 +169,10 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
             <div key={r.clave}
               className={`i-doc i-hueco ${ocupado === r.clave ? 'comprobando' : estado} ${sobre === r.clave ? 'sobre' : ''}`}
               onDragOver={ev => { ev.preventDefault(); setSobre(r.clave) }} onDragLeave={() => setSobre(null)} onDrop={ev => soltar(ev, r)}>
-              <span className="ico" aria-hidden="true">{estado === 'listo' ? <Icon n="check" s={16} w={3} /> : estado === 'revisar' ? '!' : null}</span>
+              {doc
+                ? <button type="button" className="ico quitable" title="Quitar este documento" aria-label={`Quitar «${doc.nombre}» de ${r.nombre}`} onClick={() => asignar(r, null)}>
+                    <span className="si">{estado === 'listo' ? <Icon n="check" s={16} w={3} /> : '!'}</span><span className="no"><Icon n="x" s={15} w={3} /></span></button>
+                : <span className="ico" aria-hidden="true" />}
               <div className="txt">
                 <b>{r.nombre}{r.obligatorio === false && <span className="i-opc"> · opcional</span>}</b>
                 <small>{doc ? <><Icon n="doc" s={13} /> {doc.nombre}{doc.tiene_archivo ? '' : ' (sin archivo)'}{asig[r.clave]?.estado === 'sugerido' && <span className="det"> · detectado</span>}</> : r.condicion || TIPO_NOMBRE[r.tipo]}</small>
@@ -180,7 +183,7 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
               <div className="acts">
                 <Desplegable className="i-up" alinear="der" etiqueta={`Asignar un documento a ${r.nombre}`} valor={doc?.id || ''}
                   onCambio={v => asignar(r, v ? Number(v) : null)} boton={<><Icon n="doc" s={15} />{doc ? 'Cambiar' : 'Asignar'}</>}
-                  opciones={[...(doc ? [{ v: '', t: 'Quitar el documento' }] : []), ...(biblio || []).map(d => ({ v: d.id, t: d.nombre, extra: d.caduca ? `caduca ${d.caduca}` : '' }))]} />
+                  opciones={[...(biblio || []).map(d => ({ v: d.id, t: d.nombre, extra: d.caduca ? `caduca ${d.caduca}` : '' }))]} />
                 <label className={`i-up ${estado === 'falta' ? 'p' : ''}`}><Icon n="plus" s={15} w={2.4} />Subir<input type="file" accept=".pdf,.jpg,.jpeg,.png,.docx,.xlsx,.odt,.ods" hidden onChange={ev => { subirA(r, ev.target.files[0]); ev.target.value = '' }} /></label>
               </div>
             </div>
@@ -198,11 +201,13 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
             <span className="i-k">Plazo</span>
             <div className="big">{a.dias == null ? 'Sin fecha' : a.dias < 0 ? 'Cerrada' : `${a.dias} días`}</div>
             {plazo && <p>{a.plazoEstimado ? 'plazo estimado, ' : ''}hasta el {plazo.getDate()} de {MESL[plazo.getMonth()]}</p>}
+            {biblio && (faltan > 0
+              ? <p className="i-dl-aviso"><Icon n="alert" s={15} />{faltan === 1 ? 'Falta 1 documento para poder entregarla' : `Faltan ${faltan} documentos para poder entregarla`}</p>
+              : <p className="i-dl-aviso ok"><Icon n="check" s={15} w={3} />Tenéis todos los documentos</p>)}
             <Svg html={island(300, 200, Math.min(presentadas + 1, objetivo), objetivo)} style={{ display: 'block', margin: '6px 0 0' }} />
             <p className="tree">Al presentarla plantáis el árbol n.º {presentadas + 1}</p>
             <button className="i-btn p" style={{ width: '100%' }} aria-disabled={faltan > 0 || presentando} onClick={presentarConZip}><Icon n={faltan > 0 ? 'alert' : 'check'} s={19} w={2.6} />{presentando ? 'Preparando el ZIP…' : 'Presentar'}</button>
             {a.url && <a className="i-link" style={{ marginTop: 10 }} href={a.url} target="_blank" rel="noopener noreferrer">Ver convocatoria en la BDNS ↗</a>}
-            {faltan > 0 && <small className="warn">Requisitos incompletos: {faltan === 1 ? 'falta 1 documento' : `faltan ${faltan} documentos`}</small>}
           </div>
         </div>
       </div>
