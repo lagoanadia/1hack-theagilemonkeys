@@ -28,6 +28,7 @@
 //   PUT    /api/plantaciones/:id · DELETE   editar / quitar                           (equipo)
 //   GET    /api/avisos/correo               vista previa del correo de avisos         (equipo)
 //   POST   /api/avisos/correo               enviarlo ahora (prueba)                    (equipo)
+//   GET    /api/demo/datos · POST · DELETE  datos de prueba en la base de datos (cargar / quitar) (equipo)
 //   GET    /api/demo · PUT {activo}         modo demo: convocatorias reales cerradas como si estuvieran abiertas (equipo)
 //   GET    /api/seguimiento                 lo que está en marcha, con su siguiente paso y avisos (equipo)
 //   GET    /api/reglas                      reglas del equipo + sugerencias detectadas (equipo)
@@ -566,17 +567,107 @@ async function convocatoriasConDemo(env, request) {
   return { ...d, convocatorias: [...demo, ...d.convocatorias], demo: demo.length };
 }
 
-// Empresas del BOE: impacto de las hectáreas que deben compensar (superficie total o suma de sus medidas).
-function haEmpresa(e) {
-  if (e.superficie_total_ha > 0) return e.superficie_total_ha;
-  const suma = (e.medidas || []).reduce((s, m) => s + (m.superficie_ha > 0 ? m.superficie_ha : 0), 0);
-  return suma > 0 ? suma : null;
+// Datos de prueba para recorrer la app entera: solicitudes en cada fase, descartes que generan una
+// regla, empresas en contacto, propuestas con reservas, documentos con caducidades y plantaciones.
+// Se apunta qué se ha creado (ajustes 'datos_demo') para quitarlo después sin tocar lo real.
+const DIA = 86400000;
+const enDias = (n) => new Date(Date.now() + n * DIA).toISOString().slice(0, 10);
+async function cargarDatosDemo(db, env, request) {
+  const creado = { solicitudes: [], proyectos: [], interesados: [], documentos: [], plantaciones: [] };
+  const libre = async (tipo, id) => !(await db.prepare("SELECT 1 FROM solicitudes WHERE tipo = ? AND id = ?").bind(tipo, id).first());
+  const sol = async (tipo, id, cambios) => {
+    if (!(await libre(tipo, id))) return;
+    await cambiarSolicitud(db, tipo, id, cambios, "Demo");
+    creado.solicitudes.push([tipo, id]);
+  };
+  // Convocatorias (las del modo demo): una en cada fase; 928403 se queda «por revisar».
+  await sol("convocatoria", "904719", { estado: "preparando", responsable: "Marta", siguiente_paso: "Presentar la solicitud", fecha_paso: enDias(9) });
+  await sol("convocatoria", "923290", { estado: "subsanar", responsable: "Luis", siguiente_paso: "Entregar el certificado de Hacienda actualizado", fecha_paso: enDias(2) });
+  await sol("convocatoria", "921561", { estado: "justificar", responsable: "Marta", siguiente_paso: "Entregar la justificación del gasto", fecha_paso: enDias(40) });
+  // Tres descartes por el mismo motivo: aparece la sugerencia de regla en «Lo que el radar ha aprendido».
+  const convs = Object.values(await datosRadar(env, request, "convocatorias")).filter((c) => !c.demo).slice(0, 3);
+  for (const c of convs) {
+    await sol("convocatoria", c.codigo, { estado: "descartada", motivos: ["Piden poner mucho dinero"], nota: "Pueden poner como máximo el 20 %" });
+  }
+  // Empresas del BOE en contacto.
+  const emps = Object.values(await datosRadar(env, request, "empresas")).filter((e) => e.accion !== "descartar").slice(0, 2);
+  if (emps[0]) await sol("empresa", emps[0].id, { estado: "contactada", responsable: "Luis", siguiente_paso: "Volver a escribir si no contestan", fecha_paso: enDias(4) });
+  if (emps[1]) await sol("empresa", emps[1].id, { estado: "reunion", responsable: "Marta", siguiente_paso: "Preparar la propuesta para la reunión", fecha_paso: enDias(6) });
+  // Propuestas para empresas, con reservas.
+  const proyectos = [
+    ["Plantación de 2 ha en la Sierra de Guadarrama", "Rascafría (Madrid)", "plantacion", "Plantas autóctonas, plantación y 3 años de seguimiento", 2, 18000, 3, "publicada"],
+    ["Jornada de voluntariado corporativo", "Casa de Campo (Madrid)", "voluntariado", "Guía, herramientas y plantones para 40 personas", 0.5, 4500, 2, "publicada"],
+    ["Restauración de ribera del Tajo", "Aranjuez (Madrid)", "plantacion", "Estudio, plantación y riego el primer verano", 3, 26000, null, "borrador"],
+  ];
+  for (const [titulo, lugar, tipo, incluye, ha, pres, plazas, estado] of proyectos) {
+    const r = await db.prepare(`INSERT INTO proyectos (titulo, lugar, tipo, incluye, descripcion, hectareas, presupuesto, plazas, estado,
+      creado, actualizado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(titulo, lugar, tipo, incluye,
+      "Datos de prueba", ha, pres, plazas, estado, ahora(), ahora()).run();
+    creado.proyectos.push(r.meta.last_row_id);
+  }
+  for (const [p, empresa, contacto, mensaje, estado] of [
+    [0, "Empresa Ejemplo Energía, SL", "rsc@ejemplo.org", "Queremos compensar 2 ha este invierno", "nueva"],
+    [0, "Constructora Ejemplo, SA", "sostenibilidad@ejemplo.org", "¿Podemos ir con el equipo a plantar?", "contestada"],
+    [1, "Banco Ejemplo", "voluntariado@ejemplo.org", "Somos unas 30 personas", "confirmada"],
+  ]) {
+    const r = await db.prepare(`INSERT INTO interesados (proyecto_id, empresa, contacto, mensaje, estado, creado)
+      VALUES (?, ?, ?, ?, ?, ?)`).bind(creado.proyectos[p], empresa, contacto, mensaje, estado, ahora()).run();
+    creado.interesados.push(r.meta.last_row_id);
+  }
+  // Biblioteca: sin archivo (se puede subir encima), con caducidades para ver los avisos.
+  for (const [tipo, nombre, emitido, caduca] of [
+    ["estatutos", "Estatutos inscritos", "2019-03-12", null],
+    ["cif", "Tarjeta CIF", "2015-06-01", null],
+    ["cert_hacienda", "Certificado de estar al corriente con Hacienda", enDias(-170), enDias(10)],
+    ["cert_seg_social", "Certificado de la Seguridad Social", enDias(-200), enDias(-20)],
+    ["memoria_actividades", "Memoria de actividades 2025", "2026-02-15", null],
+  ]) {
+    const r = await db.prepare(`INSERT INTO documentos (tipo, nombre, emitido, caduca, subido_por, creado)
+      VALUES (?, ?, ?, ?, 'Demo', ?)`).bind(tipo, nombre, emitido, caduca, ahora()).run();
+    creado.documentos.push(r.meta.last_row_id);
+  }
+  // Plantaciones (las del ejemplo del mapa); una enlazada a la convocatoria en «justificar».
+  for (const [nombre, lon, lat, ha, tipo, anio, con, origen] of [
+    ["Rascafría", -3.88, 40.90, 4, "c", 2025, "Ayudas a la forestación (CAM)", null],
+    ["Cercedilla", -4.06, 40.74, 6, "c", 2024, "Restauración tras incendio", null],
+    ["Buitrago", -3.64, 40.99, 2, "v", 2026, "Jornada con voluntariado", null],
+    ["Galapagar", -3.99, 40.58, 2, "e", 2026, "Compensación de una línea eléctrica", null],
+    ["Casa de Campo", -3.75, 40.42, 0.6, "v", 2025, "Jornada con empresa", null],
+    ["Alcalá de Henares", -3.36, 40.48, 1.5, "c", 2024, "Arbolado urbano", null],
+    ["Valdemoro", -3.68, 40.19, 12, "e", 2026, "Compensación de una planta solar", null],
+    ["Aranjuez", -3.60, 40.03, 3, "c", 2025, "Ribera del Tajo", null],
+    ["San Martín de Valdeiglesias", -4.40, 40.36, 5, "c", 2026, "", "921561"],
+  ]) {
+    const r = await db.prepare(`INSERT INTO plantaciones (nombre, lon, lat, ha, arboles, tipo, anio, con, origen_tipo, origen_id,
+      autor, creado) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'Demo', ?)`).bind(nombre, lon, lat, ha, Math.round(ha * 1100), tipo, anio,
+      con || "Infraestructura verde (Fundación Biodiversidad)", origen ? "convocatoria" : "", origen || "", ahora()).run();
+    creado.plantaciones.push(r.meta.last_row_id);
+  }
+  await db.prepare(`INSERT INTO ajustes (clave, valor, actualizado, actualizado_por) VALUES ('datos_demo', ?, ?, 'Demo')
+    ON CONFLICT (clave) DO UPDATE SET valor = excluded.valor, actualizado = excluded.actualizado`).bind(JSON.stringify(creado), ahora()).run();
+  return creado;
 }
-function empresasConImpacto(d) {
-  return { ...d, empresas: (d.empresas || []).map((e) => {
-    const ha = haEmpresa(e);
-    return { ...e, impacto: ha ? impacto(ha) : null };
-  }) };
+async function quitarDatosDemo(db) {
+  const f = await db.prepare("SELECT valor FROM ajustes WHERE clave = 'datos_demo'").first();
+  if (!f) return null;
+  const c = JSON.parse(f.valor);
+  const qs = [];
+  for (const [tipo, id] of c.solicitudes) {
+    qs.push(db.prepare("DELETE FROM solicitudes WHERE tipo = ? AND id = ?").bind(tipo, id));
+    qs.push(db.prepare("DELETE FROM historial WHERE tipo = ? AND ref = ?").bind(tipo, id));
+    if (tipo === "convocatoria") qs.push(db.prepare("DELETE FROM solicitud_documentos WHERE codigo = ?").bind(id));
+  }
+  for (const [tabla, ids] of [["interesados", c.interesados], ["proyectos", c.proyectos], ["documentos", c.documentos], ["plantaciones", c.plantaciones]]) {
+    for (const id of ids) qs.push(db.prepare(`DELETE FROM ${tabla} WHERE id = ?`).bind(id));
+  }
+  for (const id of c.documentos) qs.push(db.prepare("UPDATE solicitud_documentos SET documento_id = NULL, estado = 'falta' WHERE documento_id = ?").bind(id));
+  // La regla aceptada a partir de los descartes de prueba también se va (y su criterio).
+  const regla = await db.prepare("SELECT id, criterio FROM reglas WHERE motivo = 'Piden poner mucho dinero'").first();
+  if (regla) qs.push(db.prepare("DELETE FROM reglas WHERE id = ?").bind(regla.id));
+  qs.push(db.prepare("DELETE FROM ajustes WHERE clave = 'datos_demo'"));
+  await db.batch(qs);
+  if (regla?.criterio) await guardarPerfil(db, { criterios: { [JSON.parse(regla.criterio).campo]: null } }, "Demo");
+  return Object.fromEntries(Object.entries(c).map(([k, v]) => [k, v.length]));
 }
 
 // Datos del radar (convocatorias.json / empresas.json) indexados por código; {} si no hay.
@@ -641,7 +732,8 @@ async function seguimiento(db, env, request) {
     const fechaPaso = s.fecha_paso || (s.estado === "preparando" ? datos?.fin || datos?.plazo_estimado || "" : "");
     const dias = /^\d{4}-\d{2}-\d{2}/.test(fechaPaso) ? Math.round((new Date(fechaPaso.slice(0, 10)) - hoy) / 86400000) : null;
     const nivel = dias === null ? "sin_fecha" : dias < 0 ? "vencido" : dias <= 3 ? "urgente" : dias <= 14 ? "pronto" : "ok";
-    return { ...s, titulo: datos?.titulo || datos?.proyecto || s.id, organo: datos?.organo || datos?.promotor || "",
+    const titulo = s.tipo === "empresa" && datos?.promotor ? `${datos.promotor} · ${datos.proyecto || ""}` : datos?.titulo;
+    return { ...s, titulo: titulo || s.id, organo: datos?.organo || datos?.promotor || "",
       url: datos?.url || "", fecha_paso: fechaPaso, dias, nivel, desde: f.desde || s.actualizado };
   });
   const orden = { vencido: 0, urgente: 1, pronto: 2, ok: 3, sin_fecha: 4 };
@@ -1153,6 +1245,25 @@ async function api(request, env, ruta) {
     }
   }
 
+  // --- datos de prueba
+  if (ruta === "/api/demo/datos") {
+    if (!equipo) return soloEquipo();
+    const f = await db.prepare("SELECT valor, actualizado FROM ajustes WHERE clave = 'datos_demo'").first();
+    if (metodo === "GET") {
+      return json({ cargados: Boolean(f), desde: f?.actualizado || null,
+        resumen: f ? Object.fromEntries(Object.entries(JSON.parse(f.valor)).map(([k, v]) => [k, v.length])) : null });
+    }
+    if (metodo === "POST") {
+      if (f) return error("Los datos de prueba ya están cargados (DELETE para quitarlos)", 409);
+      const c = await cargarDatosDemo(db, env, request);
+      return json({ ok: true, resumen: Object.fromEntries(Object.entries(c).map(([k, v]) => [k, v.length])) }, 201);
+    }
+    if (metodo === "DELETE") {
+      const r = await quitarDatosDemo(db);
+      return r ? json({ ok: true, quitados: r }) : error("No hay datos de prueba cargados", 404);
+    }
+  }
+
   // --- modo demo
   if (ruta === "/api/demo") {
     if (!equipo) return soloEquipo();
@@ -1426,7 +1537,6 @@ export default {
         await prepararEsquema(env.DB);
         if (await modoDemo(env, env.DB)) r = Response.json(await convocatoriasConDemo(env, request));
       }
-      if (ruta === "/data/empresas.json" && r.ok) r = Response.json(empresasConImpacto(await r.json()));
       const privado = new Response(r.body, r);
       privado.headers.set("cache-control", "private, no-store");
       return privado;

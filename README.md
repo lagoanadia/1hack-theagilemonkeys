@@ -142,12 +142,10 @@ Ejemplo: 8 ha ≈ 40 t CO₂/año ≈ 34 vuelos Madrid–Nueva York cada año.
 `viaje` es el destino que enseña el globo: uno donde quepan entre 1 y 12 vuelos al año (cuanto más CO₂,
 más lejos; el mismo para las mismas hectáreas). En la web (`web/src/isla/Globo.jsx`, canvas sin
 librerías) un avión low poly vuela una vez de Madrid a ese destino con la cámara siguiéndolo; al
-aterrizar el globo se puede girar arrastrando. Sale en la página pública de propuestas y al reservar.
+aterrizar el globo se puede girar arrastrando. Solo sale en la página pública de propuestas (lo que ven las empresas) y al reservar.
 - **Al ayudar**: `POST /api/proyectos/:id/interes` admite `hectareas` (opcional, como mucho las de la
   propuesta) y responde con el `impacto` de esa ayuda (para animar el avión). Cada propuesta trae
   `hectareas_apoyadas` y `/api/interesados` las hectáreas de cada empresa.
-- **Empresas del BOE**: `/data/empresas.json` añade `impacto` a las que tienen hectáreas que compensar
-  (`superficie_total_ha` o la suma de sus medidas); `null` si el BOE no da superficie.
 
 ### Documentos
 
@@ -171,6 +169,13 @@ defecto), `/data/convocatorias.json` añade las convocatorias reales de `validac
 convocatorias reales recientes ya cerradas) como si
 estuvieran abiertas, con `demo: true` y fechas de demostración. No van en los correos.
 `PUT /api/demo {activo: false}` lo apaga (o la variable `MODO_DEMO = "0"`).
+
+### Datos de prueba
+
+`POST /api/demo/datos` (equipo) carga datos para recorrer la app entera: convocatorias en cada fase
+(preparando, subsanar con aviso urgente, justificar), 3 descartes que generan una regla, 2 empresas
+en contacto, 3 propuestas con reservas, 5 documentos con caducidades y 9 plantaciones.
+`DELETE /api/demo/datos` quita exactamente lo que se cargó (y la regla aceptada de esos descartes).
 
 ### Avisos por correo
 

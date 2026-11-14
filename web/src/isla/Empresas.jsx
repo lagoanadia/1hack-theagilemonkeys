@@ -131,7 +131,7 @@ export default function Empresas({ top, radar, q, cambiarEstado, tab }) {
 // Tarjeta de empresa en bloques: identidad · qué tienen que hacer · datos clave · medidas · acción.
 function Ficha({ e, puesto, grande, nueva, pie }) {
   const [ver, setVer] = useState(false)
-  const ha = e.superficie_total_ha || e.impacto?.hectareas, tam = mw(e), n = e.encaje ?? 0
+  const ha = e.superficie_total_ha, tam = mw(e), n = e.encaje ?? 0
   return (
     <article className={`em-card ${grande ? 'grande' : ''}`}>
       <header className="em-id">
