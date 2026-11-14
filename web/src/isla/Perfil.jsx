@@ -3,7 +3,6 @@ import Icon, { Svg } from './Icon.jsx'
 import { AutoTexto, Fecha, ListaLineas } from './Campos.jsx'
 import Desplegable from './Desplegable.jsx'
 import Menu from './Menu.jsx'
-import { island } from './lp.js'
 import { validarCif } from './cif.js'
 import { api, apiTexto } from '../api.js'
 import { useRecordado } from '../recordado.js'
@@ -259,18 +258,21 @@ export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, pre
             </div>
           </div>
           <div className="pf-col">
-            <div className="i-isle">
+            <div className="i-card pf-obj">
               <span className="i-k">Objetivo del año</span>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14, margin: '8px 0' }}>
-                <button type="button" className="i-round" style={{ fontSize: 22 }} aria-label="Menos" onClick={() => set('objetivo_anual', Math.max(1, objetivo - 1))}>−</button>
+              <div className="pf-obj-n">
+                <button type="button" className="i-round" aria-label="Menos" onClick={() => set('objetivo_anual', Math.max(1, objetivo - 1))}>−</button>
                 <span className="n">{objetivo}</span>
-                <button type="button" className="i-round" style={{ fontSize: 22 }} aria-label="Más" onClick={() => set('objetivo_anual', Math.min(200, objetivo + 1))}>+</button>
+                <button type="button" className="i-round" aria-label="Más" onClick={() => set('objetivo_anual', Math.min(200, objetivo + 1))}>+</button>
               </div>
-              <p>solicitudes. Un árbol por cada una. Lleváis {presentadas}.</p>
-              <Svg html={island(310, 250, Math.min(presentadas, objetivo), objetivo)} />
+              <p className="pf-obj-t">solicitudes este año</p>
+              <div className="pf-obj-barra" role="progressbar" aria-valuemin={0} aria-valuemax={objetivo} aria-valuenow={presentadas} aria-label={`${presentadas} de ${objetivo} solicitudes`}>
+                <i style={{ width: `${Math.min(100, (presentadas / objetivo) * 100)}%` }} />
+              </div>
+              <p className="pf-obj-l"><b>{presentadas}</b> de {objetivo} presentadas{presentadas >= objetivo ? ' · ¡objetivo cumplido! 🎉' : ` · os ${objetivo - presentadas === 1 ? 'falta 1' : `faltan ${objetivo - presentadas}`}`}</p>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-start' }}>
-              <a href="#/propuestas" className="i-link">Ver la página pública de propuestas para empresas →</a>
+            <div className="pf-obj-links">
+              <a href="#/propuestas" className="i-btn sm"><Icon n="ext" s={16} />Ver la página pública para empresas</a>
               <button className="i-link" onClick={salir}>Cerrar sesión</button>
             </div>
           </div>
