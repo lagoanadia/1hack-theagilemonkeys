@@ -21,11 +21,14 @@
 //   GET    /api/archivos/:id                descargar el archivo                      (equipo)
 //   GET    /api/solicitudes/convocatoria/:codigo/documentos        qué documento va en cada hueco (equipo)
 //   PUT    /api/solicitudes/convocatoria/:codigo/documentos/:req   {documento_id, estado, responsable} (equipo)
+//   GET    /api/impacto?ha=8                CO2 que absorben esas hectáreas, en vuelos, coches y personas (público)
+//   GET    /api/solicitudes/convocatoria/:codigo/zip   ZIP con los documentos asignados, listos para subir (equipo)
 //   GET    /api/plantaciones                dónde ha plantado Reforesta + totales      (público; notas solo equipo)
 //   POST   /api/plantaciones                {nombre, ll:[lon,lat], ha, tipo, anio, ...} (equipo)
 //   PUT    /api/plantaciones/:id · DELETE   editar / quitar                           (equipo)
 //   GET    /api/avisos/correo               vista previa del correo de avisos         (equipo)
 //   POST   /api/avisos/correo               enviarlo ahora (prueba)                    (equipo)
+//   GET    /api/demo · PUT {activo}         modo demo: convocatorias reales cerradas como si estuvieran abiertas (equipo)
 //   GET    /api/seguimiento                 lo que está en marcha, con su siguiente paso y avisos (equipo)
 //   GET    /api/reglas                      reglas del equipo + sugerencias detectadas (equipo)
 //   POST   /api/reglas                      {motivo, accion: aceptar|ignorar} o {texto} (equipo)
@@ -41,7 +44,7 @@
 //                                            hectareas, presupuesto, estado}         (equipo)
 //   PUT    /api/proyectos/:id               editar, publicar u ocultar                (equipo)
 //   DELETE /api/proyectos/:id               retirar (archivar) una propuesta          (equipo)
-//   POST   /api/proyectos/:id/interes       {empresa, contacto, mensaje}             (público)
+//   POST   /api/proyectos/:id/interes       {empresa, contacto, mensaje, hectareas?} → impacto (público)
 //   GET    /api/interesados                 empresas que quieren ayudar              (equipo)
 //   PUT    /api/interesados/:id             {estado: nueva|contestada|confirmada|descartada} (equipo)
 //   DELETE /api/interesados/:id             borrar una reserva (pruebas, spam)       (equipo)
@@ -215,11 +218,55 @@ const ESTADOS_RESERVA = ["nueva", "contestada", "confirmada", "descartada"];
 // Propuesta con sus plazas: una reserva ocupa plaza salvo que esté descartada.
 const SQL_PROPUESTAS = `SELECT p.id, p.titulo, p.lugar, p.tipo, p.incluye, p.descripcion, p.hectareas,
     p.presupuesto, p.plazas, p.estado, p.creado, p.actualizado,
-    (SELECT COUNT(*) FROM interesados i WHERE i.proyecto_id = p.id AND i.estado != 'descartada') AS reservas
+    (SELECT COUNT(*) FROM interesados i WHERE i.proyecto_id = p.id AND i.estado != 'descartada') AS reservas,
+    (SELECT COALESCE(SUM(i.hectareas), 0) FROM interesados i WHERE i.proyecto_id = p.id AND i.estado != 'descartada')
+      AS hectareas_apoyadas
   FROM proyectos p WHERE p.activo = 1`;
 function conPlazas(p) {
   const libres = p.plazas == null ? null : Math.max(0, p.plazas - p.reservas);
-  return { ...p, plazas_libres: libres, completa: libres === 0 };
+  return { ...p, plazas_libres: libres, completa: libres === 0, impacto: p.hectareas > 0 ? impacto(p.hectareas) : null };
+}
+
+// ---------- Impacto: el CO2 de una plantación traducido a vuelos, coches y personas ----------
+// Estimaciones redondas para enseñar a las empresas. Si Reforesta tiene datos propios
+// (p. ej. la calculadora de absorciones del MITECO por especie), se cambian aquí.
+const IMPACTO = {
+  co2_ha_anio: 5,     // t de CO2 que absorbe al año 1 ha de bosque mediterráneo joven
+  anios: 30,          // años que contamos de vida del bosque
+  kg_co2_km: 0.1,     // kg de CO2 por pasajero y km volado (media aproximada)
+  coche_anio: 1.6,    // t de CO2 de un coche en un año (~12.000 km)
+  persona_anio: 5,    // t de CO2 de la huella media de una persona en España en un año
+  origen: { nombre: "Madrid", ll: [-3.70, 40.42] },
+};
+// Destinos para el globo: [nombre, longitud, latitud].
+const DESTINOS = [
+  ["A Coruña", -8.41, 43.36], ["Tenerife", -16.25, 28.46], ["París", 2.35, 48.86], ["Londres", -0.13, 51.51],
+  ["Roma", 12.50, 41.90], ["Nueva York", -74.01, 40.71], ["Buenos Aires", -58.38, -34.60],
+  ["Tokio", 139.69, 35.69], ["Sídney", 151.21, -33.87],
+];
+// Distancia en km entre dos puntos [lon, lat] siguiendo la curva de la Tierra (fórmula del haversine).
+function kmEntre([lon1, lat1], [lon2, lat2]) {
+  const r = Math.PI / 180;
+  const a = Math.sin(((lat2 - lat1) * r) / 2) ** 2
+    + Math.cos(lat1 * r) * Math.cos(lat2 * r) * Math.sin(((lon2 - lon1) * r) / 2) ** 2;
+  return 2 * 6371 * Math.asin(Math.sqrt(a));
+}
+function impacto(ha) {
+  const anual = ha * IMPACTO.co2_ha_anio, total = anual * IMPACTO.anios;
+  const r1 = (n) => Math.round(n * 10) / 10;
+  return {
+    hectareas: ha, anios: IMPACTO.anios, co2_anual: r1(anual), co2_total: Math.round(total),
+    coches_anio: Math.round(anual / IMPACTO.coche_anio),
+    personas_anio: r1(anual / IMPACTO.persona_anio),
+    anios_persona: Math.round(total / IMPACTO.persona_anio),
+    origen: IMPACTO.origen,
+    vuelos: DESTINOS.map(([destino, lon, lat]) => {
+      const km = Math.round(kmEntre(IMPACTO.origen.ll, [lon, lat]));
+      const co2 = (km * 2 * IMPACTO.kg_co2_km) / 1000;  // ida y vuelta, 1 pasajero, en t
+      return { destino, ll: [lon, lat], km, co2_vuelo: Math.round(co2 * 100) / 100,
+        vuelos_anio: Math.floor(anual / co2), vuelos_total: Math.floor(total / co2) };
+    }),
+  };
 }
 function camposPropuesta(b) {
   const c = {};
@@ -368,6 +415,87 @@ async function borrarArchivo(env, db, key) {
   else if (env.ARCHIVOS) await env.ARCHIVOS.delete(key);
 }
 
+// ---------- ZIP para presentar: los documentos de la solicitud, con nombres claros y listos para subir ----------
+// ZIP sin comprimir (método "store"): los PDF ya van comprimidos y así no hace falta ninguna librería.
+const TABLA_CRC = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (const b of bytes) c = TABLA_CRC[(c ^ b) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+// archivos: [{ nombre, datos: Uint8Array }] → Uint8Array con el .zip
+function crearZip(archivos) {
+  const enc = new TextEncoder(), partes = [], central = [];
+  const d = new Date();
+  const hora = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+  const dia = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  let offset = 0;
+  for (const a of archivos) {
+    const nombre = enc.encode(a.nombre), crc = crc32(a.datos), n = a.datos.length;
+    const cab = new DataView(new ArrayBuffer(30));
+    // Cabecera local: firma, versión, flags (bit 11 = nombres en UTF-8), método 0, fecha, CRC, tamaños.
+    [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, hora, 2], [12, dia, 2], [14, crc, 4],
+      [18, n, 4], [22, n, 4], [26, nombre.length, 2], [28, 0, 2]]
+      .forEach(([o, v, t]) => (t === 4 ? cab.setUint32(o, v, true) : cab.setUint16(o, v, true)));
+    partes.push(new Uint8Array(cab.buffer), nombre, a.datos);
+    const cen = new DataView(new ArrayBuffer(46));
+    [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 0, 2], [12, hora, 2], [14, dia, 2],
+      [16, crc, 4], [20, n, 4], [24, n, 4], [28, nombre.length, 2], [30, 0, 2], [32, 0, 2], [34, 0, 2],
+      [36, 0, 2], [38, 0, 4], [42, offset, 4]]
+      .forEach(([o, v, t]) => (t === 4 ? cen.setUint32(o, v, true) : cen.setUint16(o, v, true)));
+    central.push(new Uint8Array(cen.buffer), nombre);
+    offset += 30 + nombre.length + n;
+  }
+  const tamCentral = central.reduce((s, p) => s + p.length, 0);
+  const fin = new DataView(new ArrayBuffer(22));
+  [[0, 0x06054b50, 4], [4, 0, 2], [6, 0, 2], [8, archivos.length, 2], [10, archivos.length, 2],
+    [12, tamCentral, 4], [16, offset, 4], [20, 0, 2]]
+    .forEach(([o, v, t]) => (t === 4 ? fin.setUint32(o, v, true) : fin.setUint16(o, v, true)));
+  const todo = [...partes, ...central, new Uint8Array(fin.buffer)];
+  const out = new Uint8Array(todo.reduce((s, p) => s + p.length, 0));
+  let o = 0;
+  for (const p of todo) { out.set(p, o); o += p.length; }
+  return out;
+}
+// Texto apto para nombre de archivo: sin tildes ni símbolos ("Declaración responsable" → "Declaracion-responsable").
+const sinTildes = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const slug = (t, max = 60) => sinTildes(t).replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, max).replace(/-$/, "");
+// La misma clave de hueco que usa la web (web/src/isla/Presentar.jsx): tipo + nombre sin tildes.
+const claveHueco = (r) => `${r.tipo}-${sinTildes(r.nombre).toLowerCase().replace(/[^a-z0-9]+/g, "-")}`.slice(0, 80).replace(/-+$/, "");
+
+async function zipSolicitud(db, env, request, codigo) {
+  const conv = (await datosRadar(env, request, "convocatorias"))[codigo] || { codigo, titulo: `Convocatoria ${codigo}` };
+  const { results: asignados } = await db.prepare(
+    `SELECT s.requisito, s.estado, d.id, d.nombre, d.archivo_key, d.archivo_nombre, d.caduca
+     FROM solicitud_documentos s LEFT JOIN documentos d ON d.id = s.documento_id WHERE s.codigo = ?`,
+  ).bind(codigo).all();
+  const porHueco = Object.fromEntries(asignados.map((a) => [a.requisito, a]));
+  // Orden: el de la lista de la convocatoria; después, huecos asignados que no estén en ella.
+  const reqs = (conv.documentos_requeridos || []).map((r) => ({ ...r, clave: claveHueco(r) }));
+  const conocidas = new Set(reqs.map((r) => r.clave));
+  for (const a of asignados) if (!conocidas.has(a.requisito)) reqs.push({ nombre: a.requisito, clave: a.requisito, obligatorio: false });
+  const base = `Reforesta_BDNS-${codigo}_${slug(conv.titulo, 50)}_${new Date().toISOString().slice(0, 10)}`;
+  const archivos = [], usados = new Set();
+  let n = 0, faltan = 0;
+  for (const r of reqs) {
+    const a = porHueco[r.clave];
+    if (a?.estado === "no_aplica") continue;
+    const datos = a?.archivo_key ? await leerArchivo(env, db, a.archivo_key) : null;
+    if (!datos) { if (r.obligatorio) faltan++; continue; }
+    const ext = (a.archivo_nombre || "").match(/\.[A-Za-z0-9]{1,5}$/)?.[0] || "";
+    let nombre = `${String(++n).padStart(2, "0")}_${slug(r.nombre)}${ext}`;
+    if (usados.has(nombre)) nombre = nombre.replace(ext || /$/, `_${a.id}${ext}`);
+    usados.add(nombre);
+    const bytes = datos instanceof Uint8Array ? datos : new Uint8Array(await new Response(datos).arrayBuffer());
+    archivos.push({ nombre, datos: bytes });
+  }
+  return { nombre: `${base}.zip`, zip: crearZip(archivos), incluidos: archivos.length, faltan };
+}
+
 // Siguiente paso que se propone al entrar en cada estado (si el equipo no escribe otro).
 // dias: plazo orientativo desde hoy; "plazo" = la fecha fin de solicitud de la convocatoria.
 // Subsanar: 10 días hábiles (art. 68 Ley 39/2015) ≈ 14 naturales.
@@ -389,11 +517,57 @@ const PASO_POR_ESTADO = {
 const ESTADOS_FINALES = ["por_revisar", "mas_tarde", "descartada", "denegada", "terminada", "nueva", "cerrada"];
 const masDias = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
 
+// ---------- Modo demo ----------
+// Si hoy no hay ninguna convocatoria abierta que encaje, la web quedaría vacía. En modo demo se añaden
+// las convocatorias reales a las que se presentó Reforesta (validacion.json) y otras reales recientes
+// ya cerradas (demo.json, generado por radar.demo) como si estuvieran
+// abiertas, marcadas con demo: true. Por defecto activo (variable MODO_DEMO = "0" lo apaga);
+// el equipo lo cambia con PUT /api/demo {activo}.
+async function modoDemo(env, db) {
+  const f = await db.prepare("SELECT valor FROM ajustes WHERE clave = 'modo_demo'").first().catch(() => null);
+  return f ? f.valor === "1" : env.MODO_DEMO !== "0";
+}
+async function convocatoriasConDemo(env, request) {
+  const r = await env.ASSETS.fetch(new Request(new URL("/data/convocatorias.json", request.url)));
+  const d = await r.json();
+  const leer = async (f) => {
+    try {
+      const x = await env.ASSETS.fetch(new Request(new URL(`/data/${f}.json`, request.url)));
+      return x.ok ? (await x.json()).casos || [] : [];
+    } catch { return []; }
+  };
+  const casos = [...await leer("validacion"), ...await leer("demo")];  // demo.json: radar.demo
+  const ya = new Set(d.convocatorias.map((c) => c.codigo));
+  const hoy = Date.now();
+  const demo = casos.filter((c) => !ya.has(c.codigo) && c.veredicto !== "descarta").map((c, i) => ({
+    ...c, filtros: undefined, encontrada: undefined, descripcion_reto: undefined,
+    demo: true, abierta: true, plazo_estimado: null,
+    publicada: new Date(hoy - (3 + i) * 86400000).toISOString().slice(0, 10),
+    fin: new Date(hoy + (21 + 9 * i) * 86400000).toISOString().slice(0, 10),
+    plazo_texto: "Ejemplo real: convocatoria ya cerrada, con fechas de demostración",
+  }));
+  return { ...d, convocatorias: [...demo, ...d.convocatorias], demo: demo.length };
+}
+
+// Empresas del BOE: impacto de las hectáreas que deben compensar (superficie total o suma de sus medidas).
+function haEmpresa(e) {
+  if (e.superficie_total_ha > 0) return e.superficie_total_ha;
+  const suma = (e.medidas || []).reduce((s, m) => s + (m.superficie_ha > 0 ? m.superficie_ha : 0), 0);
+  return suma > 0 ? suma : null;
+}
+function empresasConImpacto(d) {
+  return { ...d, empresas: (d.empresas || []).map((e) => {
+    const ha = haEmpresa(e);
+    return { ...e, impacto: ha ? impacto(ha) : null };
+  }) };
+}
+
 // Datos del radar (convocatorias.json / empresas.json) indexados por código; {} si no hay.
 async function datosRadar(env, request, archivo) {
   try {
-    const r = await env.ASSETS.fetch(new Request(new URL(`/data/${archivo}.json`, request.url)));
-    const d = await r.json();
+    const d = archivo === "convocatorias" && env.DB && await modoDemo(env, env.DB)
+      ? await convocatoriasConDemo(env, request)
+      : await (await env.ASSETS.fetch(new Request(new URL(`/data/${archivo}.json`, request.url)))).json();
     return Object.fromEntries((d.convocatorias || d.empresas || []).map((c) => [c.codigo || c.id, c]));
   } catch {
     return {};
@@ -479,7 +653,7 @@ async function correoAvisos(db, env, request, { forzar = false } = {}) {
   const convs = Object.values(await datosRadar(env, request, "convocatorias"));
   const { results: tratadas } = await db.prepare("SELECT id FROM solicitudes WHERE tipo = 'convocatoria'").all();
   const yaVistas = new Set(tratadas.map((t) => t.id));
-  const nuevas = convs.filter((c) => ["presenta", "mira"].includes(c.veredicto) && !yaVistas.has(c.codigo)
+  const nuevas = convs.filter((c) => !c.demo && ["presenta", "mira"].includes(c.veredicto) && !yaVistas.has(c.codigo)
     && (c.publicada || "") >= desde.slice(0, 10)).sort((a, b) => b.puntuacion - a.puntuacion).slice(0, 10);
   const { avisos } = await seguimiento(db, env, request);
   const { results: reservas } = await db.prepare(
@@ -580,6 +754,7 @@ const COLUMNAS_NUEVAS = [
   "ALTER TABLE proyectos ADD COLUMN actualizado TEXT",
   "ALTER TABLE interesados ADD COLUMN estado TEXT DEFAULT 'nueva'",
   "ALTER TABLE interesados ADD COLUMN actualizado_por TEXT DEFAULT ''",
+  "ALTER TABLE interesados ADD COLUMN hectareas REAL",
 ];
 
 let esquemaListo = false;
@@ -665,6 +840,13 @@ async function api(request, env, ruta) {
 
   if (ruta === "/api/config" && metodo === "GET") {
     return json({ google_client_id: env.GOOGLE_CLIENT_ID || "" });
+  }
+
+  // --- impacto de X hectáreas (público: lo ven las empresas)
+  if (ruta === "/api/impacto" && metodo === "GET") {
+    const ha = numero(new URL(request.url).searchParams.get("ha"));
+    if (!ha || ha > 100000) return error("ha: número de hectáreas mayor que 0");
+    return json(impacto(ha));
   }
 
   await prepararEsquema(db);
@@ -849,6 +1031,19 @@ async function api(request, env, ruta) {
     } });
   }
 
+  // --- ZIP con los documentos para presentar
+  ms = ruta.match(/^\/api\/solicitudes\/convocatoria\/([\w.-]{1,60})\/zip$/);
+  if (ms && metodo === "GET") {
+    if (!equipo) return soloEquipo();
+    const z = await zipSolicitud(db, env, request, ms[1]);
+    return new Response(z.zip, { headers: {
+      "content-type": "application/zip", "cache-control": "private, no-store",
+      "content-disposition": `attachment; filename="${z.nombre}"`,
+      "x-documentos-incluidos": String(z.incluidos), "x-documentos-faltan": String(z.faltan),
+      "access-control-expose-headers": "content-disposition, x-documentos-incluidos, x-documentos-faltan",
+    } });
+  }
+
   // --- documentos de cada solicitud (qué va en cada hueco)
   ms = ruta.match(/^\/api\/solicitudes\/convocatoria\/([\w.-]{1,60})\/documentos(?:\/([\w.-]{1,80}))?$/);
   if (ms) {
@@ -939,6 +1134,18 @@ async function api(request, env, ruta) {
       const r = await enviarCorreo(env, c);
       return r.ok ? json({ ok: true, para: c.para }) : error(r.motivo, 400);
     }
+  }
+
+  // --- modo demo
+  if (ruta === "/api/demo") {
+    if (!equipo) return soloEquipo();
+    if (metodo === "PUT") {
+      const activo = Boolean((await leerJSON(request)).activo);
+      await db.prepare(`INSERT INTO ajustes (clave, valor, actualizado, actualizado_por) VALUES ('modo_demo', ?, ?, ?)
+        ON CONFLICT (clave) DO UPDATE SET valor = excluded.valor, actualizado = excluded.actualizado,
+        actualizado_por = excluded.actualizado_por`).bind(activo ? "1" : "0", ahora(), autor).run();
+    }
+    return json({ activo: await modoDemo(env, db) });
   }
 
   // --- seguimiento: qué toca hacer y cuándo
@@ -1141,11 +1348,17 @@ async function api(request, env, ruta) {
       .bind(Number(m[1])).first();
     if (!proyecto) return error("Ese proyecto ya no está disponible", 404);
     if (conPlazas(proyecto).completa) return error("Ya no quedan plazas en este proyecto", 409);
+    // Hectáreas que la empresa quiere apoyar (opcional; como mucho las de la propuesta, si las tiene).
+    let ha = b.hectareas === undefined || b.hectareas === null || b.hectareas === "" ? null : numero(b.hectareas);
+    if (ha !== null && (ha <= 0 || ha > 100000)) return error("hectareas: número mayor que 0");
+    if (ha !== null && proyecto.hectareas > 0) ha = Math.min(ha, proyecto.hectareas);
     await db.prepare(
-      "INSERT INTO interesados (proyecto_id, empresa, contacto, mensaje, creado) VALUES (?, ?, ?, ?, ?)",
-    ).bind(proyecto.id, empresa, contacto, texto(b.mensaje, 1000), ahora()).run();
+      "INSERT INTO interesados (proyecto_id, empresa, contacto, mensaje, hectareas, creado) VALUES (?, ?, ?, ?, ?, ?)",
+    ).bind(proyecto.id, empresa, contacto, texto(b.mensaje, 1000), ha, ahora()).run();
     await db.prepare("INSERT INTO envios (huella, creado) VALUES (?, ?)").bind(huella, ahora()).run();
-    return json({ ok: true }, 201);
+    // Impacto de su ayuda, para la animación del avión (sus hectáreas o, si no dice, las de la propuesta).
+    const haImpacto = ha ?? (proyecto.hectareas > 0 ? proyecto.hectareas : null);
+    return json({ ok: true, hectareas: ha, impacto: haImpacto ? impacto(haImpacto) : null }, 201);
   }
 
   ms = ruta.match(/^\/api\/interesados\/(\d+)$/);
@@ -1166,7 +1379,7 @@ async function api(request, env, ruta) {
   if (ruta === "/api/interesados" && metodo === "GET") {
     if (!equipo) return soloEquipo();
     const { results } = await db.prepare(
-      `SELECT i.id, i.proyecto_id, p.titulo AS proyecto, i.empresa, i.contacto, i.mensaje, i.creado,
+      `SELECT i.id, i.proyecto_id, p.titulo AS proyecto, i.empresa, i.contacto, i.mensaje, i.hectareas, i.creado,
          i.estado, i.actualizado_por
        FROM interesados i JOIN proyectos p ON p.id = i.proyecto_id ORDER BY i.id DESC`,
     ).all();
@@ -1191,7 +1404,12 @@ export default {
     if (ruta.startsWith("/data/")) {
       const usuario = await quienEs(request, env);
       if (!usuario || usuario.denegado) return error("Solo para el equipo de Reforesta", 401);
-      const r = await env.ASSETS.fetch(request);
+      let r = await env.ASSETS.fetch(request);
+      if (ruta === "/data/convocatorias.json" && r.ok) {
+        await prepararEsquema(env.DB);
+        if (await modoDemo(env, env.DB)) r = Response.json(await convocatoriasConDemo(env, request));
+      }
+      if (ruta === "/data/empresas.json" && r.ok) r = Response.json(empresasConImpacto(await r.json()));
       const privado = new Response(r.body, r);
       privado.headers.set("cache-control", "private, no-store");
       return privado;

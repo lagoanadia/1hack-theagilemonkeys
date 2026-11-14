@@ -131,6 +131,20 @@ radar basta con ponerla en `por_revisar`.
 | `POST /api/proyectos/:id/interes` | Público: reservar (rechaza si no quedan plazas) |
 | `PUT /api/interesados/:id` | `{estado}`: `nueva`, `contestada`, `confirmada`, `descartada` (descartada libera la plaza) |
 
+### Impacto para empresas (CO₂ en vuelos)
+
+`GET /api/impacto?ha=8` (público) traduce hectáreas a algo que se entiende: CO₂ absorbido al año y
+en 30 años, coches, personas y **vuelos de ida y vuelta desde Madrid** a 9 destinos (con coordenadas
+`ll: [lon, lat]` para dibujarlos en un globo). Cada propuesta de `/api/proyectos` con hectáreas trae
+ese mismo objeto en `impacto`. Supuestos (estimaciones, ajustables en `IMPACTO` del Worker):
+5 t CO₂/ha/año, 30 años, 0,1 kg CO₂ por pasajero y km, coche 1,6 t/año, persona 5 t/año.
+Ejemplo: 8 ha ≈ 40 t CO₂/año ≈ 34 vuelos Madrid–Nueva York cada año.
+- **Al ayudar**: `POST /api/proyectos/:id/interes` admite `hectareas` (opcional, como mucho las de la
+  propuesta) y responde con el `impacto` de esa ayuda (para animar el avión). Cada propuesta trae
+  `hectareas_apoyadas` y `/api/interesados` las hectáreas de cada empresa.
+- **Empresas del BOE**: `/data/empresas.json` añade `impacto` a las que tienen hectáreas que compensar
+  (`superficie_total_ha` o la suma de sus medidas); `null` si el BOE no da superficie.
+
 ### Documentos
 
 - El radar guarda en cada convocatoria interesante `documentos_requeridos` (nombre, `tipo`,
@@ -140,7 +154,19 @@ radar basta con ponerla en `por_revisar`.
   `caduca`, o JSON sin archivo), `PUT/DELETE /api/documentos/:id`, `GET /api/archivos/:id`.
 - Huecos de cada solicitud: `GET /api/solicitudes/convocatoria/:codigo/documentos` y
   `PUT .../documentos/:requisito` con `{documento_id, estado, responsable}` (el arrastrar y soltar).
+- **ZIP para presentar**: `GET /api/solicitudes/convocatoria/:codigo/zip` descarga
+  `Reforesta_BDNS-<codigo>_<titulo>_<fecha>.zip` con los documentos asignados a cada hueco, numerados
+  y con el nombre del requisito (`01_Solicitud-de-subvencion.pdf`…), listos para subir a la sede.
+  Cabeceras `x-documentos-incluidos` y `x-documentos-faltan` (obligatorios sin archivo).
 - Archivos privados (solo equipo), hasta 10 MB: se guardan en D1 (gratis); si se configura R2, en R2.
+
+### Modo demo
+
+Si no hay ninguna convocatoria abierta que encaje, la web saldría vacía. En modo demo (activo por
+defecto), `/data/convocatorias.json` añade las convocatorias reales de `validacion.json` y `demo.json` (`python -m radar.demo`,
+convocatorias reales recientes ya cerradas) como si
+estuvieran abiertas, con `demo: true` y fechas de demostración. No van en los correos.
+`PUT /api/demo {activo: false}` lo apaga (o la variable `MODO_DEMO = "0"`).
 
 ### Avisos por correo
 

@@ -1,0 +1,401 @@
+{
+ "casos": [
+  {
+   "codigo": "928403",
+   "titulo": "Resolución Dirección Fundación Biodiversidad que publica la convocatoria de subvenciones para financiación de proyectos de Educación Ambiental para la Sostenibilidad e investigación sobre desinformación climática.",
+   "organo": "MINISTERIO PARA LA TRANSICIÓN ECOLÓGICA Y EL RETO DEMOGRÁFICO",
+   "ambito": "ESTADO",
+   "publicada": "2026-09-09",
+   "inicio": null,
+   "fin": "2026-11-10",
+   "plazo_texto": "",
+   "abierta": false,
+   "presupuesto": 7000000,
+   "tipo": "Concurrencia competitiva - canónica",
+   "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/928403",
+   "url_bases": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2021-12926",
+   "sede": "https://fundacion-biodiversidad.es/",
+   "puntuacion": 80,
+   "veredicto": "presenta",
+   "encaja": true,
+   "linea": "educacion",
+   "motivo": "Pueden solicitarla entidades sin ánimo de lucro que desarrollen actividades de educación ambiental a nivel nacional. La temática es educación para la sostenibilidad y la lucha contra la desinformación climática.",
+   "resumen": "Financia proyectos de educación ambiental para la sostenibilidad que fortalezcan el conocimiento científico y la cultura ecológica.",
+   "requisitos": [
+    {
+     "texto": "Ser entidad sin ánimo de lucro",
+     "estado": "cumple"
+    },
+    {
+     "texto": "No desarrollar actividad económica",
+     "estado": "duda"
+    },
+    {
+     "texto": "Presentar proyecto de educación ambiental para la sostenibilidad",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Cofinanciar al menos el 20% del proyecto",
+     "estado": "duda"
+    },
+    {
+     "texto": "Estar al corriente de obligaciones fiscales y de Seguridad Social",
+     "estado": "duda"
+    }
+   ],
+   "requisitos_clave": "No desarrollar actividad económica; Cofinanciar al menos el 20% del proyecto; Estar al corriente de obligaciones fiscales y de Seguridad Social",
+   "cita": "Entidades y organizaciones sin ánimo de lucro",
+   "porcentaje_financiado": 80,
+   "importe_max": 200000,
+   "plazo_estimado": null,
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": "2-ec04a1e6",
+   "plantillas": [],
+   "documentos_version": 1,
+   "documentos_requeridos": [
+    {
+     "nombre": "Carta de aceptación de la subvención",
+     "tipo": "representante_legal",
+     "obligatorio": false,
+     "condicion": "cuando se solicite resolución provisional",
+     "antiguedad_max_meses": null,
+     "cita": "Carta de aceptación de la subvención firmada por quien ostente la representación legal de la entidad"
+    },
+    {
+     "nombre": "Formulario de solicitud modificado",
+     "tipo": "solicitud",
+     "obligatorio": false,
+     "condicion": "cuando se solicite resolución provisional",
+     "antiguedad_max_meses": null,
+     "cita": "Formulario de solicitud modificado"
+    },
+    {
+     "nombre": "Marco lógico reformulado",
+     "tipo": "anexo",
+     "obligatorio": false,
+     "condicion": "cuando se solicite resolución provisional",
+     "antiguedad_max_meses": null,
+     "cita": "Marco lógico reformulado"
+    },
+    {
+     "nombre": "Presupuesto reformulado",
+     "tipo": "presupuesto",
+     "obligatorio": false,
+     "condicion": "cuando se solicite resolución provisional",
+     "antiguedad_max_meses": null,
+     "cita": "Presupuesto reformulado"
+    },
+    {
+     "nombre": "Cronograma reformulado",
+     "tipo": "anexo",
+     "obligatorio": false,
+     "condicion": "cuando se solicite resolución provisional",
+     "antiguedad_max_meses": null,
+     "cita": "Cronograma reformulado"
+    },
+    {
+     "nombre": "Recursos humanos reformulados",
+     "tipo": "anexo",
+     "obligatorio": false,
+     "condicion": "cuando se solicite resolución provisional",
+     "antiguedad_max_meses": null,
+     "cita": "Recursos humanos reformulados"
+    },
+    {
+     "nombre": "Permisos administrativos correspondientes",
+     "tipo": "permiso_propietario",
+     "obligatorio": false,
+     "condicion": "cuando sean necesarios para la actividad",
+     "antiguedad_max_meses": null,
+     "cita": "Permisos administrativos correspondientes en caso de que sean necesarios para el desarrollo de la actividad objeto de subvención"
+    },
+    {
+     "nombre": "Certificación administrativa positiva (Hacienda)",
+     "tipo": "cert_hacienda",
+     "obligatorio": false,
+     "condicion": "cuando se solicite resolución provisional",
+     "antiguedad_max_meses": 6,
+     "cita": ""
+    },
+    {
+     "nombre": "Certificación administrativa positiva (Seguridad Social)",
+     "tipo": "cert_seg_social",
+     "obligatorio": false,
+     "condicion": "cuando se solicite resolución provisional",
+     "antiguedad_max_meses": 6,
+     "cita": ""
+    },
+    {
+     "nombre": "Acta de titularidad real de la entidad",
+     "tipo": "anexo",
+     "obligatorio": false,
+     "condicion": "cuando sea requerida por la normativa anti‑blanqueo",
+     "antiguedad_max_meses": null,
+     "cita": ""
+    },
+    {
+     "nombre": "Declaración responsable (modelo anti‑blanqueo)",
+     "tipo": "declaracion_responsable",
+     "obligatorio": false,
+     "condicion": "cuando sea requerida por la normativa anti‑blanqueo",
+     "antiguedad_max_meses": null,
+     "cita": "declaración responsable según el modelo que se facilitará al efecto"
+    },
+    {
+     "nombre": "Copia del DNI de titulares reales",
+     "tipo": "anexo",
+     "obligatorio": false,
+     "condicion": "cuando sea requerida por la normativa anti‑blanqueo",
+     "antiguedad_max_meses": null,
+     "cita": "Copia del documento nacional de identidad de las personas físicas que ostenten la propiedad o control de la entidad"
+    }
+   ],
+   "documentos_fuente": "report_Convocatoria proyectos PAEAS y DC_2026.pdf",
+   "descripcion_reto": "Fundación Biodiversidad · educación ambiental para la sostenibilidad (2026)",
+   "filtros": [
+    {
+     "paso": "Aparece en el barrido de la BDNS (Estado + Madrid)",
+     "ok": true
+    },
+    {
+     "paso": "No es nominativa, convenio ni beca",
+     "ok": true
+    },
+    {
+     "paso": "Concurrencia competitiva, ámbito y beneficiarios válidos",
+     "ok": true,
+     "motivo": ""
+    },
+    {
+     "paso": "Temática ambiental",
+     "ok": true
+    }
+   ],
+   "encontrada": true
+  },
+  {
+   "codigo": "921561",
+   "titulo": "Resolución Dirección de la Fundación Biodiversidad, que aprueba publicación de convocatoria de subvenciones para el fomento de actuaciones de desarrollo y consolidación de la infraestructura verde de ciudades españolas, cofinanciada por el FEDER.",
+   "organo": "MINISTERIO PARA LA TRANSICIÓN ECOLÓGICA Y EL RETO DEMOGRÁFICO",
+   "ambito": "ESTADO",
+   "publicada": "2026-07-24",
+   "inicio": null,
+   "fin": "2026-10-29",
+   "plazo_texto": "",
+   "abierta": false,
+   "presupuesto": 9000000,
+   "tipo": "Concurrencia competitiva - canónica",
+   "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/921561",
+   "url_bases": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2024-19987",
+   "sede": "https://fundacion-biodiversidad.es/",
+   "puntuacion": 55,
+   "veredicto": "mira",
+   "encaja": true,
+   "linea": "restauracion",
+   "motivo": "Pueden solicitar entidades sin ánimo de lucro que se integren en agrupaciones con ayuntamientos o diputaciones; ámbito nacional, temática infraestructura verde urbana.",
+   "resumen": "Financia proyectos de infraestructura verde urbana que aumenten biodiversidad y resiliencia climática.",
+   "requisitos": [
+    {
+     "texto": "Ser entidad sin ánimo de lucro que no desarrolle actividad económica",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Integrarse en agrupación con entidad pública coordinadora (ayuntamiento o diputación)",
+     "estado": "duda"
+    },
+    {
+     "texto": "Desarrollar el proyecto en municipios españoles DEGURBA 1 o 2 o colindantes",
+     "estado": "duda"
+    },
+    {
+     "texto": "No generar beneficio mercantil directo para la entidad beneficiaria",
+     "estado": "cumple"
+    }
+   ],
+   "requisitos_clave": "Integrarse en agrupación con entidad pública coordinadora (ayuntamiento o diputación); Desarrollar el proyecto en municipios españoles DEGURBA 1 o 2 o colindantes",
+   "cita": "Podrán asimismo obtener la condición de beneficiarias las siguientes entidades, siempre y cuando se integren en agrupaciones junto con, al menos, una entidad del apartado 1 que deberá, en todos los casos, actuar como coordinadora de la agrupación:",
+   "porcentaje_financiado": null,
+   "importe_max": null,
+   "plazo_estimado": "2026-07-25",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": "2-ec04a1e6",
+   "plantillas": [],
+   "documentos_version": 1,
+   "documentos_requeridos": [],
+   "documentos_fuente": "Resolución y convocatoria - Ciudades 26.pdf",
+   "descripcion_reto": "Fundación Biodiversidad · infraestructura verde en ciudades (2026)",
+   "filtros": [
+    {
+     "paso": "Aparece en el barrido de la BDNS (Estado + Madrid)",
+     "ok": true
+    },
+    {
+     "paso": "No es nominativa, convenio ni beca",
+     "ok": true
+    },
+    {
+     "paso": "Concurrencia competitiva, ámbito y beneficiarios válidos",
+     "ok": true,
+     "motivo": ""
+    },
+    {
+     "paso": "Temática ambiental",
+     "ok": true
+    }
+   ],
+   "encontrada": true
+  },
+  {
+   "codigo": "926034",
+   "titulo": "Convocatoria de subvenciones de la Fundación Biodiversidad F.S.P., en régimen de concurrencia competitiva, a determinadas organizaciones no gubernamentales para el apoyo y la participación en la ejecución de políticas públicas de competencia estatal",
+   "organo": "MINISTERIO PARA LA TRANSICIÓN ECOLÓGICA Y EL RETO DEMOGRÁFICO",
+   "ambito": "ESTADO",
+   "publicada": "2026-08-24",
+   "inicio": null,
+   "fin": null,
+   "plazo_texto": "20 días hábiles a partir del día siguiente de la publicación del extracto en el BOE",
+   "abierta": false,
+   "presupuesto": 800000,
+   "tipo": "Concurrencia competitiva - canónica",
+   "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/926034",
+   "url_bases": "https://www.boe.es/eli/es/o/2021/07/12/ted818",
+   "sede": "https://fundacion-biodiversidad.es/",
+   "puntuacion": 35,
+   "veredicto": "descarta",
+   "encaja": false,
+   "linea": "conservacion",
+   "motivo": "Entidades sin ánimo de lucro con domicilio en España, al menos cinco años de antigüedad, cuyo objetivo sea la defensa del medio ambiente y que cumplan requisitos de registro, utilidad pública y experiencia internacional.",
+   "resumen": "Financia proyectos de investigación y actividades para la defensa del medio ambiente y el cambio climático.",
+   "requisitos": [
+    {
+     "texto": "Al menos cinco años de antigüedad",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Inscripción en registro administrativo y declaración de utilidad pública",
+     "estado": "duda"
+    },
+    {
+     "texto": "Incluirse en el anexo del Real Decreto 2355/2004 (Consejo Asesor)",
+     "estado": "no"
+    },
+    {
+     "texto": "Experiencia internacional acreditada",
+     "estado": "no"
+    },
+    {
+     "texto": "Auditoría externa en los últimos tres años",
+     "estado": "duda"
+    }
+   ],
+   "requisitos_clave": "Inscripción en registro administrativo y declaración de utilidad pública; Incluirse en el anexo del Real Decreto 2355/2004 (Consejo Asesor); Experiencia internacional acreditada; Auditoría externa en los últimos tres años",
+   "cita": "Podrán obtener la condición de beneficiarias las entidades y organizaciones sin ánimo de lucro, apartado 3.1.a) de la Orden TED/818/2021, de 12 de julio, que cumplan los requisitos del artículo 3.2 de la misma y los citados a continuación:",
+   "porcentaje_financiado": 90,
+   "importe_max": 230000,
+   "plazo_estimado": "2026-09-19",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": "2-ec04a1e6",
+   "descripcion_reto": "Fundación Biodiversidad · ONG en políticas públicas ambientales (2026)",
+   "filtros": [
+    {
+     "paso": "Aparece en el barrido de la BDNS (Estado + Madrid)",
+     "ok": true
+    },
+    {
+     "paso": "No es nominativa, convenio ni beca",
+     "ok": true
+    },
+    {
+     "paso": "Concurrencia competitiva, ámbito y beneficiarios válidos",
+     "ok": true,
+     "motivo": ""
+    },
+    {
+     "paso": "Temática ambiental",
+     "ok": true
+    }
+   ],
+   "encontrada": true
+  },
+  {
+   "codigo": "864007",
+   "titulo": "Convocatoria de subvenciones de la Fundación Biodiversidad F.S.P., para la realización de proyectos que contribuyan a apoyar el empleo y la capacitación a través de actuaciones de restauración y recuperación de los municipios afectados por la DANA.",
+   "organo": "MINISTERIO PARA LA TRANSICIÓN ECOLÓGICA Y EL RETO DEMOGRÁFICO",
+   "ambito": "ESTADO",
+   "publicada": "2025-10-22",
+   "inicio": null,
+   "fin": null,
+   "plazo_texto": "Dos meses desde el día siguiente a la fecha de publicación del extracto de la convocatoria",
+   "abierta": false,
+   "presupuesto": 5000000,
+   "tipo": "Concurrencia competitiva - canónica",
+   "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/864007",
+   "url_bases": "https://www.boe.es/eli/es/o/2021/07/12/ted818",
+   "sede": "www.fundacion-biodiversidad.es",
+   "veredicto": "pendiente",
+   "puntuacion": 0,
+   "metodo": "pendiente_ia",
+   "descripcion_reto": "Fundación Biodiversidad · empleo y restauración en municipios afectados (2025)",
+   "filtros": [
+    {
+     "paso": "Aparece en el barrido de la BDNS (Estado + Madrid)",
+     "ok": true
+    },
+    {
+     "paso": "No es nominativa, convenio ni beca",
+     "ok": true
+    },
+    {
+     "paso": "Concurrencia competitiva, ámbito y beneficiarios válidos",
+     "ok": true,
+     "motivo": ""
+    },
+    {
+     "paso": "Temática ambiental",
+     "ok": true
+    }
+   ],
+   "encontrada": true
+  },
+  {
+   "codigo": "930967",
+   "titulo": "SUBVENCIÓN MONTES T. PRIVADA 2026-2027 FEADER RESTAURACIÓN DAÑOS FORESTALES",
+   "organo": "COMUNIDAD DE MADRID",
+   "ambito": "AUTONOMICA",
+   "publicada": "2026-09-22",
+   "inicio": null,
+   "fin": null,
+   "plazo_texto": "15 DÍAS HÁBILES A CONTAR DESDE LA FECHA DE INICIO",
+   "abierta": false,
+   "presupuesto": 480000,
+   "tipo": "Concurrencia competitiva - canónica",
+   "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/930967",
+   "url_bases": "Pendiente de publicar",
+   "sede": "",
+   "veredicto": "pendiente",
+   "puntuacion": 0,
+   "metodo": "pendiente_ia",
+   "descripcion_reto": "Comunidad de Madrid · restauración de daños forestales en montes privados (2026)",
+   "filtros": [
+    {
+     "paso": "Aparece en el barrido de la BDNS (Estado + Madrid)",
+     "ok": true
+    },
+    {
+     "paso": "No es nominativa, convenio ni beca",
+     "ok": true
+    },
+    {
+     "paso": "Concurrencia competitiva, ámbito y beneficiarios válidos",
+     "ok": true,
+     "motivo": ""
+    },
+    {
+     "paso": "Temática ambiental",
+     "ok": true
+    }
+   ],
+   "encontrada": true
+  }
+ ]
+}

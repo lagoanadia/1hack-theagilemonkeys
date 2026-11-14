@@ -109,3 +109,14 @@ CONVOCATORIAS_VALIDACION = {
     "923290": "MITECO · ayudas a actividades de interés general para la protección del medio ambiente (2026)",
     "904719": "Comunidad de Madrid · Orden 1689/2026, proyectos ambientales de entidades sin ánimo de lucro",
 }
+
+# Convocatorias reales recientes (ya cerradas) que pasan los filtros del radar. Groq las evalúa en el
+# workflow (radar.demo) y la web las enseña en modo demo, para poder probar la revisión aunque hoy
+# no haya ninguna abierta que encaje.
+CONVOCATORIAS_DEMO = {
+    "928403": "Fundación Biodiversidad · educación ambiental para la sostenibilidad (2026)",
+    "921561": "Fundación Biodiversidad · infraestructura verde en ciudades (2026)",
+    "926034": "Fundación Biodiversidad · ONG en políticas públicas ambientales (2026)",
+    "864007": "Fundación Biodiversidad · empleo y restauración en municipios afectados (2025)",
+    "930967": "Comunidad de Madrid · restauración de daños forestales en montes privados (2026)",
+}
