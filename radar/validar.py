@@ -13,7 +13,7 @@ from . import bdns
 from .__main__ import RAIZ, ficha
 from .config import CONVOCATORIAS_VALIDACION, UMBRAL_RELEVANCIA
 from .filtros import descartar_por_detalle, descartar_por_titulo, es_ambiental
-from .puntuador import VERSION_INSTRUCCIONES, CupoAgotado, Puntuador, texto_para_analizar
+from .puntuador import CupoAgotado, Puntuador, texto_para_analizar, version_actual
 
 SALIDA = RAIZ / "web" / "public" / "data" / "validacion.json"
 # Fecha "imaginaria" para comprobar los filtros como si la convocatoria siguiera abierta.
@@ -42,7 +42,7 @@ def main() -> None:
     casos = []
     for codigo, descripcion in CONVOCATORIAS_VALIDACION.items():
         previo = anteriores.get(codigo)
-        if previo and previo.get("version") == VERSION_INSTRUCCIONES \
+        if previo and previo.get("version") == version_actual() \
                 and previo.get("metodo", "").startswith("groq"):
             casos.append(previo)
             print(f"  {codigo}: ya validada ({previo['veredicto']})")

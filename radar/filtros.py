@@ -7,8 +7,8 @@ import re
 import unicodedata
 from datetime import date
 
-from .config import (BENEFICIARIOS_SOLO_EMPRESA, DESCARTES_TITULO, NO_TEMATICAS, PESOS_PALABRAS,
-                     REGION_NACIONAL, REGIONES_VALIDAS)
+from . import perfil
+from .config import BENEFICIARIOS_SOLO_EMPRESA, DESCARTES_TITULO, NO_TEMATICAS, PESOS_PALABRAS, REGION_NACIONAL
 
 
 def normalizar(texto: str) -> str:
@@ -38,7 +38,7 @@ def descartar_por_detalle(det: dict, hoy: date) -> str | None:
 
     # Geografía: "ES616 - Jaén" -> "ES616". Sin regiones, no podemos saberlo: pasa.
     codigos = [r.get("descripcion", "").split(" - ")[0].strip() for r in det.get("regiones", [])]
-    if codigos and not any(c == REGION_NACIONAL or c.startswith(tuple(REGIONES_VALIDAS))
+    if codigos and not any(c == REGION_NACIONAL or c.startswith(tuple(perfil.regiones_validas()))
                            for c in codigos):
         return "fuera de ámbito geográfico"
 

@@ -14,6 +14,8 @@
 //   GET    /api/motivos                     catálogo de motivos de descarte + usos   (equipo)
 //   POST   /api/motivos                     {texto} añadir un motivo propio          (equipo)
 //   DELETE /api/motivos/:id                 quitar un motivo propio                  (equipo)
+//   GET    /api/perfil                      lo que el radar sabe de Reforesta        (equipo)
+//   PUT    /api/perfil                      {nombre, zonas, ampliar_espana, ...}     (equipo)
 //   GET    /api/proyectos                   proyectos publicados por Reforesta       (público)
 //   POST   /api/proyectos                   {titulo, lugar, hectareas, ...}          (equipo)
 //   DELETE /api/proyectos/:id               retirar un proyecto                      (equipo)
@@ -53,6 +55,9 @@ const ESQUEMA = [
      SELECT tipo, id, CASE estado WHEN 'interesa' THEN 'preparando' ELSE 'descartada' END, nota, actualizado
      FROM estados`,
   `DELETE FROM estados`,
+  // Ajustes de la entidad (perfil): un valor JSON por clave.
+  `CREATE TABLE IF NOT EXISTS ajustes (
+     clave TEXT PRIMARY KEY, valor TEXT NOT NULL, actualizado TEXT NOT NULL, actualizado_por TEXT DEFAULT '')`,
   // Anti-spam del formulario público: huella (hash) de la IP, nunca la IP en claro.
   `CREATE TABLE IF NOT EXISTS envios (huella TEXT NOT NULL, creado TEXT NOT NULL)`,
 ];
@@ -74,6 +79,86 @@ const ESTADOS = {
 // Motivos de descarte que siempre aparecen (el equipo puede añadir los suyos).
 const MOTIVOS_BASE = ["No es reforestación", "Piden poner mucho dinero", "Plazo muy corto",
   "Fuera de nuestra zona", "Importe pequeño", "Sin capacidad ahora", "Exigen aval bancario"];
+// Perfil por defecto: el mismo que usa el radar en radar/config.py mientras nadie lo edite.
+const PERFIL_BASE = {
+  nombre: "Asociación Reforesta",
+  cif: "",
+  tipo_entidad: "asociación sin ánimo de lucro",
+  equipo: 7,
+  experiencia: "más de 30 años",
+  zonas: ["Sierra de Guadarrama"],
+  comunidades_extra: [],
+  ampliar_espana: false,
+  descripcion: "Trabaja con ayuntamientos, parques regionales y propietarios privados mediante acuerdos de custodia del territorio. Se financia por hectárea plantada o restaurada.",
+  lineas: [
+    "Restauración de ecosistemas: reforestación, plantación de especies autóctonas, charcas para anfibios, restauración tras incendios",
+    "Conservación de hábitats: anfibios, control de especies invasoras (ailanto), paisajes de Guadarrama, hábitats para aves",
+    "Educación ambiental y voluntariado",
+    "Programa agroambiental con agricultores",
+  ],
+  no_sirve: [
+    "Subvenciones nominativas o directas a otra entidad, convenios ya firmados",
+    "Ayudas solo para personas físicas o empresas con ánimo de lucro",
+    "Cooperación internacional en otros países",
+    "Investigación pura universitaria, patrimonio histórico, turismo u hostelería",
+  ],
+  objetivo_anual: 10,
+  documentos: [
+    { nombre: "Estatutos", tengo: true, caduca: "" },
+    { nombre: "CIF", tengo: true, caduca: "" },
+    { nombre: "Certificado de Hacienda", tengo: false, caduca: "" },
+    { nombre: "Certificado de la Seguridad Social", tengo: false, caduca: "" },
+    { nombre: "Memoria de actividades", tengo: false, caduca: "" },
+  ],
+  avisos: "cada_manana",
+  email_avisos: "",
+};
+// Comunidades que se pueden añadir a la zona de búsqueda (códigos NUTS de la BDNS).
+const COMUNIDADES = [
+  ["ES11", "Galicia"], ["ES12", "Asturias"], ["ES13", "Cantabria"], ["ES21", "País Vasco"],
+  ["ES22", "Navarra"], ["ES23", "La Rioja"], ["ES24", "Aragón"], ["ES41", "Castilla y León"],
+  ["ES42", "Castilla-La Mancha"], ["ES43", "Extremadura"], ["ES51", "Cataluña"],
+  ["ES52", "Comunidad Valenciana"], ["ES53", "Illes Balears"], ["ES61", "Andalucía"],
+  ["ES62", "Región de Murcia"], ["ES70", "Canarias"],
+].map(([codigo, nombre]) => ({ codigo, nombre }));
+const AVISOS = ["nunca", "cada_manana", "semanal"];
+
+function lista(valor, maxElems, maxLargo) {
+  return Array.isArray(valor) ? valor.map((v) => texto(v, maxLargo)).filter(Boolean).slice(0, maxElems) : undefined;
+}
+function entero(valor, min, max) {
+  const n = Math.round(Number(valor));
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : undefined;
+}
+
+// Valida lo que llega del formulario: solo campos conocidos, con límites.
+function limpiarPerfil(b) {
+  const p = {};
+  for (const [campo, max] of [["nombre", 120], ["cif", 20], ["tipo_entidad", 120], ["experiencia", 60],
+    ["descripcion", 1500], ["email_avisos", 120]]) {
+    if (b[campo] !== undefined) p[campo] = texto(b[campo], max);
+  }
+  if (b.equipo !== undefined) p.equipo = entero(b.equipo, 1, 500);
+  if (b.objetivo_anual !== undefined) p.objetivo_anual = entero(b.objetivo_anual, 1, 200);
+  if (b.ampliar_espana !== undefined) p.ampliar_espana = Boolean(b.ampliar_espana);
+  if (b.avisos !== undefined && AVISOS.includes(b.avisos)) p.avisos = b.avisos;
+  for (const [campo, n, max] of [["zonas", 12, 60], ["lineas", 8, 300], ["no_sirve", 10, 300]]) {
+    const v = lista(b[campo], n, max);
+    if (v) p[campo] = v;
+  }
+  if (Array.isArray(b.comunidades_extra)) {
+    const validas = COMUNIDADES.map((c) => c.codigo);
+    p.comunidades_extra = b.comunidades_extra.filter((c) => validas.includes(c));
+  }
+  if (Array.isArray(b.documentos)) {
+    p.documentos = b.documentos.slice(0, 20).map((d) => ({
+      nombre: texto(d?.nombre, 80), tengo: Boolean(d?.tengo),
+      caduca: /^\d{4}-\d{2}-\d{2}$/.test(d?.caduca || "") ? d.caduca : "",
+    })).filter((d) => d.nombre);
+  }
+  return Object.fromEntries(Object.entries(p).filter(([, v]) => v !== undefined));
+}
+
 // Compatibilidad con la web actual (Me interesa / No interesa).
 const DE_ANTIGUO = { interesa: "preparando", descarta: "descartada" };
 const A_ANTIGUO = { preparando: "interesa", descartada: "descarta" };
@@ -289,6 +374,27 @@ async function api(request, env, ruta) {
         "SELECT antes, despues, autor, creado FROM historial WHERE tipo = ? AND ref = ? ORDER BY n DESC LIMIT 50",
       ).bind(tipo, id).all();
       return json(results.map((h) => ({ ...h, antes: h.antes && JSON.parse(h.antes), despues: JSON.parse(h.despues) })));
+    }
+  }
+
+  // --- perfil de la entidad (lo lee el radar cada mañana)
+  if (ruta === "/api/perfil") {
+    if (!equipo) return soloEquipo();
+    const fila = await db.prepare("SELECT valor, actualizado, actualizado_por FROM ajustes WHERE clave = 'perfil'").first();
+    const guardado = fila ? JSON.parse(fila.valor) : {};
+    if (metodo === "GET") {
+      return json({ ...PERFIL_BASE, ...guardado, guardado: Boolean(fila),
+        actualizado: fila?.actualizado || null, actualizado_por: fila?.actualizado_por || "",
+        opciones: { comunidades: COMUNIDADES, avisos: AVISOS } });
+    }
+    if (metodo === "PUT") {
+      const nuevo = { ...guardado, ...limpiarPerfil(await leerJSON(request)) };
+      await db.prepare(
+        `INSERT INTO ajustes (clave, valor, actualizado, actualizado_por) VALUES ('perfil', ?, ?, ?)
+         ON CONFLICT (clave) DO UPDATE SET valor = excluded.valor, actualizado = excluded.actualizado,
+         actualizado_por = excluded.actualizado_por`,
+      ).bind(JSON.stringify(nuevo), ahora(), autor).run();
+      return json({ ok: true, perfil: { ...PERFIL_BASE, ...nuevo, guardado: true } });
     }
   }
 

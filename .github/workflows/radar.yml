@@ -24,6 +24,9 @@ jobs:
         env:
           GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           PYTHONUNBUFFERED: "1"   # ver el progreso en directo en el log
+          # Perfil editable (pantalla Perfil): si faltan, el radar usa el de radar/config.py
+          RADAR_API_URL: ${{ vars.RADAR_API_URL }}
+          CLAVE_EQUIPO: ${{ secrets.CLAVE_EQUIPO }}
         run: |
           python -m radar
           python -m radar.validar   # prueba con convocatorias reales de Reforesta

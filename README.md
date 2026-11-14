@@ -120,6 +120,16 @@ Estados de convocatoria: `por_revisar`, `mas_tarde`, `preparando`, `presentada`,
 convocatoria está "por revisar" con el veredicto del radar; para recuperar una descartada por el
 radar basta con ponerla en `por_revisar`.
 
+### Perfil editable
+
+`GET/PUT /api/perfil` guarda lo que el radar sabe de Reforesta: nombre, equipo, zonas,
+`comunidades_extra` (códigos NUTS, p. ej. `ES41` Castilla y León), `ampliar_espana`, `descripcion`,
+`lineas`, `no_sirve`, `objetivo_anual`, `documentos` y `avisos`. El PUT reemplaza cada campo que se
+envía (las listas, enteras). Cada mañana el radar lo lee (`radar/perfil.py`) y lo usa en las
+instrucciones de Groq y en el filtro geográfico; si el perfil cambia, se reevalúa lo guardado.
+Para activarlo en GitHub: variable `RADAR_API_URL` (la dirección de la web) y secreto
+`CLAVE_EQUIPO` (la misma contraseña que en Cloudflare). Sin ellos, se usa `radar/config.py`.
+
 ## Cómo funciona
 
 ```

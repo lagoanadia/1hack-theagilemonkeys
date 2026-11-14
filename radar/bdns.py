@@ -50,7 +50,7 @@ def buscar(termino: str, desde: date, hasta: date, max_paginas: int = 4) -> list
     return resultados
 
 
-def barrer(desde: date, hasta: date, regiones: str, max_paginas: int = 40) -> list[dict]:
+def barrer(desde: date, hasta: date, regiones: str | None, max_paginas: int = 120) -> list[dict]:
     """Todas las convocatorias (resumen) publicadas en esas fechas para esas regiones."""
     resultados = []
     for pagina in range(max_paginas):
@@ -66,6 +66,22 @@ def barrer(desde: date, hasta: date, regiones: str, max_paginas: int = 40) -> li
         if datos.get("last", True):
             break
     return resultados
+
+
+def ids_de_regiones(codigos_nuts: list[str]) -> list[int]:
+    """Ids de la BDNS de las regiones (y sus provincias) cuyos códigos NUTS empiezan así."""
+    arbol = _get("/regiones", {"vpd": "GE"})
+    ids = []
+
+    def recorrer(nodos):
+        for n in nodos:
+            codigo = n.get("descripcion", "").split(" - ")[0].strip()
+            if any(codigo.startswith(c) for c in codigos_nuts):
+                ids.append(n["id"])
+            recorrer(n.get("children") or [])
+
+    recorrer(arbol if isinstance(arbol, list) else [])
+    return ids
 
 
 def detalle(codigo_bdns: str) -> dict:

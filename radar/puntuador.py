@@ -12,13 +12,21 @@ import os
 import time
 
 from .config import (AMBITOS_PREFERENTES, MODELOS_CRIBA, MODELOS_DECISION, PAUSA_ENTRE_LLAMADAS,
-                     PERFIL_REFORESTA, UMBRAL_CRIBA, UMBRAL_MIRA, UMBRAL_PRESENTA)
+                     UMBRAL_CRIBA, UMBRAL_MIRA, UMBRAL_PRESENTA)
+from . import perfil
 from .filtros import limpiar_html, normalizar, puntos_tematicos
 
 MAX_TEXTO_CRIBA = 2500     # caracteres: el 8b solo necesita lo esencial
 # Súbelo cuando cambien las instrucciones: las convocatorias evaluadas con otra versión
 # se vuelven a evaluar en la siguiente ejecución.
 VERSION_INSTRUCCIONES = 2
+
+def version_actual():
+    """Versión de las instrucciones + huella del perfil editado: si cambia algo, se reevalúa.
+    Sin perfil editado es el número de siempre, para no reevaluar lo ya guardado."""
+    h = perfil.huella()
+    return f"{VERSION_INSTRUCCIONES}-{h}" if h else VERSION_INSTRUCCIONES
+
 
 AVISO_BENEFICIARIOS = """El campo "Beneficiarios" viene de la BDNS y a menudo está mal etiquetado
 (p. ej. pone "personas físicas" en ayudas para ONG). Guíate por el "Texto del extracto":
@@ -77,7 +85,7 @@ def resultado(puntuacion: int, metodo: str, **campos) -> dict:
         "importe_max": None,
         "plazo_estimado": None,    # "AAAA-MM-DD" si la BDNS no da fecha de fin
         "metodo": metodo,
-        "version": VERSION_INSTRUCCIONES,
+        "version": version_actual(),
     }
     base.update(campos)
     return base
@@ -102,8 +110,9 @@ def puntuar_por_palabras(det: dict, metodo: str = "palabras_clave") -> dict:
 
 # ---------------------------------------------------------------- modo IA (Groq)
 
-INSTRUCCIONES_CRIBA = f"""Eres técnico de captación de fondos de esta ONG ambiental:
-{PERFIL_REFORESTA}
+def instrucciones_criba() -> str:
+    return f"""Eres técnico de captación de fondos de esta ONG ambiental:
+{perfil.texto()}
 Decide rápido si esta convocatoria pública merece un análisis detallado.
 Responde SOLO con JSON: {{"puntuacion": entero 0-100, "motivo": "una frase"}}.
 {AVISO_BENEFICIARIOS}
@@ -111,11 +120,12 @@ Esto es solo un primer filtro: ante la duda, puntúa 40-60 para que se analice e
 Puntúa bajo (0-20) solo si está claro que la ONG no puede pedirla o el tema no tiene
 ninguna relación con medio ambiente, naturaleza, educación ambiental o voluntariado."""
 
-INSTRUCCIONES_DECISION = f"""Eres el técnico de captación de fondos de una ONG ambiental.
+def instrucciones_decision() -> str:
+    return f"""Eres el técnico de captación de fondos de una ONG ambiental.
 Decide si la ONG debe pedir esta ayuda pública.
 
 Perfil de la ONG:
-{PERFIL_REFORESTA}
+{perfil.texto()}
 
 Responde SOLO con un objeto JSON con estas claves:
 - "puntuacion": entero 0-100. 70-100 = puede presentarse y encaja; 50-69 = encaja
@@ -253,14 +263,14 @@ class Puntuador:
         return json.loads(respuesta.choices[0].message.content)
 
     def _criba(self, det: dict) -> dict:
-        datos = self._llamar(self.modelo_criba, INSTRUCCIONES_CRIBA, texto_para_analizar(det, MAX_TEXTO_CRIBA))
+        datos = self._llamar(self.modelo_criba, instrucciones_criba(), texto_para_analizar(det, MAX_TEXTO_CRIBA))
         self.llamadas["criba"] += 1
         return {"puntuacion": _entero(datos.get("puntuacion")) or 0,
                 "motivo": str(datos.get("motivo", ""))}
 
     def _decision(self, det: dict) -> dict:
         texto = texto_para_analizar(det, MAX_TEXTO_DECISION)
-        datos = self._llamar(self.modelo_decision, INSTRUCCIONES_DECISION, texto)
+        datos = self._llamar(self.modelo_decision, instrucciones_decision(), texto)
         self.llamadas["decision"] += 1
         requisitos = _requisitos(datos.get("requisitos"))
         return resultado(

@@ -19,9 +19,10 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 from . import bdns
-from .config import DIAS_POR_DEFECTO, REGIONES_BDNS, UMBRAL_RELEVANCIA
+from . import perfil
+from .config import DIAS_POR_DEFECTO, UMBRAL_RELEVANCIA
 from .filtros import descartar_por_detalle, descartar_por_titulo, es_ambiental, motivo_corto
-from .puntuador import VERSION_INSTRUCCIONES, Puntuador, texto_para_analizar
+from .puntuador import Puntuador, texto_para_analizar, version_actual
 
 RAIZ = Path(__file__).resolve().parent.parent
 VISTAS = RAIZ / "data" / "vistas.json"
@@ -94,7 +95,7 @@ def main() -> None:
     print(f"Radar Reforesta | {desde} -> {hoy} | modo: {puntuador.modo}")
 
     # 1. RECOLECTAR: barrido completo de las regiones de Reforesta.
-    candidatas = {c["numeroConvocatoria"]: c for c in bdns.barrer(desde, hoy, REGIONES_BDNS)}
+    candidatas = {c["numeroConvocatoria"]: c for c in bdns.barrer(desde, hoy, perfil.regiones_bdns())}
     print(f"Convocatorias publicadas en la ventana: {len(candidatas)}")
 
     # 2a. Filtros que no necesitan descargar nada (título, cachés).
@@ -106,7 +107,7 @@ def main() -> None:
         elif codigo in vistas:
             descartes[vistas[codigo]] += 1
         elif ((previa := anterior.get(codigo)) and previa.get("metodo", "").startswith("groq")
-              and previa.get("version") == VERSION_INSTRUCCIONES):
+              and previa.get("version") == version_actual()):
             # Groq ya la evaluó con estas instrucciones: no gastamos cupo otra vez.
             if plazo_vencido(previa, hoy):
                 descartes["plazo cerrado"] += 1

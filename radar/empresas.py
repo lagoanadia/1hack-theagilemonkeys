@@ -17,14 +17,15 @@ from datetime import date, datetime, timedelta
 
 from . import boe
 from .__main__ import RAIZ
-from .config import PERFIL_REFORESTA
+from . import perfil
 from .puntuador import CupoAgotado, Puntuador, _entero, cita_verificada
 
 SALIDA = RAIZ / "web" / "public" / "data" / "empresas.json"
 VERSION_EMPRESAS = 1  # súbelo si cambian las instrucciones: se reanaliza todo
 
-INSTRUCCIONES = f"""Eres el responsable de alianzas con empresas de una ONG ambiental:
-{PERFIL_REFORESTA}
+def instrucciones() -> str:
+    return f"""Eres el responsable de alianzas con empresas de una ONG ambiental:
+{perfil.texto()}
 Te paso extractos de una declaración de impacto ambiental (DIA) publicada en el BOE. La empresa
 promotora está OBLIGADA a cumplir sus medidas preventivas, correctoras y compensatorias.
 Queremos saber si es un buen cliente para que la ONG ejecute esas medidas.
@@ -50,6 +51,11 @@ Responde SOLO con un objeto JSON con estas claves:
 No inventes datos: si algo no aparece en el texto, usa "", null o []."""
 
 
+def version_empresas():
+    h = perfil.huella()
+    return f"{VERSION_EMPRESAS}-{h}" if h else VERSION_EMPRESAS
+
+
 def accion(encaje: int) -> str:
     if encaje >= 70:
         return "contactar"
@@ -63,7 +69,7 @@ def analizar(puntuador: Puntuador, dia: dict) -> dict | None:
     entrada = f"Título: {dia['titulo']}\nFecha BOE: {dia['fecha']}\n\n{texto}"
     while puntuador.cola_decision:
         try:
-            datos = puntuador._llamar(puntuador.modelo_decision, INSTRUCCIONES, entrada)
+            datos = puntuador._llamar(puntuador.modelo_decision, instrucciones(), entrada)
             break
         except CupoAgotado as e:
             puntuador._siguiente_modelo(puntuador.cola_decision, e)
@@ -89,7 +95,7 @@ def analizar(puntuador: Puntuador, dia: dict) -> dict | None:
         "resumen": str(datos.get("resumen", "")).strip(),
         "cita": cita_verificada(str(datos.get("cita", "")), texto),
         "metodo": f"groq:{puntuador.modelo_decision}",
-        "version": VERSION_EMPRESAS,
+        "version": version_empresas(),
     }
 
 
@@ -103,7 +109,7 @@ def main() -> None:
     anteriores = {}
     if SALIDA.exists():
         anteriores = {e["id"]: e for e in json.loads(SALIDA.read_text(encoding="utf-8"))["empresas"]
-                      if e.get("version") == VERSION_EMPRESAS}
+                      if e.get("version") == version_empresas()}
 
     dias = boe.declaraciones_impacto(hoy - timedelta(days=args.dias), hoy)
     print(f"DIA publicadas en el BOE (últimos {args.dias} días): {len(dias)}")
