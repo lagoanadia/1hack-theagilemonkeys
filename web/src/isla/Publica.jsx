@@ -19,7 +19,6 @@ export default function Publica({ equipo, onEntrar }) {
   const [estado, setEstado] = useState('form')   // form · enviada · error
   const [msg, setMsg] = useState('')
   const [enviando, setEnviando] = useState(false)
-  const [impacto, setImpacto] = useState(null)   // impacto de la reserva hecha (para el avión)
 
   useEffect(() => { api('/proyectos').then(setLista).catch(e => setError(e.message)) }, [])
 
@@ -29,17 +28,16 @@ export default function Publica({ equipo, onEntrar }) {
     e.preventDefault()
     setEnviando(true)
     try {
-      const r = await api(`/proyectos/${sel.id}/interes`, {
+      await api(`/proyectos/${sel.id}/interes`, {
         metodo: 'POST',
         datos: { empresa: f.empresa, contacto: `${f.persona} · ${f.email}`, mensaje: f.mensaje, web: f.web,
           hectareas: f.hectareas === '' ? null : Number(f.hectareas) },
       })
-      setImpacto(r.impacto || null)
       setEstado('enviada')
     } catch (err) { setMsg(err.message); setEstado('error') }
     setEnviando(false)
   }
-  const volver = () => { setSel(null); setF(VACIO); setEstado('form'); setMsg(''); setImpacto(null) }
+  const volver = () => { setSel(null); setF(VACIO); setEstado('form'); setMsg('') }
   const campo = k => ({ value: f[k], onChange: e => setF({ ...f, [k]: e.target.value }) })
   return (
     <div className="isla i-pub">
@@ -109,10 +107,9 @@ export default function Publica({ equipo, onEntrar }) {
         </form>
       )}
       {sel && estado === 'enviada' && (
-        <section className={`i-card box${impacto ? ' ancha' : ''}`} style={{ textAlign: 'center' }}>
-          <h2>Reserva recibida{impacto ? ': ¡vuestro avión despega!' : ''}</h2>
+        <section className="i-card box" style={{ textAlign: 'center' }}>
+          <h2>Reserva recibida</h2>
           <p className="i-sub">Reforesta os responderá en unos días. No supone compromiso de pago.</p>
-          {impacto && <div style={{ textAlign: 'left', margin: '8px 0 18px' }}><Globo impacto={impacto} titulo="Lo que compensa vuestra ayuda" /></div>}
           <button className="i-btn p" style={{ margin: '0 auto' }} onClick={volver}>Ver otros proyectos</button>
         </section>
       )}
