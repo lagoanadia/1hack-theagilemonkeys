@@ -315,7 +315,92 @@
      "ok": true
     }
    ],
-   "encontrada": true
+   "encontrada": true,
+   "plantillas": [],
+   "documentos_version": 1,
+   "documentos_requeridos": [
+    {
+     "nombre": "Carta de aceptación",
+     "tipo": "representante_legal",
+     "obligatorio": true,
+     "condicion": "cuando se notifique la propuesta de resolución provisional",
+     "antiguedad_max_meses": null,
+     "cita": "Carta de aceptación de la ayuda firmada por la persona que ostente la representación legal de la entidad"
+    },
+    {
+     "nombre": "Formulario de solicitud reformulado",
+     "tipo": "solicitud",
+     "obligatorio": true,
+     "condicion": "cuando se notifique la propuesta de resolución provisional",
+     "antiguedad_max_meses": null,
+     "cita": "Formulario de solicitud reformulado"
+    },
+    {
+     "nombre": "Marco lógico reformulado",
+     "tipo": "otro",
+     "obligatorio": true,
+     "condicion": "cuando se notifique la propuesta de resolución provisional",
+     "antiguedad_max_meses": null,
+     "cita": "Marco lógico reformulado"
+    },
+    {
+     "nombre": "Presupuesto reformulado",
+     "tipo": "presupuesto",
+     "obligatorio": true,
+     "condicion": "cuando se notifique la propuesta de resolución provisional",
+     "antiguedad_max_meses": null,
+     "cita": "Presupuesto reformulado"
+    },
+    {
+     "nombre": "Recursos humanos reformulado",
+     "tipo": "otro",
+     "obligatorio": true,
+     "condicion": "cuando se notifique la propuesta de resolución provisional",
+     "antiguedad_max_meses": null,
+     "cita": "Recursos humanos reformulado"
+    },
+    {
+     "nombre": "Cronograma reformulado",
+     "tipo": "otro",
+     "obligatorio": true,
+     "condicion": "cuando se notifique la propuesta de resolución provisional",
+     "antiguedad_max_meses": null,
+     "cita": "Cronograma reformulado"
+    },
+    {
+     "nombre": "Certificado Hacienda vigente",
+     "tipo": "cert_hacienda",
+     "obligatorio": true,
+     "condicion": "cuando se notifique la propuesta de resolución provisional",
+     "antiguedad_max_meses": null,
+     "cita": "Certificación administrativa positiva vigente expedida por la Agencia Estatal de la Administración Tributaria que acredite el cumplimiento de las obligaciones tributarias"
+    },
+    {
+     "nombre": "Certificado Seguridad Social vigente",
+     "tipo": "cert_seg_social",
+     "obligatorio": true,
+     "condicion": "cuando se notifique la propuesta de resolución provisional",
+     "antiguedad_max_meses": null,
+     "cita": "Certificación administrativa positiva vigente expedida por el órgano competente que acredite el cumplimiento de las obligaciones con la Seguridad Social"
+    },
+    {
+     "nombre": "Acta de titularidad real o declaración responsable",
+     "tipo": "declaracion_responsable",
+     "obligatorio": true,
+     "condicion": "para cumplir la normativa de prevención de blanqueo de capitales",
+     "antiguedad_max_meses": null,
+     "cita": "Acta de titularidad real de la entidad o, en caso de no quedar obligada a disponer de la misma, declaración responsable según el modelo que se facilitará al efecto"
+    },
+    {
+     "nombre": "Copia del DNI de titulares reales",
+     "tipo": "otro",
+     "obligatorio": true,
+     "condicion": "para cumplir la normativa de prevención de blanqueo de capitales",
+     "antiguedad_max_meses": null,
+     "cita": "Copia del documento nacional de identidad de las personas físicas que ostenten la propiedad o control de la entidad"
+    }
+   ],
+   "documentos_fuente": "00_Resolución Dirección publicación_CAMA 26.pdf"
   },
   {
    "codigo": "864007",
@@ -332,9 +417,110 @@
    "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/864007",
    "url_bases": "https://www.boe.es/eli/es/o/2021/07/12/ted818",
    "sede": "www.fundacion-biodiversidad.es",
-   "veredicto": "pendiente",
-   "puntuacion": 0,
-   "metodo": "pendiente_ia",
+   "puntuacion": 30,
+   "veredicto": "descarta",
+   "encaja": false,
+   "linea": "",
+   "motivo": "Solo pueden solicitar entidades sin ánimo de lucro con domicilio fiscal en Valencia, Castilla‑La Mancha o Andalucía, o agrupaciones que incluyan al menos una de ellas.",
+   "resumen": "Financia proyectos de restauración y recuperación de ecosistemas en municipios afectados por DANA.",
+   "requisitos": [
+    {
+     "texto": "Ser persona jurídica sin ánimo de lucro con domicilio fiscal en Comunidad Valenciana, Castilla‑La Mancha o Andalucía",
+     "estado": "no"
+    },
+    {
+     "texto": "Formar parte de una agrupación con al menos una entidad con domicilio en esas comunidades",
+     "estado": "duda"
+    },
+    {
+     "texto": "Desarrollar proyectos de restauración de ecosistemas degradados",
+     "estado": "cumple"
+    },
+    {
+     "texto": "No desarrollar actividad económica",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Realizar el proyecto en municipios afectados por la DANA",
+     "estado": "no"
+    }
+   ],
+   "requisitos_clave": "Ser persona jurídica sin ánimo de lucro con domicilio fiscal en Comunidad Valenciana, Castilla‑La Mancha o Andalucía; Formar parte de una agrupación con al menos una entidad con domicilio en esas comunidades; Realizar el proyecto en municipios afectados por la DANA",
+   "cita": "Personas jurídicas, públicas o privadas, sin ánimo de lucro, que tengan su domicilio fiscal en alguna de las comunidades autónomas afectadas por la DANA, específicamente en la Comunidad Valenciana, la Comunidad Autónoma de Castilla-La Mancha y la Comunidad Autónoma de Andalucía",
+   "porcentaje_financiado": null,
+   "importe_max": null,
+   "plazo_estimado": "2025-12-23",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": "2-ec04a1e6",
+   "plantillas": [],
+   "documentos_version": 1,
+   "documentos_requeridos": [
+    {
+     "nombre": "Factura y justificante de pago",
+     "tipo": "otro",
+     "obligatorio": true,
+     "condicion": "para cualquier gasto financiable",
+     "antiguedad_max_meses": null,
+     "cita": "presentación de la correspondiente factura o documento acreditativo del gasto y su respectivo justificante de pago"
+    },
+    {
+     "nombre": "Contrato de arrendamiento",
+     "tipo": "otro",
+     "obligatorio": false,
+     "condicion": "cuando el gasto sea arrendamiento de instalaciones o material inventariable",
+     "antiguedad_max_meses": null,
+     "cita": "presentación del correspondiente contrato y factura o documento similar y su respectivo justificante de pago"
+    },
+    {
+     "nombre": "Cuadro de amortización",
+     "tipo": "otro",
+     "obligatorio": true,
+     "condicion": "para amortización de instalaciones o material inventariable",
+     "antiguedad_max_meses": null,
+     "cita": "se deberá presentar un cuadro de amortización en el que se detalle el cálculo realizado para obtener la imputación al proyecto objeto de subvención"
+    },
+    {
+     "nombre": "Asientos contables",
+     "tipo": "otro",
+     "obligatorio": false,
+     "condicion": "cuando la adquisición de material inventariable supere los 400 €",
+     "antiguedad_max_meses": null,
+     "cita": ""
+    },
+    {
+     "nombre": "Escritura con referencia a la subvención",
+     "tipo": "otro",
+     "obligatorio": false,
+     "condicion": "para bienes inscribibles en un registro público",
+     "antiguedad_max_meses": null,
+     "cita": "deberá hacerse constar en la escritura esta circunstancia, así como el importe de la subvención concedida"
+    },
+    {
+     "nombre": "Certificado de tasador independiente",
+     "tipo": "otro",
+     "obligatorio": false,
+     "condicion": "para bienes inmuebles en la justificación",
+     "antiguedad_max_meses": null,
+     "cita": "será preciso certificado de tasador independiente, debidamente acreditado e inscrito en el correspondiente registro oficial"
+    },
+    {
+     "nombre": "Certificación firmada por el representante legal",
+     "tipo": "declaracion_responsable",
+     "obligatorio": true,
+     "condicion": "para justificar gastos indirectos",
+     "antiguedad_max_meses": null,
+     "cita": ""
+    },
+    {
+     "nombre": "Resguardo de constitución de garantía",
+     "tipo": "otro",
+     "obligatorio": false,
+     "condicion": "cuando se solicite anticipo",
+     "antiguedad_max_meses": null,
+     "cita": "se requerirá la presentación del resguardo de constitución de alguna de las garantías"
+    }
+   ],
+   "documentos_fuente": "Convocatoria DANA.pdf",
    "descripcion_reto": "Fundación Biodiversidad · empleo y restauración en municipios afectados (2025)",
    "filtros": [
     {
@@ -372,9 +558,138 @@
    "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/930967",
    "url_bases": "Pendiente de publicar",
    "sede": "",
-   "veredicto": "pendiente",
-   "puntuacion": 0,
-   "metodo": "pendiente_ia",
+   "puntuacion": 30,
+   "veredicto": "descarta",
+   "encaja": false,
+   "linea": "restauracion",
+   "motivo": "Solo pueden solicitarlo los titulares forestales privados de montes en la Comunidad de Madrid; la ONG no posee terrenos forestales, por lo que no es elegible.",
+   "resumen": "Financia la restauración de montes privados dañados por incendios o catástrofes en la Comunidad de Madrid.",
+   "requisitos": [
+    {
+     "texto": "Ser titular forestal privado de montes situados en la Comunidad de Madrid",
+     "estado": "no"
+    },
+    {
+     "texto": "Tener residencia fiscal fuera de paraíso fiscal",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Cumplir los requisitos de la Ley 38/2003 artículos 13 y 14",
+     "estado": "duda"
+    },
+    {
+     "texto": "Estar dentro del ámbito territorial de la Comunidad de Madrid",
+     "estado": "cumple"
+    }
+   ],
+   "requisitos_clave": "Ser titular forestal privado de montes situados en la Comunidad de Madrid; Cumplir los requisitos de la Ley 38/2003 artículos 13 y 14",
+   "cita": "Podrán ser beneficiarios de estas ayudas, los titulares forestales privados de montes situados dentro del ámbito territorial de la Comunidad de Madrid",
+   "porcentaje_financiado": 100,
+   "importe_max": 60000,
+   "plazo_estimado": "2026-10-13",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": "2-ec04a1e6",
+   "plantillas": [
+    {
+     "nombre": "Anexos Anexo III Just y Pago",
+     "archivo": "Anexos  Anexo III Just y Pago.pdf",
+     "url": "https://www.infosubvenciones.es/bdnstrans/api/convocatorias/documentos?idDocumento=1525335"
+    },
+    {
+     "nombre": "Anexos Anexo II Memoria",
+     "archivo": "Anexos  Anexo II Memoria.pdf",
+     "url": "https://www.infosubvenciones.es/bdnstrans/api/convocatorias/documentos?idDocumento=1525334"
+    },
+    {
+     "nombre": "Modelo de Solicitud",
+     "archivo": "Modelo de Solicitud.pdf",
+     "url": "https://www.infosubvenciones.es/bdnstrans/api/convocatorias/documentos?idDocumento=1525333"
+    }
+   ],
+   "documentos_version": 1,
+   "documentos_requeridos": [
+    {
+     "nombre": "DNI/NIE/NIF",
+     "tipo": "otro",
+     "obligatorio": true,
+     "condicion": "cuando el solicitante sea persona física o jurídica",
+     "antiguedad_max_meses": null,
+     "cita": "DNI/NIE cuando el solicitante sea persona física, o NIF para personas jurídicas y comunidades de bienes"
+    },
+    {
+     "nombre": "Escritura o documento público de constitución",
+     "tipo": "estatutos",
+     "obligatorio": true,
+     "condicion": "si el solicitante es persona jurídica",
+     "antiguedad_max_meses": null,
+     "cita": "escritura o documento público de constitución, debidamente inscrito en el registro correspondiente"
+    },
+    {
+     "nombre": "Pacto de titularidad indivisa",
+     "tipo": "otro",
+     "obligatorio": true,
+     "condicion": "para comunidades de bienes",
+     "antiguedad_max_meses": null,
+     "cita": "aportarán el pacto por escrito de titularidad indivisa sobre el monte"
+    },
+    {
+     "nombre": "Acreditación de residencia fiscal fuera de paraíso fiscal",
+     "tipo": "cert_hacienda",
+     "obligatorio": true,
+     "condicion": "cuando la residencia fiscal no sea en paraíso fiscal",
+     "antiguedad_max_meses": null,
+     "cita": ""
+    },
+    {
+     "nombre": "Escritura de propiedad / Nota Simple",
+     "tipo": "otro",
+     "obligatorio": true,
+     "condicion": "para acreditar la propiedad del monte",
+     "antiguedad_max_meses": null,
+     "cita": "La propiedad del monte, que se acreditará mediante escritura de propiedad, escritura de compraventa, o certificado o Nota Simple del Registro de la Propiedad"
+    },
+    {
+     "nombre": "Anexo II (memoria‑resumen)",
+     "tipo": "memoria_proyecto",
+     "obligatorio": true,
+     "condicion": "para todas las solicitudes",
+     "antiguedad_max_meses": null,
+     "cita": "Anexo II (memoria-resumen), según el modelo que figura en la correspondiente convocatoria adecuadamente cumplimentada"
+    },
+    {
+     "nombre": "Planos topográficos",
+     "tipo": "anexo",
+     "obligatorio": true,
+     "condicion": "dos planos: escala 1:50.000 y 1:10.000",
+     "antiguedad_max_meses": null,
+     "cita": "Dos planos topográficos: Uno a escala 1:50.000 en el que se refleje la situación del monte y otro a escala 1:10.000 definiendo las actuaciones"
+    },
+    {
+     "nombre": "Capas de delimitación digital",
+     "tipo": "anexo",
+     "obligatorio": true,
+     "condicion": "en formato shape o similar",
+     "antiguedad_max_meses": null,
+     "cita": "Capas de delimitación del monte y de las actuaciones, en digital, en formato shape o similar"
+    },
+    {
+     "nombre": "Proyecto técnico de obra",
+     "tipo": "memoria_proyecto",
+     "obligatorio": false,
+     "condicion": "si la cuantía supera 20.000 euros, salvo excepciones",
+     "antiguedad_max_meses": null,
+     "cita": "Cuando la cuantía de los gastos de las obras a realizar supere la cifra de 20.000 euros se acompañará, también, de un proyecto técnico de obra"
+    },
+    {
+     "nombre": "Modelo de solicitud",
+     "tipo": "solicitud",
+     "obligatorio": true,
+     "condicion": "para presentar la ayuda",
+     "antiguedad_max_meses": null,
+     "cita": "Modelo de solicitud: El interesado deberá presentar la solicitud de ayuda"
+    }
+   ],
+   "documentos_fuente": "Texto Convocatoria BDNS  Orden anonimizada.pdf",
    "descripcion_reto": "Comunidad de Madrid · restauración de daños forestales en montes privados (2026)",
    "filtros": [
     {

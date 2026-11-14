@@ -1,9 +1,48 @@
 {
- "generado": "2026-11-14T12:19",
+ "generado": "2026-11-14T16:54",
  "ventana_dias": 180,
  "revisadas": 32,
- "pendientes": 23,
+ "pendientes": 19,
  "empresas": [
+  {
+   "id": "BOE-A-2026-18893",
+   "fecha": "2026-09-09",
+   "titulo": "Resolución de 28 de agosto de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Parques solares fotovoltaicos Colladillo y Cabeza de Mesá, de 22,05 y 27,3 MW, para hibridación con los parques eólicos Colladillo y Cabeza de Mesá, de 30,6 y 29,6 MW, ubicados en la provincia de Ávila».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-18893",
+   "promotor": "Eólica Sierra de Ávila, SL",
+   "proyecto": "Parques solares y eólicos Colladillo y Cabeza de Mesá",
+   "tipo": "hibrido",
+   "ubicacion": "Ávila, Castilla y León",
+   "medidas": [
+    {
+     "texto": "Restauración vegetal de la zona liberada",
+     "superficie_ha": 17.15
+    },
+    {
+     "texto": "Instalación de refugios para quirópteros (4 unidades)",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Instalación de plataformas para lechuza común (2 unidades)",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Creación de majanos para conejo (4 unidades)",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Programa agroambiental de mejora de hábitat en cultivos de secano",
+     "superficie_ha": 44.35
+    }
+   ],
+   "superficie_total_ha": 17.15,
+   "encaje": 82,
+   "accion": "contactar",
+   "resumen": "Eólica Sierra de Ávila debe restaurar 17,15 ha y crear refugios de fauna en los parques solares‑eólicos de Colladillo y Cabeza de Mesá (Ávila)",
+   "cita": "las medidas preventivas y correctoras propuestas contribuirán a minimizar los impactos evaluados sobre el medio y a la restauración vegetal de zonas alteradas para la recuperación de hábitats",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": "1-ec04a1e6"
+  },
   {
    "id": "BOE-A-2026-21602",
    "fecha": "2026-10-16",
@@ -40,6 +79,84 @@
    "accion": "contactar",
    "resumen": "Elawan Fotovoltaica Belinchón debe restaurar vegetación en Cuenca mediante hidrosiembra y plantaciones autóctonas como compensación del parque eólico híbrido.",
    "cita": "Como medidas correctoras, se prevé la restauración mediante hidrosiembra o plantaciones con especies autóctonas en las zonas de ocupación temporal",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": "1-ec04a1e6"
+  },
+  {
+   "id": "BOE-A-2026-18894",
+   "fecha": "2026-09-09",
+   "titulo": "Resolución de 31 de agosto de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Desaladora de Valdelentisco. Planta solar fotovoltaica, en Cartagena-Mazarrón (Murcia)».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-18894",
+   "promotor": "Aguas de las Cuencas Mediterráneas, S.M.E., SA (ACUAMED)",
+   "proyecto": "Desaladora de Valdelentisco - Planta solar fotovoltaica",
+   "tipo": "solar",
+   "ubicacion": "Cartagena, Mazarrón, Región de Murcia",
+   "medidas": [
+    {
+     "texto": "Revegetación de 17 zonas de amortiguación",
+     "superficie_ha": 2.0
+    },
+    {
+     "texto": "Creación de charcas para anfibios en zonas amortiguadoras",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Plantación de pantalla vegetal de 5 m de ancho con especies autóctonas",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Instalación de 31 refugios para herpetofauna y 20 cajas nido para quirópteros",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Creación de 11 pasillos vegetados de 10 m de ancho como corredores de fauna",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": 7.84,
+   "encaje": 55,
+   "accion": "mira",
+   "resumen": "ACUAMED debe crear y revegetar ~7,8 ha, instalar charcas y refugios para fauna en la zona de la planta solar de Valdelentisco (Murcia).",
+   "cita": "creación y revegetación de 17 zonas de amortiguación y laminación en áreas deprimidas, con una superficie total de alrededor de 2 ha, algunas de ellas utilizables como charcas para anfibios",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": "1-ec04a1e6"
+  },
+  {
+   "id": "BOE-A-2026-18976",
+   "fecha": "2026-09-10",
+   "titulo": "Resolución de 31 de agosto de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Parques fotovoltaicos Breña, Cerroblanco, Torviscal y Majales para su hibridación con los parques eólicos existentes Breña, Cerroblanco, Torviscal y Majales, en la provincia de Albacete».",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-18976",
+   "promotor": "Acciona Eólica de Castilla-La Mancha, SL",
+   "proyecto": "Parques fotovoltaicos Breña, Cerroblanco, Torviscal y Majales hibridados",
+   "tipo": "hibrido",
+   "ubicacion": "Breña, Cerroblanco, Torviscal, Majales (Albacete, Castilla-La Mancha)",
+   "medidas": [
+    {
+     "texto": "Creación de islas de vegetación arbustiva en mosaico dentro del recinto",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Restauración paisajística de zonas temporalmente alteradas",
+     "superficie_ha": 48.66
+    },
+    {
+     "texto": "Mejora y creación de hábitats esteparios para aves esteparias",
+     "superficie_ha": 265.0
+    },
+    {
+     "texto": "Plantación de especies autóctonas y revegetación de bordes y ribazos",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Instalación de primillares, palomares y vivares para conejo como hábitat",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": 265.0,
+   "encaje": 55,
+   "accion": "mira",
+   "resumen": "Acciona debe crear islas de vegetación y restaurar 265 ha de hábitats esteparios en los parques hibridados de Breña, Cerroblanco, Torviscal y Majales (Albacete).",
+   "cita": "También, señala que la superficie objeto de medidas compensatorias debe ser ampliada hasta la superficie equivalente de afección del proyecto, cifrada en 265 ha",
    "metodo": "groq:openai/gpt-oss-120b",
    "version": "1-ec04a1e6"
   },
@@ -184,6 +301,45 @@
    "accion": "mira",
    "resumen": "Sistemas Energéticos Barandón debe crear 94 bosquetes y realizar hidrosiembra de 1,09 ha en su proyecto híbrido en Herrera de los Navarros",
    "cita": "se crearán pequeños rodales y setos vivos de especies leñosas autóctonas de pequeño porte en el vallado perimetral y zonas interiores de la planta",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": "1-ec04a1e6"
+  },
+  {
+   "id": "BOE-A-2026-19403",
+   "fecha": "2026-09-17",
+   "titulo": "Resolución de 3 de septiembre de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto “Proyectos básicos de filtros verdes y humedales seminaturales en el entorno del Mar Menor”.",
+   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-19403",
+   "promotor": "Dirección General de Biodiversidad, Bosques y Desertificación del Ministerio para la Transición Ecológica y el Reto Demográfico (MITECO)",
+   "proyecto": "Filtros verdes y humedales seminaturales Mar Menor",
+   "tipo": "infraestructura",
+   "ubicacion": "Cartagena, Los Alcázares, Región de Murcia",
+   "medidas": [
+    {
+     "texto": "Plantación de Typha latifolia en humedales seminaturales",
+     "superficie_ha": 83.59
+    },
+    {
+     "texto": "Restauración de suelos y hábitats en áreas de filtro verde",
+     "superficie_ha": 123.49
+    },
+    {
+     "texto": "Creación de charcas de refugio para fauna acuática",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Seguimiento y educación ambiental de la revegetación",
+     "superficie_ha": null
+    },
+    {
+     "texto": "Control y erradicación de especies invasoras como carrizo",
+     "superficie_ha": null
+    }
+   ],
+   "superficie_total_ha": 83.59,
+   "encaje": 45,
+   "accion": "mira",
+   "resumen": "MITECO debe crear y restaurar 83,6 ha de humedales seminaturales en Cartagena y Los Alcázares como filtros verdes del Mar Menor.",
+   "cita": "se restaurarán las zonas que hayan sufrido alguna afección una vez acabados los trabajos",
    "metodo": "groq:openai/gpt-oss-120b",
    "version": "1-ec04a1e6"
   },
