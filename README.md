@@ -139,6 +139,11 @@ en 30 años, coches, personas y **vuelos de ida y vuelta desde Madrid** a 9 dest
 ese mismo objeto en `impacto`. Supuestos (estimaciones, ajustables en `IMPACTO` del Worker):
 5 t CO₂/ha/año, 30 años, 0,1 kg CO₂ por pasajero y km, coche 1,6 t/año, persona 5 t/año.
 Ejemplo: 8 ha ≈ 40 t CO₂/año ≈ 34 vuelos Madrid–Nueva York cada año.
+- **Al ayudar**: `POST /api/proyectos/:id/interes` admite `hectareas` (opcional, como mucho las de la
+  propuesta) y responde con el `impacto` de esa ayuda (para animar el avión). Cada propuesta trae
+  `hectareas_apoyadas` y `/api/interesados` las hectáreas de cada empresa.
+- **Empresas del BOE**: `/data/empresas.json` añade `impacto` a las que tienen hectáreas que compensar
+  (`superficie_total_ha` o la suma de sus medidas); `null` si el BOE no da superficie.
 
 ### Documentos
 

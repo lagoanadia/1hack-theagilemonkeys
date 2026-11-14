@@ -41,7 +41,7 @@
 //                                            hectareas, presupuesto, estado}         (equipo)
 //   PUT    /api/proyectos/:id               editar, publicar u ocultar                (equipo)
 //   DELETE /api/proyectos/:id               retirar (archivar) una propuesta          (equipo)
-//   POST   /api/proyectos/:id/interes       {empresa, contacto, mensaje}             (público)
+//   POST   /api/proyectos/:id/interes       {empresa, contacto, mensaje, hectareas?} → impacto (público)
 //   GET    /api/interesados                 empresas que quieren ayudar              (equipo)
 //   PUT    /api/interesados/:id             {estado: nueva|contestada|confirmada|descartada} (equipo)
 //   DELETE /api/interesados/:id             borrar una reserva (pruebas, spam)       (equipo)
@@ -215,7 +215,9 @@ const ESTADOS_RESERVA = ["nueva", "contestada", "confirmada", "descartada"];
 // Propuesta con sus plazas: una reserva ocupa plaza salvo que esté descartada.
 const SQL_PROPUESTAS = `SELECT p.id, p.titulo, p.lugar, p.tipo, p.incluye, p.descripcion, p.hectareas,
     p.presupuesto, p.plazas, p.estado, p.creado, p.actualizado,
-    (SELECT COUNT(*) FROM interesados i WHERE i.proyecto_id = p.id AND i.estado != 'descartada') AS reservas
+    (SELECT COUNT(*) FROM interesados i WHERE i.proyecto_id = p.id AND i.estado != 'descartada') AS reservas,
+    (SELECT COALESCE(SUM(i.hectareas), 0) FROM interesados i WHERE i.proyecto_id = p.id AND i.estado != 'descartada')
+      AS hectareas_apoyadas
   FROM proyectos p WHERE p.activo = 1`;
 function conPlazas(p) {
   const libres = p.plazas == null ? null : Math.max(0, p.plazas - p.reservas);
@@ -463,6 +465,19 @@ async function convocatoriasConDemo(env, request) {
   return { ...d, convocatorias: [...demo, ...d.convocatorias], demo: demo.length };
 }
 
+// Empresas del BOE: impacto de las hectáreas que deben compensar (superficie total o suma de sus medidas).
+function haEmpresa(e) {
+  if (e.superficie_total_ha > 0) return e.superficie_total_ha;
+  const suma = (e.medidas || []).reduce((s, m) => s + (m.superficie_ha > 0 ? m.superficie_ha : 0), 0);
+  return suma > 0 ? suma : null;
+}
+function empresasConImpacto(d) {
+  return { ...d, empresas: (d.empresas || []).map((e) => {
+    const ha = haEmpresa(e);
+    return { ...e, impacto: ha ? impacto(ha) : null };
+  }) };
+}
+
 // Datos del radar (convocatorias.json / empresas.json) indexados por código; {} si no hay.
 async function datosRadar(env, request, archivo) {
   try {
@@ -655,6 +670,7 @@ const COLUMNAS_NUEVAS = [
   "ALTER TABLE proyectos ADD COLUMN actualizado TEXT",
   "ALTER TABLE interesados ADD COLUMN estado TEXT DEFAULT 'nueva'",
   "ALTER TABLE interesados ADD COLUMN actualizado_por TEXT DEFAULT ''",
+  "ALTER TABLE interesados ADD COLUMN hectareas REAL",
 ];
 
 let esquemaListo = false;
@@ -1213,11 +1229,17 @@ async function api(request, env, ruta) {
       .bind(Number(m[1])).first();
     if (!proyecto) return error("Ese proyecto ya no está disponible", 404);
     if (conPlazas(proyecto).completa) return error("Ya no quedan plazas en este proyecto", 409);
+    // Hectáreas que la empresa quiere apoyar (opcional; como mucho las de la propuesta, si las tiene).
+    let ha = b.hectareas === undefined || b.hectareas === null || b.hectareas === "" ? null : numero(b.hectareas);
+    if (ha !== null && (ha <= 0 || ha > 100000)) return error("hectareas: número mayor que 0");
+    if (ha !== null && proyecto.hectareas > 0) ha = Math.min(ha, proyecto.hectareas);
     await db.prepare(
-      "INSERT INTO interesados (proyecto_id, empresa, contacto, mensaje, creado) VALUES (?, ?, ?, ?, ?)",
-    ).bind(proyecto.id, empresa, contacto, texto(b.mensaje, 1000), ahora()).run();
+      "INSERT INTO interesados (proyecto_id, empresa, contacto, mensaje, hectareas, creado) VALUES (?, ?, ?, ?, ?, ?)",
+    ).bind(proyecto.id, empresa, contacto, texto(b.mensaje, 1000), ha, ahora()).run();
     await db.prepare("INSERT INTO envios (huella, creado) VALUES (?, ?)").bind(huella, ahora()).run();
-    return json({ ok: true }, 201);
+    // Impacto de su ayuda, para la animación del avión (sus hectáreas o, si no dice, las de la propuesta).
+    const haImpacto = ha ?? (proyecto.hectareas > 0 ? proyecto.hectareas : null);
+    return json({ ok: true, hectareas: ha, impacto: haImpacto ? impacto(haImpacto) : null }, 201);
   }
 
   ms = ruta.match(/^\/api\/interesados\/(\d+)$/);
@@ -1238,7 +1260,7 @@ async function api(request, env, ruta) {
   if (ruta === "/api/interesados" && metodo === "GET") {
     if (!equipo) return soloEquipo();
     const { results } = await db.prepare(
-      `SELECT i.id, i.proyecto_id, p.titulo AS proyecto, i.empresa, i.contacto, i.mensaje, i.creado,
+      `SELECT i.id, i.proyecto_id, p.titulo AS proyecto, i.empresa, i.contacto, i.mensaje, i.hectareas, i.creado,
          i.estado, i.actualizado_por
        FROM interesados i JOIN proyectos p ON p.id = i.proyecto_id ORDER BY i.id DESC`,
     ).all();
@@ -1268,6 +1290,7 @@ export default {
         await prepararEsquema(env.DB);
         if (await modoDemo(env, env.DB)) r = Response.json(await convocatoriasConDemo(env, request));
       }
+      if (ruta === "/data/empresas.json" && r.ok) r = Response.json(empresasConImpacto(await r.json()));
       const privado = new Response(r.body, r);
       privado.headers.set("cache-control", "private, no-store");
       return privado;
