@@ -4,7 +4,7 @@ import { island, semilla } from './lp.js'
 import { mapaLugar } from './mapa.js'
 import { GloboInfo } from './Globo.jsx'
 import { api } from '../api.js'
-import { euros, hectareas } from '../datos.js'
+import { hectareas } from '../datos.js'
 
 // Página pública para empresas: lista de GET /api/proyectos y reserva con POST /api/proyectos/:id/interes.
 // No pide contraseña. Anti-spam: campo trampa «web» (invisible) y límite de envíos en el servidor.
@@ -23,7 +23,6 @@ export default function Publica({ equipo, onEntrar }) {
   useEffect(() => { api('/proyectos').then(setLista).catch(e => setError(e.message)) }, [])
 
   const ha = (lista || []).reduce((s, p) => s + (p.hectareas || 0), 0)
-  const eur = (lista || []).reduce((s, p) => s + (p.presupuesto || 0), 0)
   const enviar = async e => {
     e.preventDefault()
     setEnviando(true)
@@ -52,12 +51,11 @@ export default function Publica({ equipo, onEntrar }) {
         <section className="hero">
           <div><span className="i-tag" style={{ background: '#F7E3D4', color: '#9A5B2E' }}>Para empresas</span>
             <h1>Planta un bosque <span>con Reforesta</span></h1>
-            <p>Elegid un proyecto y reservad sin compromiso. Os contactamos en unos días con el presupuesto.</p>
+            <p>Elegid un proyecto y reservad sin compromiso. Os escribimos en unos días para prepararlo juntos.</p>
             {lista && lista.length > 0 && (
               <div className="nums">
                 <div><b>{lista.length}</b>{lista.length === 1 ? 'proyecto abierto' : 'proyectos abiertos'}</div>
                 {ha > 0 && <div><b>{hectareas(ha)}</b>por restaurar</div>}
-                {eur > 0 && <div><b>{euros(eur)}</b>en proyectos</div>}
               </div>
             )}
           </div>
@@ -76,7 +74,6 @@ export default function Publica({ equipo, onEntrar }) {
                   : <div className="i-art"><Svg html={island(220, 150, n, n, 20 + i)} /></div>}
                 <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '10px 0 0' }}>
                   {p.hectareas > 0 && <span className="i-tag">{hectareas(p.hectareas)}</span>}
-                  {p.presupuesto > 0 && <span className="i-tag">{euros(p.presupuesto)}</span>}
                 </span>
                 <b style={{ fontSize: 20, margin: '8px 0 2px' }}>{p.titulo}</b>
                 <div style={{ color: 'var(--mut)', fontSize: 14.5, minHeight: 40 }}>{[p.lugar, p.incluye || p.descripcion].filter(Boolean).join(' · ')}</div>
