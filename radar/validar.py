@@ -34,13 +34,14 @@ def filtros_sin_ia(det: dict) -> list[dict]:
     ]
 
 
-def main() -> None:
+def evaluar(convocatorias: dict, salida, puntuador=None) -> list[dict]:
+    """Análisis completo de Groq + documentos para cada código; caché en el JSON de salida."""
     anteriores = {}
-    if SALIDA.exists():
-        anteriores = {v["codigo"]: v for v in json.loads(SALIDA.read_text(encoding="utf-8"))["casos"]}
-    puntuador = Puntuador()
+    if salida.exists():
+        anteriores = {v["codigo"]: v for v in json.loads(salida.read_text(encoding="utf-8"))["casos"]}
+    puntuador = puntuador or Puntuador()
     casos = []
-    for codigo, descripcion in CONVOCATORIAS_VALIDACION.items():
+    for codigo, descripcion in convocatorias.items():
         previo = anteriores.get(codigo)
         if previo and previo.get("version") == version_actual() \
                 and previo.get("metodo", "").startswith("groq"):
@@ -70,6 +71,11 @@ def main() -> None:
         print(f"  {codigo}: encontrada={caso['encontrada']} veredicto={caso['veredicto']} "
               f"({caso['puntuacion']})")
 
+    return casos
+
+
+def main() -> None:
+    casos = evaluar(CONVOCATORIAS_VALIDACION, SALIDA)
     SALIDA.write_text(json.dumps({
         "encontradas": sum(c["encontrada"] for c in casos),
         "total": len(casos),

@@ -390,7 +390,8 @@ const masDias = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0
 
 // ---------- Modo demo ----------
 // Si hoy no hay ninguna convocatoria abierta que encaje, la web quedaría vacía. En modo demo se añaden
-// las convocatorias reales a las que se presentó Reforesta (validacion.json) como si estuvieran
+// las convocatorias reales a las que se presentó Reforesta (validacion.json) y otras reales recientes
+// ya cerradas (demo.json, generado por radar.demo) como si estuvieran
 // abiertas, marcadas con demo: true. Por defecto activo (variable MODO_DEMO = "0" lo apaga);
 // el equipo lo cambia con PUT /api/demo {activo}.
 async function modoDemo(env, db) {
@@ -400,10 +401,16 @@ async function modoDemo(env, db) {
 async function convocatoriasConDemo(env, request) {
   const r = await env.ASSETS.fetch(new Request(new URL("/data/convocatorias.json", request.url)));
   const d = await r.json();
-  const v = await (await env.ASSETS.fetch(new Request(new URL("/data/validacion.json", request.url)))).json().catch(() => null);
+  const leer = async (f) => {
+    try {
+      const x = await env.ASSETS.fetch(new Request(new URL(`/data/${f}.json`, request.url)));
+      return x.ok ? (await x.json()).casos || [] : [];
+    } catch { return []; }
+  };
+  const casos = [...await leer("validacion"), ...await leer("demo")];  // demo.json: radar.demo
   const ya = new Set(d.convocatorias.map((c) => c.codigo));
   const hoy = Date.now();
-  const demo = (v?.casos || []).filter((c) => !ya.has(c.codigo) && c.veredicto !== "descarta").map((c, i) => ({
+  const demo = casos.filter((c) => !ya.has(c.codigo) && c.veredicto !== "descarta").map((c, i) => ({
     ...c, filtros: undefined, encontrada: undefined, descripcion_reto: undefined,
     demo: true, abierta: true, plazo_estimado: null,
     publicada: new Date(hoy - (3 + i) * 86400000).toISOString().slice(0, 10),

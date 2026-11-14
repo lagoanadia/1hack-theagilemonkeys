@@ -145,7 +145,8 @@ radar basta con ponerla en `por_revisar`.
 ### Modo demo
 
 Si no hay ninguna convocatoria abierta que encaje, la web saldría vacía. En modo demo (activo por
-defecto), `/data/convocatorias.json` añade las convocatorias reales de `validacion.json` como si
+defecto), `/data/convocatorias.json` añade las convocatorias reales de `validacion.json` y `demo.json` (`python -m radar.demo`,
+convocatorias reales recientes ya cerradas) como si
 estuvieran abiertas, con `demo: true` y fechas de demostración. No van en los correos.
 `PUT /api/demo {activo: false}` lo apaga (o la variable `MODO_DEMO = "0"`).
 
