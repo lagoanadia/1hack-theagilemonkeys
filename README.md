@@ -142,6 +142,13 @@ radar basta con ponerla en `por_revisar`.
   `PUT .../documentos/:requisito` con `{documento_id, estado, responsable}` (el arrastrar y soltar).
 - Archivos privados (solo equipo), hasta 10 MB: se guardan en D1 (gratis); si se configura R2, en R2.
 
+### Modo demo
+
+Si no hay ninguna convocatoria abierta que encaje, la web saldría vacía. En modo demo (activo por
+defecto), `/data/convocatorias.json` añade las convocatorias reales de `validacion.json` como si
+estuvieran abiertas, con `demo: true` y fechas de demostración. No van en los correos.
+`PUT /api/demo {activo: false}` lo apaga (o la variable `MODO_DEMO = "0"`).
+
 ### Avisos por correo
 
 Cada mañana (07:23 UTC, cron del Worker) se manda a `email_avisos` del perfil un resumen: pasos que

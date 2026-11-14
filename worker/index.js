@@ -26,6 +26,7 @@
 //   PUT    /api/plantaciones/:id · DELETE   editar / quitar                           (equipo)
 //   GET    /api/avisos/correo               vista previa del correo de avisos         (equipo)
 //   POST   /api/avisos/correo               enviarlo ahora (prueba)                    (equipo)
+//   GET    /api/demo · PUT {activo}         modo demo: convocatorias reales cerradas como si estuvieran abiertas (equipo)
 //   GET    /api/seguimiento                 lo que está en marcha, con su siguiente paso y avisos (equipo)
 //   GET    /api/reglas                      reglas del equipo + sugerencias detectadas (equipo)
 //   POST   /api/reglas                      {motivo, accion: aceptar|ignorar} o {texto} (equipo)
@@ -387,11 +388,37 @@ const PASO_POR_ESTADO = {
 const ESTADOS_FINALES = ["por_revisar", "mas_tarde", "descartada", "denegada", "terminada", "nueva", "cerrada"];
 const masDias = (n) => new Date(Date.now() + n * 86400000).toISOString().slice(0, 10);
 
+// ---------- Modo demo ----------
+// Si hoy no hay ninguna convocatoria abierta que encaje, la web quedaría vacía. En modo demo se añaden
+// las convocatorias reales a las que se presentó Reforesta (validacion.json) como si estuvieran
+// abiertas, marcadas con demo: true. Por defecto activo (variable MODO_DEMO = "0" lo apaga);
+// el equipo lo cambia con PUT /api/demo {activo}.
+async function modoDemo(env, db) {
+  const f = await db.prepare("SELECT valor FROM ajustes WHERE clave = 'modo_demo'").first().catch(() => null);
+  return f ? f.valor === "1" : env.MODO_DEMO !== "0";
+}
+async function convocatoriasConDemo(env, request) {
+  const r = await env.ASSETS.fetch(new Request(new URL("/data/convocatorias.json", request.url)));
+  const d = await r.json();
+  const v = await (await env.ASSETS.fetch(new Request(new URL("/data/validacion.json", request.url)))).json().catch(() => null);
+  const ya = new Set(d.convocatorias.map((c) => c.codigo));
+  const hoy = Date.now();
+  const demo = (v?.casos || []).filter((c) => !ya.has(c.codigo) && c.veredicto !== "descarta").map((c, i) => ({
+    ...c, filtros: undefined, encontrada: undefined, descripcion_reto: undefined,
+    demo: true, abierta: true, plazo_estimado: null,
+    publicada: new Date(hoy - (3 + i) * 86400000).toISOString().slice(0, 10),
+    fin: new Date(hoy + (21 + 9 * i) * 86400000).toISOString().slice(0, 10),
+    plazo_texto: "Ejemplo real: convocatoria ya cerrada, con fechas de demostración",
+  }));
+  return { ...d, convocatorias: [...demo, ...d.convocatorias], demo: demo.length };
+}
+
 // Datos del radar (convocatorias.json / empresas.json) indexados por código; {} si no hay.
 async function datosRadar(env, request, archivo) {
   try {
-    const r = await env.ASSETS.fetch(new Request(new URL(`/data/${archivo}.json`, request.url)));
-    const d = await r.json();
+    const d = archivo === "convocatorias" && env.DB && await modoDemo(env, env.DB)
+      ? await convocatoriasConDemo(env, request)
+      : await (await env.ASSETS.fetch(new Request(new URL(`/data/${archivo}.json`, request.url)))).json();
     return Object.fromEntries((d.convocatorias || d.empresas || []).map((c) => [c.codigo || c.id, c]));
   } catch {
     return {};
@@ -477,7 +504,7 @@ async function correoAvisos(db, env, request, { forzar = false } = {}) {
   const convs = Object.values(await datosRadar(env, request, "convocatorias"));
   const { results: tratadas } = await db.prepare("SELECT id FROM solicitudes WHERE tipo = 'convocatoria'").all();
   const yaVistas = new Set(tratadas.map((t) => t.id));
-  const nuevas = convs.filter((c) => ["presenta", "mira"].includes(c.veredicto) && !yaVistas.has(c.codigo)
+  const nuevas = convs.filter((c) => !c.demo && ["presenta", "mira"].includes(c.veredicto) && !yaVistas.has(c.codigo)
     && (c.publicada || "") >= desde.slice(0, 10)).sort((a, b) => b.puntuacion - a.puntuacion).slice(0, 10);
   const { avisos } = await seguimiento(db, env, request);
   const { results: reservas } = await db.prepare(
@@ -939,6 +966,18 @@ async function api(request, env, ruta) {
     }
   }
 
+  // --- modo demo
+  if (ruta === "/api/demo") {
+    if (!equipo) return soloEquipo();
+    if (metodo === "PUT") {
+      const activo = Boolean((await leerJSON(request)).activo);
+      await db.prepare(`INSERT INTO ajustes (clave, valor, actualizado, actualizado_por) VALUES ('modo_demo', ?, ?, ?)
+        ON CONFLICT (clave) DO UPDATE SET valor = excluded.valor, actualizado = excluded.actualizado,
+        actualizado_por = excluded.actualizado_por`).bind(activo ? "1" : "0", ahora(), autor).run();
+    }
+    return json({ activo: await modoDemo(env, db) });
+  }
+
   // --- seguimiento: qué toca hacer y cuándo
   if (ruta === "/api/seguimiento" && metodo === "GET") {
     if (!equipo) return soloEquipo();
@@ -1167,7 +1206,11 @@ export default {
     if (ruta.startsWith("/data/")) {
       const usuario = await quienEs(request, env);
       if (!usuario || usuario.denegado) return error("Solo para el equipo de Reforesta", 401);
-      const r = await env.ASSETS.fetch(request);
+      let r = await env.ASSETS.fetch(request);
+      if (ruta === "/data/convocatorias.json" && r.ok) {
+        await prepararEsquema(env.DB);
+        if (await modoDemo(env, env.DB)) r = Response.json(await convocatoriasConDemo(env, request));
+      }
       const privado = new Response(r.body, r);
       privado.headers.set("cache-control", "private, no-store");
       return privado;
