@@ -332,6 +332,13 @@ function Preparando({ lista, ir, setDescartando, cambiarEstado, avisar }) {
 const PASOS_TXT = ['Presentada', 'Concedida', 'Plantar', 'Justificar']
 // Texto corto del botón principal de cada tarjeta presentada (cabe en una línea).
 const BOTON_CORTO = { concedida: 'Concedida', presentada: 'Ya subsanada', plantar: 'A plantar', justificar: 'A justificar', terminada: 'Terminada' }
+// Columnas del tablero de Presentado (estilo Trello). Arrastrar una tarjeta cambia su estado.
+const COLUMNAS_PRESENTADO = [
+  { id: 'presentada', nombre: 'Presentada', icono: 'send', nota: 'Esperando resolución', estados: ['presentada', 'subsanar'] },
+  { id: 'concedida', nombre: 'Concedida', icono: 'verified', nota: 'Aceptarla', estados: ['concedida'] },
+  { id: 'plantar', nombre: 'Plantar', icono: 'leaf', nota: 'Fotos y facturas', estados: ['plantar'] },
+  { id: 'justificar', nombre: 'Justificar', icono: 'doc', nota: 'Entregar el gasto', estados: ['justificar'] },
+]
 // Fase de cada estado: texto corto e icono de la franja.
 const FASE = { presentada: ['Presentada', 'send'], subsanar: ['Subsanar', 'alert'], concedida: ['Concedida', 'verified'], plantar: ['Plantar', 'leaf'], justificar: ['Justificar', 'doc'], terminada: ['Terminada', 'check'], denegada: ['Denegada', 'x'] }
 const PASO_DE = { presentada: 0, subsanar: 0, denegada: 0, concedida: 1, plantar: 2, justificar: 3, terminada: 4 }
@@ -356,11 +363,9 @@ function Presentado({ lista, cambiarEstado, cambiarPaso, seg, perfil, ir }) {
   const ver = vista === 'marcha' ? enMarcha : term
   const cmp = useCallback((a, b) => (segDe(seg, a.id)?.dias ?? 9999) - (segDe(seg, b.id)?.dias ?? 9999), [seg])
   const items = useMemo(() => [...ver].sort(cmp), [ver, cmp])
-  return (
-    <>
-      <Rejilla items={items} vacio={vista === 'marcha' ? 'No hay solicitudes en marcha. Las que presentéis aparecerán aquí.' : 'Aún no hay solicitudes finalizadas.'}
-        izq={<div className="i-seg" role="group" aria-label="Filtro"><button aria-pressed={vista === 'marcha'} className={vista === 'marcha' ? 'on' : ''} onClick={() => setVista('marcha')}>En marcha · {enMarcha.length}</button><button aria-pressed={vista === 'term'} className={vista === 'term' ? 'on' : ''} onClick={() => setVista('term')}>Finalizado · {term.length}</button></div>}
-        card={a => {
+  // Tarjeta de una solicitud presentada. enColumna: en el tablero la fase ya la dice la columna, así que la
+  // franja enseña los días que quedan para el siguiente paso.
+  const tarjeta = (a, enColumna = false) => {
           const p = PASO_DE[a.estado], s = segDe(seg, a.id), sig = SIGUIENTE[a.estado] || []
           const alerta = a.estado === 'subsanar' || a.estado === 'denegada', cierre = fin(a)
           const fase = FASE[a.estado] || FASE.presentada
@@ -368,9 +373,10 @@ function Presentado({ lista, cambiarEstado, cambiarPaso, seg, perfil, ir }) {
           return (
             <article className="tb">
               <div className={`tb-franja ${tono}`}>
-                <Icon n={fase[1]} s={26} />
-                <small>{fase[0]}</small>
-                {!cierre && <span className="tb-pasos" aria-label={`Paso ${Math.min(p + 1, 4)} de 4`}>{[0, 1, 2, 3].map(k => <i key={k} className={k < p ? 'd' : k === p ? 'now' : ''} />)}</span>}
+                {enColumna && !alerta && s?.dias != null
+                  ? <><b className="n">{s.dias < 0 ? '!' : s.dias}</b><small>{s.dias < 0 ? 'vencido' : s.dias === 1 ? 'día' : 'días'}</small></>
+                  : <><Icon n={fase[1]} s={26} /><small>{fase[0]}</small></>}
+                {!cierre && !enColumna && <span className="tb-pasos" aria-label={`Paso ${Math.min(p + 1, 4)} de 4`}>{[0, 1, 2, 3].map(k => <i key={k} className={k < p ? 'd' : k === p ? 'now' : ''} />)}</span>}
               </div>
               <div className="tb-cuerpo">
                 <div className="tb-top">
@@ -396,7 +402,43 @@ function Presentado({ lista, cambiarEstado, cambiarPaso, seg, perfil, ir }) {
               </div>
             </article>
           )
-        }} />
+  }
+  const [arrastrando, setArrastrando] = useState(null)
+  const [sobre, setSobre] = useState(null)
+  const soltar = (ev, col) => {
+    ev.preventDefault(); setSobre(null)
+    const a = enMarcha.find(x => x.id === arrastrando); setArrastrando(null)
+    if (a && !col.estados.includes(a.estado)) cambiarEstado(a, col.id)
+  }
+  const filtro = <div className="i-seg" role="group" aria-label="Filtro"><button aria-pressed={vista === 'marcha'} className={vista === 'marcha' ? 'on' : ''} onClick={() => setVista('marcha')}>En marcha · {enMarcha.length}</button><button aria-pressed={vista === 'term'} className={vista === 'term' ? 'on' : ''} onClick={() => setVista('term')}>Finalizado · {term.length}</button></div>
+  return (
+    <>
+      {vista === 'marcha' ? (
+        <div className="kb">
+          <div className="i-bar"><div className="izq">{filtro}</div></div>
+          <div className="kb-cols">
+            {COLUMNAS_PRESENTADO.map(col => {
+              const enCol = items.filter(a => col.estados.includes(a.estado))
+              return (
+                <section key={col.id} className={`kb-col c-${col.id} ${sobre === col.id ? 'sobre' : ''}`} aria-label={col.nombre}
+                  onDragOver={ev => { ev.preventDefault(); setSobre(col.id) }} onDragLeave={() => setSobre(null)} onDrop={ev => soltar(ev, col)}>
+                  <header><span className="ic"><Icon n={col.icono} s={17} /></span><b>{col.nombre}</b><span className="n">{enCol.length}</span><small>{col.nota}</small></header>
+                  {enCol.length === 0 && <div className="kb-vacio">{arrastrando ? 'Soltad aquí' : 'Nada en esta fase'}</div>}
+                  {enCol.map(a => (
+                    <div key={a.id} className={`kb-tc ${arrastrando === a.id ? 'lev' : ''}`} draggable
+                      onPointerDown={e => { e.currentTarget.draggable = !e.target.closest('input,button,a,label') }}
+                      onDragStart={e => { e.dataTransfer.effectAllowed = 'move'; setArrastrando(a.id) }} onDragEnd={() => { setArrastrando(null); setSobre(null) }}>
+                      {tarjeta(a, true)}
+                    </div>
+                  ))}
+                </section>
+              )
+            })}
+          </div>
+        </div>
+      ) : (
+        <Rejilla items={items} vacio="Aún no hay solicitudes finalizadas." izq={filtro} card={a => tarjeta(a)} />
+      )}
       <p className="i-sub" style={{ margin: '14px 0 0' }}><Icon n="bell" s={15} /> {AVISOS_TXT[perfil?.avisos] || AVISOS_TXT.cada_manana}. <button className="i-link" onClick={() => ir('perfil')}>Cambiar en Perfil</button></p>
     </>
   )
