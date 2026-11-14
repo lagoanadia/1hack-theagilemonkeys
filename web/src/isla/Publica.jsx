@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
 import { island, tree } from './lp.js'
-import Globo, { GloboInfo } from './Globo.jsx'
+import { GloboInfo } from './Globo.jsx'
 import { api } from '../api.js'
 import { euros, hectareas } from '../datos.js'
 
@@ -83,9 +83,6 @@ export default function Publica({ equipo, onEntrar }) {
               </div>
             )
           })}
-        </section>
-        <section className="i-card impacto">
-          <Globo ha={Math.max(1, Math.round(ha / Math.max(1, (lista || []).length)) || 8)} titulo="Lo que supone un proyecto" />
         </section>
       </>)}
       {sel && estado !== 'enviada' && (
