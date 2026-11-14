@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
 import Desplegable from './Desplegable.jsx'
 import { island } from './lp.js'
@@ -113,6 +113,18 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
     const estado = s?.estado === 'no_aplica' ? 'no_aplica' : doc ? (aviso ? 'revisar' : 'listo') : 'falta'
     return { r, s, doc, sugerido, aviso, estado }
   })
+  // Detectar los documentos que ya hay: si la biblioteca tiene uno del mismo tipo y el hueco está vacío, se
+  // asigna solo (estado «sugerido»). Se puede cambiar o quitar como cualquier otro.
+  const autoHecho = useRef(false)
+  useEffect(() => {
+    if (!biblio || autoHecho.current) return
+    const pendientes = filas.filter(f => !f.s && f.sugerido)
+    autoHecho.current = true
+    if (!pendientes.length) return
+    Promise.all(pendientes.map(f => api(`/solicitudes/convocatoria/${a.id}/documentos/${f.r.clave}`, { metodo: 'PUT', datos: { documento_id: f.sugerido.id, estado: 'sugerido' } })))
+      .then(cargar).catch(e => setError(e.message))
+  }, [biblio, filas, a.id, cargar])
+  const detectados = filas.filter(f => f.s?.estado === 'sugerido' && f.doc).length
   const obligatorios = filas.filter(f => f.r.obligatorio !== false && f.estado !== 'no_aplica')
   const listos = obligatorios.filter(f => f.estado === 'listo').length
   const faltan = obligatorios.length - listos
@@ -140,17 +152,15 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
 
   return (
     <>
-      {top('Convocatorias · preparar')}
-      <button className="i-link" style={{ marginBottom: 8, alignSelf: 'flex-start' }} onClick={() => ir('preparando')}><Icon n="back" s={16} w={2.4} />Volver a Preparando</button>
-      <h2 style={{ margin: '0 0 2px' }}>¿Qué hace falta para presentarla?</h2>
-      <p className="i-sub">{a.titulo.length > 120 ? `${a.titulo.slice(0, 120)}…` : a.titulo} · {a.organo}</p>
+      {top('Convocatorias · preparar', false, <button className="i-link" onClick={() => ir('preparando')}><Icon n="back" s={16} w={2.4} />Volver a Preparando</button>)}
       {error && <p className="i-err" role="alert">{error} <button className="i-link" onClick={cargar}>Reintentar</button></p>}
 
       <div className="i-split">
         {/* IZQUIERDA: lo que pide esta convocatoria */}
         <div className="i-card i-docs">
           <div className="i-docs-h">
-            <b>{biblio ? `Tenéis ${listos} de ${obligatorios.length}` : 'Cargando…'}</b>
+            <small className="conv" title={`${a.titulo} · ${a.organo}`}>{a.titulo.length > 110 ? `${a.titulo.slice(0, 110)}…` : a.titulo}</small>
+            <b>{biblio ? `Tenéis ${listos} de ${obligatorios.length}` : 'Cargando…'}{detectados > 0 && <span className="det"> · {detectados} {detectados === 1 ? 'detectado' : 'detectados'} en vuestra biblioteca</span>}</b>
             <span>{general
               ? 'El radar no encontró la lista en el PDF de esta convocatoria: es una lista general. Revisad las bases.'
               : `Lo que pide esta convocatoria${a.documentos_fuente ? ` (sacado de «${a.documentos_fuente}»)` : ''}. Subid cada documento o elegidlo de los que ya tenéis.`}</span>
@@ -162,7 +172,7 @@ function Papeles({ a, top, ir, presentadas, objetivo, presentar }) {
               <span className="ico" aria-hidden="true">{estado === 'listo' ? <Icon n="check" s={16} w={3} /> : estado === 'revisar' ? '!' : null}</span>
               <div className="txt">
                 <b>{r.nombre}{r.obligatorio === false && <span className="i-opc"> · opcional</span>}</b>
-                <small>{doc ? <><Icon n="doc" s={13} /> {doc.nombre}{doc.tiene_archivo ? '' : ' (sin archivo)'}</> : r.condicion || TIPO_NOMBRE[r.tipo]}</small>
+                <small>{doc ? <><Icon n="doc" s={13} /> {doc.nombre}{doc.tiene_archivo ? '' : ' (sin archivo)'}{asig[r.clave]?.estado === 'sugerido' && <span className="det"> · detectado</span>}</> : r.condicion || TIPO_NOMBRE[r.tipo]}</small>
                 {aviso && <em className="duda">{aviso}</em>}
                 {sugerido && <em className="sug">Tenéis «{sugerido.nombre}» en la biblioteca <button className="i-link" onClick={() => asignar(r, sugerido.id)}>Usarlo</button></em>}
                 {r.cita && <em className="cita">«{r.cita}»</em>}

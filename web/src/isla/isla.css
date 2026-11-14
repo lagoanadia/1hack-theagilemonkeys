@@ -1061,3 +1061,7 @@ html,body{margin:0}
 .i-pop li.av .quitar:hover{background:#fff;color:var(--co-d);box-shadow:0 1px 0 var(--ln)}
 @media (hover:none){.i-pop li.av .quitar{opacity:1}}
 .i-pop li.av .cu{margin-right:4px}
+/* Preparar papeles: sin cabecera grande; título de la convocatoria dentro de la tarjeta */
+.i-docs-h .conv{display:block;font-size:13px;color:var(--mut);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.i-docs-h .det,.i-doc .det{color:var(--gr-d);font-weight:700}
+.i-docs-h .det{font-size:14px}
