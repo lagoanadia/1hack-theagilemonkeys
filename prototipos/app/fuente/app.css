@@ -1,0 +1,40 @@
+*{box-sizing:border-box}
+body{margin:0;width:1760px;height:1160px;position:relative;overflow:hidden;font-family:"Inter Tight",sans-serif;color:#15201A;background:#2B3A2C}
+.mono{font-family:"JetBrains Mono",monospace}
+#wall{position:absolute;inset:0;filter:blur(2px) saturate(.9) brightness(.62)}
+.win{position:absolute;left:80px;top:70px;width:1600px;height:1000px;border-radius:14px;overflow:hidden;background:#F4F3EE;box-shadow:0 60px 120px -30px rgba(0,0,0,.65),0 0 0 1px rgba(0,0,0,.25)}
+.tb{height:46px;display:flex;align-items:center;gap:14px;padding:0 16px;background:linear-gradient(#F7F6F2,#EDECE6);border-bottom:1px solid #DAD8CF;position:relative;z-index:5}
+.lights{display:flex;gap:8px}.lights i{width:12px;height:12px;border-radius:50%}
+.tbtitle{position:absolute;left:0;right:0;text-align:center;font-weight:600;font-size:13px;color:#4A554D;pointer-events:none}
+.tbtools{margin-left:auto;display:flex;gap:6px;align-items:center}
+.ti{width:30px;height:28px;border-radius:7px;display:grid;place-items:center;color:#4A554D}.ti.on{background:#E2E1D9}
+.seg{display:flex;background:#E2E1D9;border-radius:8px;padding:2px;margin-left:96px}.seg span{font-size:12px;font-weight:600;padding:4px 12px;border-radius:6px;color:#4A554D}.seg span.on{background:#fff;color:#15201A;box-shadow:0 1px 2px rgba(0,0,0,.15)}
+.body{position:absolute;top:46px;left:0;right:0;bottom:0;display:flex}
+.side{width:244px;background:rgba(236,235,228,.92);border-right:1px solid #DAD8CF;padding:14px 12px;display:flex;flex-direction:column;gap:2px;z-index:3;flex:none}
+.sh{font:600 10.5px "JetBrains Mono";letter-spacing:.08em;text-transform:uppercase;color:#7A847C;padding:14px 8px 6px}
+.ni{display:flex;align-items:center;gap:10px;padding:7px 8px;border-radius:7px;font-size:13.5px;color:#2C3A30}
+.ni.on{background:#1F4D2E;color:#fff}.ni b{margin-left:auto;font:500 11px "JetBrains Mono";opacity:.7}
+.view{display:flex;align-items:center;gap:10px;padding:6px 8px;font-size:13px;color:#2C3A30}
+.view i{width:8px;height:8px;border-radius:50%;flex:none}
+.content{flex:1;min-width:0;position:relative;display:flex;flex-direction:column}
+.av{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font:700 10px "Inter Tight";flex:none}
+.k{font:600 10px "JetBrains Mono";letter-spacing:.08em;text-transform:uppercase;color:#7A847C}
+.big{font-size:44px;font-weight:800;letter-spacing:-.04em;line-height:1}
+.btn{height:38px;border-radius:9px;font:600 13px "Inter Tight";display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid #D8D6CC;background:#fff;white-space:nowrap;padding:0 14px;color:#15201A}
+.btn.p{background:#1F4D2E;color:#fff;border-color:#1F4D2E}
+.pill{display:inline-flex;align-items:center;gap:6px;font:700 11px "Inter Tight";padding:4px 9px;border-radius:999px;white-space:nowrap}
+.pr{background:#DCEACB;color:#1F4D2E}.mi{background:#F6E6C4;color:#8A4F00}.de{background:#E6E4DC;color:#5F665F}.pe{background:#E3E9F0;color:#2C5A86}
+.chip{font-size:12.5px;font-weight:600;background:#fff;border:1px solid #DAD8CF;border-radius:999px;padding:6px 12px;white-space:nowrap}
+.chip.on{background:#15201A;color:#fff;border-color:#15201A}
+.chip b{font:500 11px "JetBrains Mono";opacity:.7;margin-left:4px}
+.bar{height:6px;border-radius:3px;background:#E6E4DB;overflow:hidden}.bar i{display:block;height:100%;border-radius:3px;background:#1F4D2E}
+.card{background:#FBFAF7;border:1px solid #DAD8CF;border-radius:14px}
+.toolbar{height:64px;display:flex;align-items:center;gap:10px;padding:0 24px;border-bottom:1px solid #DAD8CF;background:#F7F6F1;flex:none}
+.toolbar h1{font-size:20px;letter-spacing:-.02em;margin:0 12px 0 0}
+.search{height:36px;width:300px;border:1px solid #DAD8CF;border-radius:9px;display:flex;align-items:center;gap:8px;padding:0 10px;font-size:13px;color:#6A746C;background:#fff;margin-left:auto}
+.search kbd{margin-left:auto;font:500 11px "JetBrains Mono";border:1px solid #DAD8CF;border-radius:5px;padding:1px 5px}
+.tile{border-radius:9px;overflow:hidden;flex:none;position:relative}
+.ic{width:22px;height:22px;border-radius:6px;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+.ok{background:#DCEACB;color:#1F4D2E}.du{background:#F6E6C4;color:#8A4F00}.no{background:#F3D9CF;color:#9A2F12}
+blockquote{margin:0;font-size:13.5px;line-height:1.55;border-left:3px solid #1F4D2E;padding-left:12px;color:#22302A}
+.big span{letter-spacing:0;margin-left:4px}

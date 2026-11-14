@@ -1,0 +1,59 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script><script src="terrain.js"></script><script src="shell.js"></script>
+<link rel="stylesheet" href="app.css">
+<style>
+.split{flex:1;display:flex;min-height:0}
+.list{flex:1;min-width:0;display:flex;flex-direction:column;background:#FBFAF7}
+.filters{display:flex;gap:8px;padding:12px 24px;border-bottom:1px solid #DAD8CF;align-items:center}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font:600 10px "JetBrains Mono";letter-spacing:.08em;text-transform:uppercase;color:#7A847C;text-align:left;padding:9px 12px;border-bottom:1px solid #DAD8CF;background:#F3F2EC}
+th:first-child,td:first-child{padding-left:24px}
+td{padding:10px 12px;border-bottom:1px solid #ECEAE2;vertical-align:middle}
+tr.sel td{background:#E8F0DE}tr.sel td:first-child{box-shadow:inset 3px 0 0 #1F4D2E}
+tr.dim td{color:#7A847C}
+.tt{font-weight:650;font-weight:600;color:#15201A}.o{color:#7A847C;font-size:12px;margin-top:2px}
+.cell{display:flex;align-items:center;gap:12px}
+.dl{display:flex;flex-direction:column;gap:4px;width:84px}
+.insp{width:400px;background:#fff;border-left:1px solid #DAD8CF;display:flex;flex-direction:column;flex:none}
+.ih{position:relative;height:200px;overflow:hidden;flex:none}
+.ib{padding:14px 20px;border-bottom:1px solid #ECEAE2}
+.req{display:flex;gap:10px;align-items:center;font-size:13.5px;padding:5px 0}
+.group{font:600 10px "JetBrains Mono";letter-spacing:.08em;text-transform:uppercase;color:#7A847C;padding:12px 24px 6px;background:#F7F6F1;border-bottom:1px solid #ECEAE2}
+</style></head><body>
+<div id="page">
+ <div class="toolbar"><h1>Bandeja</h1><span class="pill pr">2 para presentar</span><span class="pill mi">1 para mirar</span><div class="search">Buscar convocatorias…<kbd>⌘K</kbd></div><span class="btn">Exportar</span></div>
+ <div class="split">
+  <div class="list">
+   <div class="filters"><span class="chip on">Todas<b>98</b></span><span class="chip">Restauración<b>12</b></span><span class="chip">Conservación<b>9</b></span><span class="chip">Educación<b>6</b></span><span class="chip">Madrid + Estado</span><span class="chip">Marcadas por el equipo<b>1</b></span><span class="chip" style="margin-left:auto">Orden: encaje ↓</span></div>
+   <table><thead><tr><th>Convocatoria</th><th style="width:110px">Veredicto</th><th style="width:96px">Importe</th><th style="width:110px">Cierre</th><th style="width:96px">Equipo</th></tr></thead>
+   <tbody>
+    <tr><td colspan="5" class="group" style="padding-left:24px">Recomendadas</td></tr>
+    <tr class="sel"><td><div class="cell"><svg class="tile" data-t="bosque:4" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"></svg><div><div class="tt">Subvención a entidades sin ánimo de lucro · proyectos ambientales</div><div class="o">Comunidad de Madrid · BDNS 904719 · Restauración</div></div></div></td><td><span class="pill pr">● Presenta 88</span></td><td class="mono">60.000 €</td><td><div class="dl"><span class="mono" style="color:#B45309;font-weight:600">18 días</span><div class="bar"><i style="width:82%;background:#B45309"></i></div></div></td><td><div style="display:flex"><span class="av" style="background:#E9C46A;color:#4A3500;border:2px solid #E8F0DE">NA</span><svg width="16" height="16" viewBox="0 0 24 24" fill="#E9C46A" stroke="#B8860B" stroke-width="1.5" style="margin-left:6px" aria-label="Me interesa" role="img"><path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1L3.2 9.5l6.1-.9z"/></svg></div></td></tr>
+    <tr><td><div class="cell"><svg class="tile" data-t="pradera:2" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"></svg><div><div class="tt">Actividades de interés general · protección del medio ambiente</div><div class="o">MITECO · BDNS 923290 · Conservación</div></div></div></td><td><span class="pill pr">● Presenta 75</span></td><td class="mono">17,4 M€</td><td><div class="dl"><span class="mono">41 días</span><div class="bar"><i style="width:40%"></i></div></div></td><td><span class="av" style="background:#E6E4DC;color:#7A847C">—</span></td></tr>
+    <tr><td><div class="cell"><svg class="tile" data-t="ocre:9" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"></svg><div><div class="tt">Proyectos de voluntariado ambiental</div><div class="o">Ayto. de Madrid · BDNS 870036 · Educación</div></div></div></td><td><span class="pill mi">● Mira 58</span></td><td class="mono">—</td><td><div class="dl"><span class="mono">29 días</span><div class="bar"><i style="width:60%;background:#C98A1E"></i></div></div></td><td><span class="av" style="background:#CFE3B8;color:#1F4D2E">SN</span></td></tr>
+    <tr><td colspan="5" class="group" style="padding-left:24px">Descartadas por la IA · 95</td></tr>
+    <tr class="dim"><td><div class="cell"><svg class="tile" data-t="gris:31" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"></svg><div><div class="tt" style="color:#4A554D">Subvención montes de titularidad privada · FEADER 2026-27</div><div class="o">Solo propietarios forestales privados</div></div></div></td><td><span class="pill de">● Descarta</span></td><td class="mono">—</td><td class="mono">62 días</td><td></td></tr>
+    <tr class="dim"><td><div class="cell"><svg class="tile" data-t="gris:12" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"></svg><div><div class="tt" style="color:#4A554D">Ayudas a sindicatos del sector medioambiental 2026</div><div class="o">Beneficiarios: sindicatos de trabajadores</div></div></div></td><td><span class="pill de">● Descarta</span></td><td class="mono">—</td><td class="mono">12 días</td><td></td></tr>
+    <tr class="dim"><td><div class="cell"><svg class="tile" data-t="gris:7" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"></svg><div><div class="tt" style="color:#4A554D">Premios Nacionales de Medioambiente y Energía 2026</div><div class="o">Es un premio: no financia proyectos</div></div></div></td><td><span class="pill de">● Descarta</span></td><td class="mono">—</td><td class="mono">33 días</td><td></td></tr>
+    <tr class="dim"><td><div class="cell"><svg class="tile" data-t="gris:19" width="40" height="40" viewBox="0 0 40 40" aria-hidden="true"></svg><div><div class="tt" style="color:#4A554D">Conservación de urbanizaciones · El Boalo</div><div class="o">Urbanizaciones, sin relación con restauración</div></div></div></td><td><span class="pill de">● Descarta</span></td><td class="mono">—</td><td class="mono">20 días</td><td></td></tr>
+   </tbody></table>
+   <div style="margin-top:auto;padding:10px 24px;border-top:1px solid #DAD8CF;display:flex;gap:18px;font:500 11px 'JetBrains Mono';color:#7A847C;background:#F7F6F1"><span>J/K mover</span><span>P presentar</span><span>X no interesa</span><span>L más tarde</span><span style="margin-left:auto">98 de 5.117 · el resto se descartó sin IA</span></div>
+  </div>
+  <aside class="insp">
+   <div class="ih"><svg data-t="bosque:14:2.2" width="400" height="200" viewBox="0 0 400 200" aria-hidden="true" style="position:absolute;inset:0"></svg>
+    <svg width="400" height="200" viewBox="0 0 400 200" aria-hidden="true" style="position:absolute;inset:0"><path d="M150 60 L250 48 L282 104 L210 134 L132 112 Z" fill="rgba(216,235,184,.4)" stroke="#fff" stroke-width="2" stroke-dasharray="5 4"/></svg>
+    <div style="position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,0) 35%,rgba(10,20,12,.8))"></div>
+    <div style="position:absolute;left:18px;right:18px;bottom:14px;color:#fff"><span class="pill" style="background:#D8EBB8;color:#1F4D2E">● Presenta · encaje 88</span><div style="font-size:18px;font-weight:700;letter-spacing:-.01em;margin-top:8px;line-height:1.2">Subvención a entidades sin ánimo de lucro para proyectos ambientales</div></div></div>
+   <div class="ib" style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
+    <div><div class="k">Cubre</div><div style="font-size:24px;font-weight:800;margin-top:4px">100 %</div></div><div><div class="k">Máximo</div><div style="font-size:24px;font-weight:800;margin-top:4px">60 k€</div></div><div><div class="k">Cierra</div><div style="font-size:24px;font-weight:800;margin-top:4px;color:#B45309">18 d</div></div></div>
+   <div class="ib"><div class="k" style="margin-bottom:6px">En una frase</div><div style="font-size:13.5px;line-height:1.5">Financia proyectos que restauren y conserven ecosistemas, biodiversidad y hábitats en la Comunidad de Madrid.</div></div>
+   <div class="ib"><div class="k" style="margin-bottom:6px">¿Podemos pedirla?</div>
+    <div class="req"><span class="ic ok">✓</span>Entidad sin ánimo de lucro</div><div class="req"><span class="ic ok">✓</span>Actúa en la Comunidad de Madrid</div><div class="req"><span class="ic ok">✓</span>Fines estatutarios incluyen la actividad</div><div class="req"><span class="ic du">?</span>Experiencia en proyectos similares</div></div>
+   <div class="ib" style="border:0"><div class="k" style="margin-bottom:8px">Lo que dicen las bases</div><blockquote>«Podrán ser beneficiarios de estas subvenciones las entidades sin ánimo de lucro legalmente constituidas…»</blockquote><div class="mono" style="font-size:10.5px;color:#7A847C;margin-top:6px">✓ cita comprobada · BOCM</div></div>
+   <div style="margin-top:auto;padding:14px 20px;display:flex;gap:8px;border-top:1px solid #ECEAE2"><span class="btn">✕</span><span class="btn">Más tarde</span><span class="btn p" style="flex:1">Abrir ficha completa →</span></div>
+  </aside>
+ </div>
+</div>
+<script>shell({titulo:'Radar Reforesta — Bandeja de convocatorias',seg:'Bandeja',nav:'Bandeja'});</script>
+</body></html>
