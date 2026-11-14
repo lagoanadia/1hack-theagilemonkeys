@@ -804,3 +804,5 @@ html,body{margin:0}
 .ag-ib{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;color:var(--nvs)}
 .ag-ib:hover{background:#fff;box-shadow:0 1px 0 var(--ln)}
 @media (max-width:900px){.ag-fila{grid-template-columns:40px 1fr auto}.ag-que,.ag-acc{display:none}}
+.i-art.i-art-mapa{height:190px;display:flex;align-items:center;justify-content:center;padding:8px 0;background:linear-gradient(#F4F7F1,#E8EFE4)}.i-art.i-art-mapa span{height:100%;display:flex;justify-content:center}.i-art.i-art-mapa svg{height:100%!important;width:auto!important;max-height:none!important}
+.i-art.i-art-mapa{position:relative}.i-art-lugar{position:absolute;left:12px;bottom:10px;background:rgba(255,255,255,.92);border-radius:999px;padding:4px 11px;font-size:13px;font-weight:700;color:var(--nv);height:auto!important}

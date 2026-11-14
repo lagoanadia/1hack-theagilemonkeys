@@ -1,6 +1,7 @@
 import { useMemo, useCallback, useEffect, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
 import { island } from './lp.js'
+import { mapaLugar } from './mapa.js'
 import { ErrorSesion, api } from '../api.js'
 import { euros, hectareas } from '../datos.js'
 
@@ -94,7 +95,9 @@ export default function Propuestas({ top, setToast, salir }) {
           const [et, bg, fg] = ESTADO_TAG[p.estado === 'publicada' && p.completa ? 'completa' : p.estado] || ESTADO_TAG.publicada
           return (
             <div key={p.id} className="i-card" style={{ padding: '12px 14px 16px', display: 'flex', flexDirection: 'column' }}>
-              <div className="i-art"><Svg html={island(220, 150, n, n, 20 + i)} /></div>
+              {mapaLugar(p.lugar)
+                ? <div className="i-art i-art-mapa" title={p.lugar}><Svg html={mapaLugar(p.lugar)} /><span className="i-art-lugar">📍 {p.lugar.replace(/\s*\(Madrid\)/i, '')}</span></div>
+                : <div className="i-art"><Svg html={island(220, 150, n, n, 20 + i)} /></div>}
               <div className="i-head" style={{ margin: '10px 0 4px', alignItems: 'center' }}><span className="i-tag" style={{ background: bg, color: fg }}>{et}</span><span className="i-tag">{p.plazas_libres == null ? (k === 0 ? 'Sin reservas' : k === 1 ? '1 reserva' : `${k} reservas`) : `${p.plazas_libres} de ${p.plazas} plazas libres`}</span></div>
               <b style={{ fontSize: 18 }}>{p.titulo}</b>
               <div style={{ color: 'var(--mut)', fontSize: 14 }}>{[TIPOS[p.tipo], p.lugar, hectareas(p.hectareas), euros(p.presupuesto), p.incluye || p.descripcion].filter(Boolean).join(' · ')}</div>
