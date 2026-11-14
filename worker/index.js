@@ -21,6 +21,7 @@
 //   DELETE /api/proyectos/:id               retirar un proyecto                      (equipo)
 //   POST   /api/proyectos/:id/interes       {empresa, contacto, mensaje}             (público)
 //   GET    /api/interesados                 empresas que quieren ayudar              (equipo)
+//   DELETE /api/interesados/:id             borrar una reserva (pruebas, spam)       (equipo)
 //
 // Quién hace cada cambio: cabecera X-Autor (nombre que se escribe al entrar), opcional.
 // "equipo" = cabecera X-Clave-Equipo igual al secreto CLAVE_EQUIPO (es lo que usa la web).
@@ -474,6 +475,13 @@ async function api(request, env, ruta) {
     ).bind(proyecto.id, empresa, contacto, texto(b.mensaje, 1000), ahora()).run();
     await db.prepare("INSERT INTO envios (huella, creado) VALUES (?, ?)").bind(huella, ahora()).run();
     return json({ ok: true }, 201);
+  }
+
+  ms = ruta.match(/^\/api\/interesados\/(\d+)$/);
+  if (ms && metodo === "DELETE") {
+    if (!equipo) return soloEquipo();
+    await db.prepare("DELETE FROM interesados WHERE id = ?").bind(Number(ms[1])).run();
+    return json({ ok: true });
   }
 
   if (ruta === "/api/interesados" && metodo === "GET") {

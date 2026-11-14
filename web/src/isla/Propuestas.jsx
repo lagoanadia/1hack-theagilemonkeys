@@ -36,6 +36,11 @@ export default function Propuestas({ top, setToast, salir }) {
     try { await api(`/proyectos/${p.id}`, { metodo: 'DELETE' }); setToast({ texto: 'Propuesta retirada de la página pública' }); await recargar() }
     catch (err) { if (err instanceof ErrorSesion) salir(); else setToast({ texto: `No se pudo retirar: ${err.message}` }) }
   }
+  const borrarReserva = async r => {
+    if (!confirm(`¿Borrar la reserva de «${r.empresa}»? No se puede deshacer.`)) return
+    try { await api(`/interesados/${r.id}`, { metodo: 'DELETE' }); setToast({ texto: 'Reserva borrada' }); await recargar() }
+    catch (err) { if (err instanceof ErrorSesion) salir(); else setToast({ texto: `No se pudo borrar: ${err.message}` }) }
+  }
   const campo = k => ({ value: form[k], onChange: e => setForm({ ...form, [k]: e.target.value }) })
   return (
     <>
@@ -89,7 +94,10 @@ export default function Propuestas({ top, setToast, salir }) {
             <div key={r.id} className="i-rs i-rs3">
               <div><b>{r.empresa}</b><small>{r.contacto}</small>{r.mensaje && <small>«{r.mensaje}»</small>}</div>
               <div>{r.proyecto || '—'}<small>{new Date(r.creado).toLocaleDateString('es-ES')}</small></div>
-              <div>{mail && <a className="i-btn sm" style={{ height: 40 }} href={`mailto:${mail}?subject=${encodeURIComponent('Reforesta · ' + (r.proyecto || 'vuestra reserva'))}`}><Icon n="send" s={15} />Escribir</a>}</div>
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                {mail && <a className="i-btn sm" style={{ height: 40 }} href={`mailto:${mail}?subject=${encodeURIComponent('Reforesta · ' + (r.proyecto || 'vuestra reserva'))}`}><Icon n="send" s={15} />Escribir</a>}
+                <button className="i-btn sm" style={{ height: 40 }} onClick={() => borrarReserva(r)} aria-label={`Borrar la reserva de ${r.empresa}`}>Borrar</button>
+              </div>
             </div>
           )
         })}
