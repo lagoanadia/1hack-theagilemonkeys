@@ -70,3 +70,7 @@ h1,h2,h3,h4{font-weight:500 !important;font-stretch:108%}
 .f label{font:500 13px "Archivo" !important;text-transform:none !important;letter-spacing:0 !important;color:#6E7871 !important}
 .side .mb{background:rgba(255,255,255,.12) !important}.side .mb i{background:#CFE3B8 !important}
 .big span{letter-spacing:0;margin-left:4px}
+/* Títulos de bloque visibles (estilo Tink) */
+.k,.lbl,.f label{font:600 15px "Archivo" !important;font-stretch:104% !important;color:#16201B;letter-spacing:-.005em !important}
+.f label{color:#16201B !important;font-size:13.5px !important}
+.side .k{font-size:13px !important}
