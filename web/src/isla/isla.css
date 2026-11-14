@@ -1105,3 +1105,4 @@ html,body{margin:0}
 .pf-cambios .pt{width:34px;height:34px;border-radius:50%;background:var(--am);color:#fff;display:grid;place-items:center;animation:pf-lat 1.6s ease-in-out 2}
 @keyframes pf-lat{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 @media (prefers-reduced-motion:reduce){.pf-cambios .pt{animation:none}}
+.pf-obj-isla{width:100%;max-width:310px;margin:0 auto 6px}.pf-obj-isla svg{width:100%;height:auto}.pf-obj-t{margin-bottom:6px}

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import Icon, { Svg } from './Icon.jsx'
+import { island } from './lp.js'
 import { AutoTexto, Fecha, ListaLineas } from './Campos.jsx'
 import Desplegable from './Desplegable.jsx'
 import Menu from './Menu.jsx'
@@ -265,7 +266,8 @@ export default function Perfil({ perfil, guardarPerfil, recargarPerfil, top, pre
                 <span className="n">{objetivo}</span>
                 <button type="button" className="i-round" aria-label="Más" onClick={() => set('objetivo_anual', Math.min(200, objetivo + 1))}>+</button>
               </div>
-              <p className="pf-obj-t">solicitudes este año</p>
+              <p className="pf-obj-t">solicitudes este año · un árbol por cada una</p>
+              <div className="pf-obj-isla"><Svg html={island(310, 250, Math.min(presentadas, objetivo), objetivo)} /></div>
               <div className="pf-obj-barra" role="progressbar" aria-valuemin={0} aria-valuemax={objetivo} aria-valuenow={presentadas} aria-label={`${presentadas} de ${objetivo} solicitudes`}>
                 <i style={{ width: `${Math.min(100, (presentadas / objetivo) * 100)}%` }} />
               </div>
