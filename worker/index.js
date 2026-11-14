@@ -22,6 +22,7 @@
 //   GET    /api/solicitudes/convocatoria/:codigo/documentos        qué documento va en cada hueco (equipo)
 //   PUT    /api/solicitudes/convocatoria/:codigo/documentos/:req   {documento_id, estado, responsable} (equipo)
 //   GET    /api/impacto?ha=8                CO2 que absorben esas hectáreas, en vuelos, coches y personas (público)
+//   GET    /api/solicitudes/convocatoria/:codigo/zip   ZIP con los documentos asignados + LEEME.txt (equipo)
 //   GET    /api/plantaciones                dónde ha plantado Reforesta + totales      (público; notas solo equipo)
 //   POST   /api/plantaciones                {nombre, ll:[lon,lat], ha, tipo, anio, ...} (equipo)
 //   PUT    /api/plantaciones/:id · DELETE   editar / quitar                           (equipo)
@@ -410,6 +411,103 @@ async function leerArchivo(env, db, key) {
 async function borrarArchivo(env, db, key) {
   if (key.startsWith("d1:")) await db.prepare("DELETE FROM archivo_trozos WHERE clave = ?").bind(key).run();
   else if (env.ARCHIVOS) await env.ARCHIVOS.delete(key);
+}
+
+// ---------- ZIP para presentar: los documentos de una solicitud con nombres que se entienden ----------
+// ZIP sin comprimir (método "store"): los PDF ya van comprimidos y así no hace falta ninguna librería.
+const TABLA_CRC = Array.from({ length: 256 }, (_, n) => {
+  let c = n;
+  for (let k = 0; k < 8; k++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+  return c >>> 0;
+});
+function crc32(bytes) {
+  let c = 0xffffffff;
+  for (const b of bytes) c = TABLA_CRC[(c ^ b) & 0xff] ^ (c >>> 8);
+  return (c ^ 0xffffffff) >>> 0;
+}
+// archivos: [{ nombre, datos: Uint8Array }] → Uint8Array con el .zip
+function crearZip(archivos) {
+  const enc = new TextEncoder(), partes = [], central = [];
+  const d = new Date();
+  const hora = (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1);
+  const dia = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
+  let offset = 0;
+  for (const a of archivos) {
+    const nombre = enc.encode(a.nombre), crc = crc32(a.datos), n = a.datos.length;
+    const cab = new DataView(new ArrayBuffer(30));
+    // Cabecera local: firma, versión, flags (bit 11 = nombres en UTF-8), método 0, fecha, CRC, tamaños.
+    [[0, 0x04034b50, 4], [4, 20, 2], [6, 0x0800, 2], [8, 0, 2], [10, hora, 2], [12, dia, 2], [14, crc, 4],
+      [18, n, 4], [22, n, 4], [26, nombre.length, 2], [28, 0, 2]]
+      .forEach(([o, v, t]) => (t === 4 ? cab.setUint32(o, v, true) : cab.setUint16(o, v, true)));
+    partes.push(new Uint8Array(cab.buffer), nombre, a.datos);
+    const cen = new DataView(new ArrayBuffer(46));
+    [[0, 0x02014b50, 4], [4, 20, 2], [6, 20, 2], [8, 0x0800, 2], [10, 0, 2], [12, hora, 2], [14, dia, 2],
+      [16, crc, 4], [20, n, 4], [24, n, 4], [28, nombre.length, 2], [30, 0, 2], [32, 0, 2], [34, 0, 2],
+      [36, 0, 2], [38, 0, 4], [42, offset, 4]]
+      .forEach(([o, v, t]) => (t === 4 ? cen.setUint32(o, v, true) : cen.setUint16(o, v, true)));
+    central.push(new Uint8Array(cen.buffer), nombre);
+    offset += 30 + nombre.length + n;
+  }
+  const tamCentral = central.reduce((s, p) => s + p.length, 0);
+  const fin = new DataView(new ArrayBuffer(22));
+  [[0, 0x06054b50, 4], [4, 0, 2], [6, 0, 2], [8, archivos.length, 2], [10, archivos.length, 2],
+    [12, tamCentral, 4], [16, offset, 4], [20, 0, 2]]
+    .forEach(([o, v, t]) => (t === 4 ? fin.setUint32(o, v, true) : fin.setUint16(o, v, true)));
+  const todo = [...partes, ...central, new Uint8Array(fin.buffer)];
+  const out = new Uint8Array(todo.reduce((s, p) => s + p.length, 0));
+  let o = 0;
+  for (const p of todo) { out.set(p, o); o += p.length; }
+  return out;
+}
+// Texto apto para nombre de archivo: sin tildes ni símbolos ("Declaración responsable" → "Declaracion-responsable").
+const sinTildes = (t) => String(t || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const slug = (t, max = 60) => sinTildes(t).replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, max).replace(/-$/, "");
+// La misma clave de hueco que usa la web (web/src/isla/Presentar.jsx): tipo + nombre sin tildes.
+const claveHueco = (r) => `${r.tipo}-${sinTildes(r.nombre).toLowerCase().replace(/[^a-z0-9]+/g, "-")}`.slice(0, 80).replace(/-+$/, "");
+
+async function zipSolicitud(db, env, request, codigo) {
+  const conv = (await datosRadar(env, request, "convocatorias"))[codigo] || { codigo, titulo: `Convocatoria ${codigo}` };
+  const { results: asignados } = await db.prepare(
+    `SELECT s.requisito, s.estado, d.id, d.nombre, d.archivo_key, d.archivo_nombre, d.caduca
+     FROM solicitud_documentos s LEFT JOIN documentos d ON d.id = s.documento_id WHERE s.codigo = ?`,
+  ).bind(codigo).all();
+  const porHueco = Object.fromEntries(asignados.map((a) => [a.requisito, a]));
+  // Orden: el de la lista de la convocatoria; después, huecos asignados que no estén en ella.
+  const reqs = (conv.documentos_requeridos || []).map((r) => ({ ...r, clave: claveHueco(r) }));
+  const conocidas = new Set(reqs.map((r) => r.clave));
+  for (const a of asignados) if (!conocidas.has(a.requisito)) reqs.push({ nombre: a.requisito, clave: a.requisito, obligatorio: false });
+  const base = `Reforesta_BDNS-${codigo}_${slug(conv.titulo, 50)}_${new Date().toISOString().slice(0, 10)}`;
+  const archivos = [], lineas = [], usados = new Set();
+  let n = 0;
+  for (const r of reqs) {
+    const a = porHueco[r.clave];
+    if (a?.estado === "no_aplica") { lineas.push(`  –  ${r.nombre} (no aplica)`); continue; }
+    const datos = a?.archivo_key ? await leerArchivo(env, db, a.archivo_key) : null;
+    if (!datos) {
+      lineas.push(`  ✗  ${r.nombre}${r.obligatorio ? " (OBLIGATORIO)" : ""}${r.condicion ? ` · ${r.condicion}` : ""} · FALTA`);
+      continue;
+    }
+    const ext = (a.archivo_nombre || "").match(/\.[A-Za-z0-9]{1,5}$/)?.[0] || "";
+    let nombre = `${String(++n).padStart(2, "0")}_${slug(r.nombre)}${ext}`;
+    if (usados.has(nombre)) nombre = nombre.replace(ext || /$/, `_${a.id}${ext}`);
+    usados.add(nombre);
+    const bytes = datos instanceof Uint8Array ? datos : new Uint8Array(await new Response(datos).arrayBuffer());
+    archivos.push({ nombre: `${base}/${nombre}`, datos: bytes });
+    const caducado = a.caduca && a.caduca < new Date().toISOString().slice(0, 10);
+    lineas.push(`  ✓  ${r.nombre} → ${nombre}${caducado ? ` · ¡CADUCADO el ${a.caduca}!` : ""}`);
+  }
+  const faltan = lineas.filter((l) => l.includes("FALTA")).length;
+  const leeme = [
+    `Solicitud de Reforesta · ${conv.titulo}`, "",
+    `Código BDNS: ${codigo}`, conv.organo ? `Organismo: ${conv.organo}` : "",
+    conv.fin ? `Fin de plazo: ${conv.fin}` : "", conv.url ? `Ficha oficial: ${conv.url}` : "",
+    `Preparado el ${new Date().toISOString().slice(0, 10)} con el Radar Reforesta.`, "",
+    `Documentos (${archivos.length} incluidos${faltan ? `, ${faltan} faltan` : ""}):`, ...lineas,
+    ...(conv.plantillas?.length ? ["", "Modelos oficiales:", ...conv.plantillas.map((p) => `  · ${p.nombre || p.titulo || "Modelo"}: ${p.url || ""}`)] : []),
+    ...(conv.demo ? ["", "AVISO: convocatoria de ejemplo (modo demo), ya cerrada en la realidad."] : []),
+  ].filter((l, i, t) => l !== "" || t[i - 1] !== "").join("\r\n");
+  archivos.unshift({ nombre: `${base}/00_LEEME.txt`, datos: new TextEncoder().encode(leeme) });
+  return { nombre: `${base}.zip`, zip: crearZip(archivos), incluidos: archivos.length - 1, faltan };
 }
 
 // Siguiente paso que se propone al entrar en cada estado (si el equipo no escribe otro).
@@ -944,6 +1042,19 @@ async function api(request, env, ruta) {
     return new Response(cuerpo, { headers: {
       "content-type": d.mime || "application/octet-stream", "cache-control": "private, no-store",
       "content-disposition": `attachment; filename*=UTF-8''${encodeURIComponent(d.archivo_nombre || "documento")}`,
+    } });
+  }
+
+  // --- ZIP con los documentos para presentar
+  ms = ruta.match(/^\/api\/solicitudes\/convocatoria\/([\w.-]{1,60})\/zip$/);
+  if (ms && metodo === "GET") {
+    if (!equipo) return soloEquipo();
+    const z = await zipSolicitud(db, env, request, ms[1]);
+    return new Response(z.zip, { headers: {
+      "content-type": "application/zip", "cache-control": "private, no-store",
+      "content-disposition": `attachment; filename="${z.nombre}"`,
+      "x-documentos-incluidos": String(z.incluidos), "x-documentos-faltan": String(z.faltan),
+      "access-control-expose-headers": "content-disposition, x-documentos-incluidos, x-documentos-faltan",
     } });
   }
 
