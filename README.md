@@ -25,9 +25,93 @@ Reforesta no instala nada: abre una web y ve qué merece la pena esta semana. **
 gratuitos de GitHub Actions, Groq y Cloudflare). **El radar no redacta la propuesta**: eso sigue siendo
 de Reforesta.
 
-## La web, pantalla a pantalla
+## 📁 Project Structure
 
-### Convocatorias
+```
+radar/                  Python (GitHub Actions)
+  __main__.py           el flujo completo           config.py      perfil, regiones y modelos
+  bdns.py · filtros.py  BDNS y reglas sin IA         puntuador.py   Groq (criba + decisión)
+  documentos.py         documentos del PDF de bases  criterios.py   criterios con número del perfil
+  validar.py · demo.py  pruebas con convocatorias reales
+  boe.py · empresas.py · contactos.py               empresas del BOE y su contacto
+worker/index.js         API + D1 · worker/demo.js   datos simulados del modo demo
+web/src/isla/           la web: Convocatorias, Presentar, Empresas, Propuestas, Publica, Mapa, Perfil…
+web/public/data/*.json  lo que genera el radar (no editar a mano)
+.github/workflows/radar.yml   ejecución diaria
+```
+
+## 🚀 How It Works
+
+### Cómo funciona por dentro
+
+```
+GitHub Actions (cada mañana, 05:17 UTC, gratis)
+  ├─ python -m radar           BDNS → filtros sin IA → Groq (criba + decisión) → convocatorias.json
+  │    └─ documentos.py        lee el PDF de las bases: documentos que piden
+  ├─ python -m radar.validar   las 2 convocatorias reales de Reforesta → validacion.json
+  ├─ python -m radar.demo      convocatorias reales recientes → demo.json
+  └─ python -m radar.empresas  BOE → empresas obligadas a compensar → empresas.json
+       └─ contactos.py         su contacto público, buscado con IA (Groq compound)
+Cloudflare Worker + D1 (gratis)
+  ├─ worker/index.js           API /api/* (solicitudes, documentos, propuestas, mapa, avisos…)
+  ├─ cron 07:23 UTC            correo de avisos (Resend)
+  └─ web/                      la web (React + Vite)
+```
+
+Decisiones de diseño:
+- **Revisar todo en lugar de buscar palabras.** Buscar en los títulos dejaba fuera convocatorias reales
+  (la 904719). El radar descarga todas las de Estado y Madrid y filtra después.
+- **Desconfiar de los metadatos de la BDNS.** Solo se descarta sin IA lo que es claramente para empresas;
+  la IA se guía por el texto oficial.
+- **IA en dos pasos para no gastar el cupo gratuito.** Un modelo pequeño criba y uno grande decide
+  (veredicto, requisitos y cita). Si se agota el cupo de un modelo pasa al siguiente; si se agotan todos,
+  lo que falta queda «pendiente» para el día siguiente. Nunca se recomienda algo que la IA no ha leído.
+- **La cita se comprueba.** Si la frase no aparece en el texto oficial, se descarta.
+- **No repetir trabajo.** Lo evaluado y lo descartado se guarda: cada día solo se procesa lo nuevo.
+
+#### Empresas obligadas a compensar
+`python -m radar.empresas` lee las declaraciones de impacto ambiental del BOE (API de datos abiertos).
+A la IA solo le pasa el arranque de la resolución y los párrafos sobre medidas (≈ 9.000 de ~100.000
+caracteres). Groq extrae promotor, proyecto, ubicación, medidas y hectáreas, y puntúa la **afinidad**:
+70-100 medidas claras de reforestación o restauración; 40-69 parecidas o poco concretas; 0-39 nada que
+Reforesta pueda hacer; suma si está en Madrid o cerca (Toledo, Guadalajara, Segovia, Ávila, Cuenca).
+
+**Contacto con IA:** `radar/contactos.py` busca en internet (Groq `compound`, con búsqueda web) los
+canales **corporativos y públicos** de cada empresa que interesa: web, correo, teléfono de centralita y
+página de contacto, con las fuentes. Si es una sociedad vehículo, el de su grupo. Nunca datos personales.
+Caché en `data/contactos.json`.
+
+#### Impacto en vuelos
+`GET /api/impacto?ha=8` (público): CO₂ al año y en 30 años, coches, personas y vuelos de ida y vuelta
+desde Madrid. `viaje` es el destino que dibuja el globo (entre 1 y 12 vuelos al año). Supuestos
+orientativos, en `IMPACTO` del Worker: 5 t CO₂/ha/año, 30 años, 0,1 kg CO₂ por pasajero y km.
+
+#### API principal (Worker)
+Todas las rutas de equipo llevan la cabecera `X-Clave-Equipo` (secreto `CLAVE_EQUIPO`) y,
+opcionalmente, `X-Autor`. Lista completa al principio de `worker/index.js`.
+
+| Ruta | Qué hace |
+|---|---|
+| `GET/PUT /api/solicitudes/:tipo/:id`, `/deshacer`, `/historial` | Estado de cada convocatoria o empresa, con historial y deshacer |
+| `GET /api/seguimiento` | Lo que está en marcha, por urgencia, y los avisos |
+| `GET/POST /api/documentos`, `GET /api/archivos/:id` | Biblioteca de documentos (archivos en D1, hasta 10 MB) |
+| `GET/PUT /api/solicitudes/convocatoria/:codigo/documentos[/:req]` | Qué documento va en cada casilla |
+| `GET /api/solicitudes/convocatoria/:codigo/zip` | ZIP para presentar |
+| `GET/POST /api/proyectos`, `POST /api/proyectos/:id/interes` | Propuestas y reservas (públicas) |
+| `GET/POST /api/plantaciones` | Mapa de plantaciones |
+| `GET/PUT /api/perfil`, `GET/POST /api/reglas`, `GET/POST /api/motivos` | Perfil, reglas aprendidas y motivos de descarte |
+| `GET/POST /api/avisos/correo` | Vista previa y envío del correo de avisos |
+| `GET/PUT /api/demo`, `POST /api/reiniciar` | Modo demo y empezar de cero |
+
+Estados de convocatoria: `por_revisar`, `mas_tarde`, `preparando`, `presentada`, `subsanar`,
+`concedida`, `denegada`, `plantar`, `justificar`, `terminada`, `descartada`. De empresa: `nueva`,
+`contactada`, `reunion`, `acuerdo`, `cerrada`, `descartada`. Internamente el radar usa los veredictos
+`presenta` («Sí, merece la pena presentarla»), `mira` («Mirad antes de decidir»), `descarta` y
+`pendiente`.
+
+### La web, pantalla a pantalla
+
+#### Convocatorias
 Cuatro pestañas que siguen el camino de una solicitud:
 
 - **Radar (por revisar).** Las convocatorias que encajan, una a una. Cada tarjeta dice el veredicto
@@ -52,7 +136,7 @@ Cuatro pestañas que siguen el camino de una solicitud:
   descartó (Reforesta no puede pedirla, no es de medio ambiente, fuera de su zona…). Arrastrar una
   tarjeta a otro motivo la reclasifica; cualquiera se puede recuperar.
 
-### Empresas
+#### Empresas
 Empresas que el BOE obliga a reforestar (declaraciones de impacto ambiental de parques eólicos,
 plantas solares, líneas eléctricas…).
 - **Nuevas:** fichas con lo que deben plantar, dónde, la **afinidad** con Reforesta (0-100) y las medidas.
@@ -62,7 +146,7 @@ plantas solares, líneas eléctricas…).
   (con descarga al calendario).
 - **Cerradas** y **Descartadas**.
 
-### Propuestas y página pública
+#### Propuestas y página pública
 - El equipo publica lo que quiere restaurar («15 ha tras el incendio de Valdemorillo»). Cada propuesta
   sale con un **mini mapa de Madrid** y una chincheta en el pueblo.
 - **Página pública** (`/#/propuestas`, sin contraseña): las empresas ven los proyectos, las hectáreas,
@@ -70,12 +154,12 @@ plantas solares, líneas eléctricas…).
   año», estimación) y **reservan sin compromiso**.
 - Las reservas llegan a una **agenda por letras** con el estado de cada empresa.
 
-### Mapa
+#### Mapa
 Todo lo plantado en la Comunidad de Madrid: hectáreas, árboles y sitios; qué es cada círculo
 (convocatoria, empresa, voluntariado); un desplegable **«Hasta 2025»** para ver cómo ha crecido el
 bosque; y un bocadillo con los datos de cada sitio.
 
-### Perfil
+#### Perfil
 - **La entidad:** nombre, descripción, líneas de trabajo, lo que no os sirve y el **objetivo del año**
   (un árbol en el monte por cada solicitud presentada).
 - **Elegibilidad:** la ficha que piden las convocatorias (forma jurídica, antigüedad, utilidad
@@ -86,7 +170,7 @@ bosque; y un bocadillo con los datos de cada sitio.
 
 **Campana:** los pasos que vencen, en un desplegable; se quitan uno a uno.
 
-## Cómo sabemos que el radar funciona
+### Cómo sabemos que el radar funciona
 
 No hay una lista de convocatorias de prueba, así que el radar se comprueba con datos reales:
 
@@ -116,7 +200,7 @@ No hay una lista de convocatorias de prueba, así que el radar se comprueba con 
    de **Fundación Biodiversidad** de educación ambiental (BDNS 928403, 200.000 €), que el radar habría
    recomendado el día que salió.
 
-## Modo demo
+### Modo demo
 
 Como hoy no hay convocatorias abiertas que encajen, la web arranca en **modo demo**: añade las
 convocatorias reales cerradas (`validacion.json`, `demo.json`) como si estuvieran abiertas (marcadas
@@ -128,89 +212,17 @@ No van a los correos.
   revisar» y las empresas a «Nuevas», como el primer día. Se conservan el perfil, la biblioteca, las
   propuestas y el mapa.
 
-## Cómo funciona por dentro
+## 🧠 Key Concepts
 
-```
-GitHub Actions (cada mañana, 05:17 UTC, gratis)
-  ├─ python -m radar           BDNS → filtros sin IA → Groq (criba + decisión) → convocatorias.json
-  │    └─ documentos.py        lee el PDF de las bases: documentos que piden
-  ├─ python -m radar.validar   las 2 convocatorias reales de Reforesta → validacion.json
-  ├─ python -m radar.demo      convocatorias reales recientes → demo.json
-  └─ python -m radar.empresas  BOE → empresas obligadas a compensar → empresas.json
-       └─ contactos.py         su contacto público, buscado con IA (Groq compound)
-Cloudflare Worker + D1 (gratis)
-  ├─ worker/index.js           API /api/* (solicitudes, documentos, propuestas, mapa, avisos…)
-  ├─ cron 07:23 UTC            correo de avisos (Resend)
-  └─ web/                      la web (React + Vite)
-```
+- **Pipeline diario sin servidor** — GitHub Actions + Python que genera JSON estáticos
+- **IA en dos pasos** — un modelo pequeño criba y uno grande decide, con fallback entre modelos (Groq)
+- **Anti-alucinación** — la cita del texto oficial se comprueba antes de mostrarla
+- **Datos abiertos** — APIs de la BDNS y del BOE
+- **Cloudflare Workers + D1** — API, biblioteca de documentos, ZIP y cron de avisos (Resend)
+- **React + Vite** — tableros tipo Kanban con arrastrar y soltar
+- **Coste 0 €** — todo en planes gratuitos
 
-Decisiones de diseño:
-- **Revisar todo en lugar de buscar palabras.** Buscar en los títulos dejaba fuera convocatorias reales
-  (la 904719). El radar descarga todas las de Estado y Madrid y filtra después.
-- **Desconfiar de los metadatos de la BDNS.** Solo se descarta sin IA lo que es claramente para empresas;
-  la IA se guía por el texto oficial.
-- **IA en dos pasos para no gastar el cupo gratuito.** Un modelo pequeño criba y uno grande decide
-  (veredicto, requisitos y cita). Si se agota el cupo de un modelo pasa al siguiente; si se agotan todos,
-  lo que falta queda «pendiente» para el día siguiente. Nunca se recomienda algo que la IA no ha leído.
-- **La cita se comprueba.** Si la frase no aparece en el texto oficial, se descarta.
-- **No repetir trabajo.** Lo evaluado y lo descartado se guarda: cada día solo se procesa lo nuevo.
-
-### Empresas obligadas a compensar
-`python -m radar.empresas` lee las declaraciones de impacto ambiental del BOE (API de datos abiertos).
-A la IA solo le pasa el arranque de la resolución y los párrafos sobre medidas (≈ 9.000 de ~100.000
-caracteres). Groq extrae promotor, proyecto, ubicación, medidas y hectáreas, y puntúa la **afinidad**:
-70-100 medidas claras de reforestación o restauración; 40-69 parecidas o poco concretas; 0-39 nada que
-Reforesta pueda hacer; suma si está en Madrid o cerca (Toledo, Guadalajara, Segovia, Ávila, Cuenca).
-
-**Contacto con IA:** `radar/contactos.py` busca en internet (Groq `compound`, con búsqueda web) los
-canales **corporativos y públicos** de cada empresa que interesa: web, correo, teléfono de centralita y
-página de contacto, con las fuentes. Si es una sociedad vehículo, el de su grupo. Nunca datos personales.
-Caché en `data/contactos.json`.
-
-### Impacto en vuelos
-`GET /api/impacto?ha=8` (público): CO₂ al año y en 30 años, coches, personas y vuelos de ida y vuelta
-desde Madrid. `viaje` es el destino que dibuja el globo (entre 1 y 12 vuelos al año). Supuestos
-orientativos, en `IMPACTO` del Worker: 5 t CO₂/ha/año, 30 años, 0,1 kg CO₂ por pasajero y km.
-
-### API principal (Worker)
-Todas las rutas de equipo llevan la cabecera `X-Clave-Equipo` (secreto `CLAVE_EQUIPO`) y,
-opcionalmente, `X-Autor`. Lista completa al principio de `worker/index.js`.
-
-| Ruta | Qué hace |
-|---|---|
-| `GET/PUT /api/solicitudes/:tipo/:id`, `/deshacer`, `/historial` | Estado de cada convocatoria o empresa, con historial y deshacer |
-| `GET /api/seguimiento` | Lo que está en marcha, por urgencia, y los avisos |
-| `GET/POST /api/documentos`, `GET /api/archivos/:id` | Biblioteca de documentos (archivos en D1, hasta 10 MB) |
-| `GET/PUT /api/solicitudes/convocatoria/:codigo/documentos[/:req]` | Qué documento va en cada casilla |
-| `GET /api/solicitudes/convocatoria/:codigo/zip` | ZIP para presentar |
-| `GET/POST /api/proyectos`, `POST /api/proyectos/:id/interes` | Propuestas y reservas (públicas) |
-| `GET/POST /api/plantaciones` | Mapa de plantaciones |
-| `GET/PUT /api/perfil`, `GET/POST /api/reglas`, `GET/POST /api/motivos` | Perfil, reglas aprendidas y motivos de descarte |
-| `GET/POST /api/avisos/correo` | Vista previa y envío del correo de avisos |
-| `GET/PUT /api/demo`, `POST /api/reiniciar` | Modo demo y empezar de cero |
-
-Estados de convocatoria: `por_revisar`, `mas_tarde`, `preparando`, `presentada`, `subsanar`,
-`concedida`, `denegada`, `plantar`, `justificar`, `terminada`, `descartada`. De empresa: `nueva`,
-`contactada`, `reunion`, `acuerdo`, `cerrada`, `descartada`. Internamente el radar usa los veredictos
-`presenta` («Sí, merece la pena presentarla»), `mira` («Mirad antes de decidir»), `descarta` y
-`pendiente`.
-
-## Estructura
-
-```
-radar/                  Python (GitHub Actions)
-  __main__.py           el flujo completo           config.py      perfil, regiones y modelos
-  bdns.py · filtros.py  BDNS y reglas sin IA         puntuador.py   Groq (criba + decisión)
-  documentos.py         documentos del PDF de bases  criterios.py   criterios con número del perfil
-  validar.py · demo.py  pruebas con convocatorias reales
-  boe.py · empresas.py · contactos.py               empresas del BOE y su contacto
-worker/index.js         API + D1 · worker/demo.js   datos simulados del modo demo
-web/src/isla/           la web: Convocatorias, Presentar, Empresas, Propuestas, Publica, Mapa, Perfil…
-web/public/data/*.json  lo que genera el radar (no editar a mano)
-.github/workflows/radar.yml   ejecución diaria
-```
-
-## Puesta en marcha
+## 🛠️ How To Run
 
 1. **GitHub → Settings → Secrets and variables → Actions:** secreto `GROQ_API_KEY` y `CLAVE_EQUIPO`,
    variable `RADAR_API_URL` (la dirección de la web, para que el radar lea el perfil).
