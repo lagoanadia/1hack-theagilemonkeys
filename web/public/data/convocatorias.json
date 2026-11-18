@@ -1,22 +1,72 @@
 {
- "generado": "2026-11-17T14:37",
+ "generado": "2026-11-18T14:13",
  "modo": "Groq (openai/gpt-oss-20b → openai/gpt-oss-120b)",
  "ventana_dias": 365,
- "revisadas": 5109,
- "descartadas": 5012,
+ "revisadas": 5088,
+ "descartadas": 4990,
  "descartes_por_motivo": {
-  "título (nominativa, convenio, beca...)": 2031,
-  "no es concurrencia competitiva": 1107,
-  "plazo cerrado": 1078,
-  "sin relación ambiental": 687,
-  "solo para empresas": 109
+  "título (nominativa, convenio, beca...)": 2029,
+  "no es concurrencia competitiva": 1088,
+  "plazo cerrado": 1073,
+  "sin relación ambiental": 690,
+  "solo para empresas": 110
  },
  "llamadas_groq": {
-  "criba": 0,
-  "decision": 0,
+  "criba": 1,
+  "decision": 1,
   "respaldo": 0
  },
  "convocatorias": [
+  {
+   "codigo": "942473",
+   "titulo": "Resolución de 16 de noviembre de 2026 de la Secretaría de Estado de Educación, por la que se convocan ayudas para participar en el programa nacional “Centros de Educación Ambiental” durante el año 2027",
+   "organo": "MINISTERIO DE EDUCACIÓN, FORMACIÓN PROFESIONAL Y DEPORTES",
+   "ambito": "ESTADO",
+   "publicada": "2026-11-17",
+   "inicio": null,
+   "fin": null,
+   "plazo_texto": "El día 3 de diciembre de 2026, a las 12.00 del mediodía, hora peninsular",
+   "abierta": false,
+   "presupuesto": 247315.5,
+   "tipo": "Concurrencia competitiva - canónica",
+   "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/942473",
+   "url_bases": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2005-7751",
+   "sede": "https://sede.educacion.gob.es/portada.html",
+   "puntuacion": 85,
+   "veredicto": "presenta",
+   "encaja": true,
+   "linea": "educacion",
+   "motivo": "Pueden solicitarla entidades sin ánimo de lucro que no desarrollen actividad económica, a nivel nacional, para proyectos de educación ambiental.",
+   "resumen": "Financia actividades de educación ambiental en centros educativos para el año 2027.",
+   "requisitos": [
+    {
+     "texto": "Ser persona jurídica que no desarrolle actividad económica",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Estar al corriente de obligaciones fiscales y con la Seguridad Social",
+     "estado": "duda"
+    },
+    {
+     "texto": "Tener sede y actividad en territorio español",
+     "estado": "cumple"
+    }
+   ],
+   "requisitos_clave": "Estar al corriente de obligaciones fiscales y con la Seguridad Social",
+   "cita": "",
+   "porcentaje_financiado": null,
+   "importe_max": null,
+   "plazo_estimado": "2026-12-03",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": "2-ec04a1e6",
+   "plantillas": [],
+   "documentos_version": 1,
+   "documentos_requeridos": [],
+   "documentos_fuente": "no encontrado: revisad las bases",
+   "veredicto_ia": "presenta",
+   "avisos_criterios": [],
+   "importe_referencia": 247315.5
+  },
   {
    "codigo": "907398",
    "titulo": "Expediente 2767780P: CONVOCATORIA ACTIVIDADES EXTRAESCOLARES - VIAJE FIN DE ETAPA 2026",
