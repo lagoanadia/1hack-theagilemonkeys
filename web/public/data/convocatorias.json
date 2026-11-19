@@ -1,15 +1,15 @@
 {
- "generado": "2026-11-18T14:13",
+ "generado": "2026-11-19T14:30",
  "modo": "Groq (openai/gpt-oss-20b → openai/gpt-oss-120b)",
  "ventana_dias": 365,
- "revisadas": 5088,
- "descartadas": 4990,
+ "revisadas": 5087,
+ "descartadas": 4988,
  "descartes_por_motivo": {
-  "título (nominativa, convenio, beca...)": 2029,
-  "no es concurrencia competitiva": 1088,
-  "plazo cerrado": 1073,
-  "sin relación ambiental": 690,
-  "solo para empresas": 110
+  "título (nominativa, convenio, beca...)": 2026,
+  "no es concurrencia competitiva": 1089,
+  "plazo cerrado": 1069,
+  "sin relación ambiental": 693,
+  "solo para empresas": 111
  },
  "llamadas_groq": {
   "criba": 1,
@@ -66,6 +66,183 @@
    "veredicto_ia": "presenta",
    "avisos_criterios": [],
    "importe_referencia": 247315.5
+  },
+  {
+   "codigo": "943077",
+   "titulo": "AYUDAS PARA EL FOMENTO DE LA PROTECCIÓN ANIMAL- EE SIN ÁNIMO DE LUCRO 2027",
+   "organo": "COMUNIDAD DE MADRID",
+   "ambito": "AUTONOMICA",
+   "publicada": "2026-11-18",
+   "inicio": null,
+   "fin": null,
+   "plazo_texto": "15 DÍAS DESPUÉS DEL DÍA SIGUIENTE DE LA PUBLICACIÓN DEL EXTRACTO DE LA CONVOCATORIA EN EL BOCM",
+   "abierta": false,
+   "presupuesto": 900000,
+   "tipo": "Concurrencia competitiva - canónica",
+   "url": "https://www.infosubvenciones.es/bdnstrans/GE/es/convocatorias/943077",
+   "url_bases": "https://www.bocm.es/boletin/CM_Orden_BOCM/2026/09/18/BOCM-20260918-25.PDF",
+   "sede": "",
+   "puntuacion": 75,
+   "veredicto": "presenta",
+   "encaja": true,
+   "linea": "conservacion",
+   "motivo": "Pueden solicitarla personas jurídicas sin ánimo de lucro que no desarrollen actividad económica, con sede o actividad en la Comunidad de Madrid, en el ámbito de agricultura, pesca y alimentación.",
+   "resumen": "Financia proyectos de protección animal y mejora de la agricultura sostenible en la Comunidad de Madrid.",
+   "requisitos": [
+    {
+     "texto": "Ser persona jurídica sin ánimo de lucro que no desarrolle actividad económica",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Tener sede o actividad en la Comunidad de Madrid",
+     "estado": "cumple"
+    },
+    {
+     "texto": "Proyecto relacionado con agricultura, pesca y alimentación",
+     "estado": "cumple"
+    }
+   ],
+   "requisitos_clave": "",
+   "cita": "",
+   "porcentaje_financiado": null,
+   "importe_max": null,
+   "plazo_estimado": "2026-12-04",
+   "metodo": "groq:openai/gpt-oss-120b",
+   "version": "2-ec04a1e6",
+   "plantillas": [
+    {
+     "nombre": "Modelo de Solicitud",
+     "archivo": "Modelo de Solicitud.pdf",
+     "url": "https://www.infosubvenciones.es/bdnstrans/api/convocatorias/documentos?idDocumento=1558451"
+    }
+   ],
+   "documentos_version": 1,
+   "documentos_requeridos": [
+    {
+     "nombre": "Solicitud oficial",
+     "tipo": "solicitud",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "junto con la solicitud en el modelo oficial"
+    },
+    {
+     "nombre": "DNI/NIE solicitante",
+     "tipo": "otro",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "DNI/NIE de la persona física que presenta la solicitud"
+    },
+    {
+     "nombre": "DNI/NIE representante",
+     "tipo": "otro",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "DNI/NIE del representante"
+    },
+    {
+     "nombre": "Certificado AEAT",
+     "tipo": "cert_hacienda",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Certificado de la Agencia Estatal de la Administración Tributaria (AEAT) que permita comprobar si el solicitante está al corriente"
+    },
+    {
+     "nombre": "Certificado Seguridad Social",
+     "tipo": "cert_seg_social",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Certificado de la Tesorería General de la Seguridad Social que permita comprobar si el solicitante está al corriente"
+    },
+    {
+     "nombre": "Tarjeta identificación fiscal",
+     "tipo": "cif",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Tarjeta de identificación fiscal de la entidad"
+    },
+    {
+     "nombre": "Acreditación representación",
+     "tipo": "representante_legal",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Acreditación de la representación del representante"
+    },
+    {
+     "nombre": "Certificado bancario IBAN",
+     "tipo": "titularidad_bancaria",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Certificado emitido por la entidad bancaria correspondiente donde se solicita el ingreso de la ayuda, en el que conste el código IBAN"
+    },
+    {
+     "nombre": "Tabla de conceptos subvencionables",
+     "tipo": "anexo",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Tabla de conceptos subvencionables solicitados: Tabla en formato Excel resumida"
+    },
+    {
+     "nombre": "Tabla de presupuestos/facturas",
+     "tipo": "anexo",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Tabla de presupuestos/facturas presentados: Tabla en formato Excel donde se enumeren todos los presupuestos"
+    },
+    {
+     "nombre": "Copia de presupuestos",
+     "tipo": "presupuesto",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Copia de todos los presupuestos"
+    },
+    {
+     "nombre": "Certificado registro entidad",
+     "tipo": "registro_entidad",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Certificado de inscripción en el Registro de Asociaciones o Fundaciones"
+    },
+    {
+     "nombre": "Título entidad colaboradora",
+     "tipo": "otro",
+     "obligatorio": true,
+     "condicion": "",
+     "antiguedad_max_meses": null,
+     "cita": "Título de Entidad Colaboradora de la Comunidad de Madrid"
+    },
+    {
+     "nombre": "Certificado núcleo zoológico",
+     "tipo": "otro",
+     "obligatorio": false,
+     "condicion": "solo si la entidad es titular de un centro de acogida",
+     "antiguedad_max_meses": null,
+     "cita": "Sólo en caso de que la entidad sea titular de un centro de acogida: certificado de núcleo zoológico o equivalente"
+    },
+    {
+     "nombre": "Permiso municipal",
+     "tipo": "permiso_propietario",
+     "obligatorio": false,
+     "condicion": "solo si la ayuda es para construcción, ampliación, equipamiento o mejora de un centro de acogida",
+     "antiguedad_max_meses": null,
+     "cita": "Sólo en caso de solicitarse ayuda para construcción, ampliación, equipamiento o mejora de un centro de acogida: permiso municipal"
+    }
+   ],
+   "documentos_fuente": "Texto Convocatoria BDNS  Orden 4203/2026 anonimizada.pdf",
+   "veredicto_ia": "presenta",
+   "avisos_criterios": [],
+   "importe_referencia": 900000
   },
   {
    "codigo": "907398",
