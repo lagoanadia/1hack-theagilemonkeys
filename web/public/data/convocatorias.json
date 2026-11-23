@@ -1,15 +1,15 @@
 {
- "generado": "2026-11-22T13:26",
+ "generado": "2026-11-23T16:07",
  "modo": "Groq (openai/gpt-oss-20b → openai/gpt-oss-120b)",
  "ventana_dias": 365,
- "revisadas": 5077,
- "descartadas": 4979,
+ "revisadas": 5093,
+ "descartadas": 4995,
  "descartes_por_motivo": {
-  "título (nominativa, convenio, beca...)": 2040,
-  "no es concurrencia competitiva": 1081,
+  "título (nominativa, convenio, beca...)": 2045,
+  "no es concurrencia competitiva": 1084,
   "plazo cerrado": 1047,
-  "sin relación ambiental": 698,
-  "solo para empresas": 113
+  "sin relación ambiental": 704,
+  "solo para empresas": 115
  },
  "llamadas_groq": {
   "criba": 0,
