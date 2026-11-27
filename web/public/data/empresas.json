@@ -1,7 +1,7 @@
 {
- "generado": "2026-11-26T15:26",
+ "generado": "2026-11-27T15:14",
  "ventana_dias": 180,
- "revisadas": 30,
+ "revisadas": 29,
  "pendientes": 0,
  "empresas": [
   {
@@ -500,45 +500,6 @@
    "accion": "mira",
    "resumen": "Los parques eólicos Agromaces, Ventoburgo, Sistesas, Xestiloi y Agratina deben reforestar ~32 ha y restaurar ribera en Lugo, Pontevedra y Ourense",
    "cita": "",
-   "metodo": "groq:openai/gpt-oss-120b",
-   "version": "1-ec04a1e6"
-  },
-  {
-   "id": "BOE-A-2026-11671",
-   "fecha": "2026-05-30",
-   "titulo": "Resolución de 11 de mayo de 2026, de la Dirección General de Calidad y Evaluación Ambiental, por la que se formula declaración de impacto ambiental del proyecto «Planta de almacenamiento de energía Perdiguero, de 100 MW de potencia instalada, y para su infraestructura de evacuación, en la provincia de Huesca».",
-   "url": "https://www.boe.es/diario_boe/txt.php?id=BOE-A-2026-11671",
-   "promotor": "Power Tarida, SL",
-   "proyecto": "Planta de almacenamiento de energía Perdiguero",
-   "tipo": "infraestructura",
-   "ubicacion": "Anciles, Linsoles, Huesca, Aragón",
-   "medidas": [
-    {
-     "texto": "Restauración de prados de siega de baja altitud (HIC 6510)",
-     "superficie_ha": 1.0
-    },
-    {
-     "texto": "Revegetación y plantación de especies autóctonas en áreas degradadas",
-     "superficie_ha": 2.0
-    },
-    {
-     "texto": "Creación de pequeñas charcas para favorecer especies de anfibios y Narcissus poeticus",
-     "superficie_ha": null
-    },
-    {
-     "texto": "Programas de educación ambiental para la comunidad local",
-     "superficie_ha": null
-    },
-    {
-     "texto": "Monitoreo y seguimiento de fauna (reptiles, anfibios, mamíferos) durante la fase de construcción",
-     "superficie_ha": null
-    }
-   ],
-   "superficie_total_ha": 3.0,
-   "encaje": 50,
-   "accion": "mira",
-   "resumen": "Power Tarida, SL debe restaurar ~3 ha de prados degradados y crear hábitats para anfibios en Anciles (Huesca) como compensación del proyecto de almacenamiento",
-   "cita": "la restauración y las medidas compensatorias previstas, especialmente la recuperación de prados degradados en superficie equivalente, permitirán reducirlo a compatible o poco significativo",
    "metodo": "groq:openai/gpt-oss-120b",
    "version": "1-ec04a1e6"
   },
